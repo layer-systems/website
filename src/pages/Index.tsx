@@ -208,9 +208,19 @@ const Index = () => {
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} LAYER.systems. Powered by Nostr.
             </p>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Server className="w-4 h-4" />
-              <span>Open and free for all</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Server className="w-4 h-4" />
+                <span>Open and free for all</span>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Terms
+                </a>
+                <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Privacy
+                </a>
+              </div>
             </div>
           </div>
         </div>

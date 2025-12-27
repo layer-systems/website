@@ -4,6 +4,8 @@ import { ScrollToTop } from "./components/ScrollToTop";
 import Index from "./pages/Index";
 import { Explore } from "./pages/Explore";
 import { NIP19Page } from "./pages/NIP19Page";
+import { Terms } from "./pages/Terms";
+import { Privacy } from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -13,6 +15,8 @@ export function AppRouter() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/explore" element={<Explore />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
         {/* NIP-19 route for npub1, note1, naddr1, nevent1, nprofile1 */}
         <Route path="/:nip19" element={<NIP19Page />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
