@@ -95,8 +95,8 @@ const Index = () => {
             <Card className="border-2 border-primary/20 shadow-2xl shadow-primary/5 backdrop-blur-sm bg-card/95">
               <CardContent className="p-8">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="sm:flex-1 min-w-0">
                       <p className="text-sm text-muted-foreground mb-2">Relay URL</p>
                       <code className="text-lg sm:text-xl font-mono text-primary break-all">
                         {relayUrl}
@@ -105,7 +105,7 @@ const Index = () => {
                     <Button
                       size="lg"
                       onClick={copyToClipboard}
-                      className="shrink-0 gap-2 hover:scale-105 transition-transform"
+                      className="w-full sm:w-auto sm:shrink-0 gap-2 hover:scale-105 transition-transform"
                     >
                       {copied ? (
                         <>
