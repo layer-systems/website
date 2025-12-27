@@ -5,7 +5,7 @@ import { defineConfig } from "vitest/config";
 
 // https://vitejs.dev/config/
 export default defineConfig(( { mode } ) => ({
-  base: mode === 'production' && process.env.GITHUB_ACTIONS ? '/website/' : '/',
+  // base: mode === 'production' && process.env.GITHUB_ACTIONS ? '/website/' : '/',
   server: {
     host: "::",
     port: 8080,
