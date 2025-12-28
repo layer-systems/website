@@ -27,7 +27,7 @@ export const description = "Activity timeline showing events per day"
 const chartConfig = {
   events: {
     label: "Events",
-    color: "var(--chart-1)",
+    color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig
 
