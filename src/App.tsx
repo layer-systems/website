@@ -32,7 +32,7 @@ const queryClient = new QueryClient({
 });
 
 const defaultConfig: AppConfig = {
-  theme: "system",
+  theme: "light",
   relayMetadata: {
     relays: [
       { url: 'wss://relay.layer.systems', read: true, write: true },
