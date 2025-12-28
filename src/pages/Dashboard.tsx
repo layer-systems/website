@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/navigation/AppSidebar';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { EventKindsChart } from '@/components/dashboard/EventKindsChart';
+import { RecentActivityChart } from '@/components/dashboard/RecentActivityChart';
 import { RecentActivityList } from '@/components/dashboard/RecentActivityList';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Card, CardContent } from '@/components/ui/card';
@@ -47,6 +48,8 @@ export function Dashboard() {
                 </div>
 
                 <DashboardStats pubkey={user.pubkey} />
+
+                <RecentActivityChart />
 
                 <div className="grid gap-6 md:grid-cols-2">
                   <EventKindsChart />
