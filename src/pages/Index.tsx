@@ -88,7 +88,7 @@ const Index = () => {
           {/* Main Heading */}
           <div className="text-center space-y-6 mb-12">
             <h1 className="text-5xl sm:text-7xl font-bold tracking-tight">
-              <span className="bg-gradient-to-r from-foreground via-foreground to-foreground/60 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary via-primary to-primary/60 bg-clip-text text-transparent">
                 LAYER.systems
               </span>
             </h1>
