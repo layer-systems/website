@@ -49,7 +49,7 @@ export function Dashboard() {
                 <DashboardStats pubkey={user.pubkey} />
 
                 <div className="grid gap-6 md:grid-cols-2">
-                  <EventKindsChart pubkey={user.pubkey} />
+                  <EventKindsChart />
                   <RecentActivityList pubkey={user.pubkey} />
                 </div>
               </>
