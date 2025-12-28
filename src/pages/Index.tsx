@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle2, Copy, Server, Zap, Shield, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
+import { LoginArea } from '@/components/auth/LoginArea';
 
 const Index = () => {
   const [copied, setCopied] = useState(false);
@@ -58,6 +59,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Header */}
+      <header className="absolute top-0 left-0 right-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-end">
+            <LoginArea className="max-w-60" />
+          </div>
+        </div>
+      </header>
+
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         {/* Animated Background Elements */}
