@@ -1,7 +1,7 @@
 // NOTE: This file is stable and usually should not be modified.
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
-import { ChevronDown, LayoutDashboard, LogOut, UserIcon, UserPlus, Wallet, Wifi, X } from 'lucide-react';
+import { ChevronDown, LayoutDashboard, LogOut, Monitor, Moon, Sun, UserIcon, UserPlus, Wallet, Wifi, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -25,6 +25,8 @@ import { Button } from '@/components/ui/button';
 import { useLoggedInAccounts, type Account } from '@/hooks/useLoggedInAccounts';
 import { genUserName } from '@/lib/genUserName';
 import { RelayListManager } from '@/components/RelayListManager';
+import { useTheme } from '@/hooks/useTheme';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface AccountSwitcherProps {
   onAddAccountClick: () => void;
@@ -32,6 +34,7 @@ interface AccountSwitcherProps {
 
 export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
   const { currentUser, otherUsers, setLogin, removeLogin } = useLoggedInAccounts();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
 
   if (!currentUser) return null;
@@ -39,6 +42,12 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
   const getDisplayName = (account: Account): string => {
     return account.metadata.name ?? genUserName(account.pubkey);
   }
+
+  const handleThemeChange = (value: string) => {
+    if (value === 'light' || value === 'dark' || value === 'system') {
+      setTheme(value);
+    }
+  };
 
   return (
     <DropdownMenu modal={false}>
@@ -129,6 +138,39 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           <UserPlus className='w-4 h-4' />
           <span>Add another account</span>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <div className='px-2 py-2 space-y-2'>
+          <p className='text-xs font-medium text-muted-foreground'>Theme</p>
+          <ToggleGroup
+            type='single'
+            value={theme}
+            onValueChange={handleThemeChange}
+            aria-label='Select theme'
+            className='w-full justify-start'
+          >
+            <ToggleGroupItem
+              value='light'
+              aria-label='Light theme'
+              className='flex-1 flex items-center justify-center gap-1'
+            >
+              <Sun className='h-4 w-4' />
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value='system'
+              aria-label='System theme'
+              className='flex-1 flex items-center justify-center gap-1'
+            >
+              <Monitor className='h-4 w-4' />
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value='dark'
+              aria-label='Dark theme'
+              className='flex-1 flex items-center justify-center gap-1'
+            >
+              <Moon className='h-4 w-4' />
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
         <DropdownMenuItem
           onClick={() => removeLogin(currentUser.id)}
           className='flex items-center gap-2 cursor-pointer p-2 rounded-md text-red-500'
