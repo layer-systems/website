@@ -85,12 +85,12 @@ const DashboardPage = () => {
           </Link>
           
           <div className="flex items-center space-x-4">
-            <Link to="/explore">
+            {/* <Link to="/explore">
               <Button variant="ghost" size="sm" className="hidden sm:flex">
                 <Activity className="h-4 w-4 mr-2" />
                 Explore
               </Button>
-            </Link>
+            </Link> */}
             <LoginArea className="max-w-60" />
           </div>
         </div>
