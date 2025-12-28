@@ -7,6 +7,7 @@ export interface UserStats {
   eventsByKind: Record<number, number>;
   recentEvents: NostrEvent[];
   lastActivity?: number;
+  events: NostrEvent[];
 }
 
 export function useUserStats(pubkey: string | undefined) {
@@ -54,6 +55,7 @@ export function useUserStats(pubkey: string | undefined) {
         eventsByKind,
         recentEvents,
         lastActivity: lastActivity > 0 ? lastActivity : undefined,
+        events,
       };
 
       return stats;

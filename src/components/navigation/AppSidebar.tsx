@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard } from 'lucide-react';
+import { Home, LayoutDashboard, FileText } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -23,6 +23,11 @@ const navigationItems = [
     title: 'Dashboard',
     url: '/dashboard',
     icon: LayoutDashboard,
+  },
+  {
+    title: 'My Events',
+    url: '/dashboard/events',
+    icon: FileText,
   },
 ];
 
