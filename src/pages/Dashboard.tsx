@@ -2,7 +2,6 @@ import { useSeoMeta } from "@unhead/react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { DashboardOverview } from "@/components/DashboardOverview";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 

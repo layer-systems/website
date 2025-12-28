@@ -27,7 +27,6 @@ export function useUserStats(pubkey: string | undefined) {
       const now = Math.floor(Date.now() / 1000);
       const weekAgo = now - 7 * 24 * 60 * 60;
       const monthAgo = now - 30 * 24 * 60 * 60;
-      const thirtyDaysAgo = now - 30 * 24 * 60 * 60;
 
       // Fetch user's posts
       const posts = await nostr.query(
