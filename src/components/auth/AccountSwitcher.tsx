@@ -1,7 +1,7 @@
 // NOTE: This file is stable and usually should not be modified.
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
-import { ChevronDown, LogOut, UserIcon, UserPlus, Wallet } from 'lucide-react';
+import { ChevronDown, LogOut, UserIcon, UserPlus, Wallet, Wifi, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,8 +11,19 @@ import {
 } from '@/components/ui/dropdown-menu.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
 import { WalletModal } from '@/components/WalletModal';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/components/ui/drawer.tsx';
+import { Button } from '@/components/ui/button';
 import { useLoggedInAccounts, type Account } from '@/hooks/useLoggedInAccounts';
 import { genUserName } from '@/lib/genUserName';
+import { RelayListManager } from '@/components/RelayListManager';
 
 interface AccountSwitcherProps {
   onAddAccountClick: () => void;
@@ -60,6 +71,39 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
+        <Drawer>
+          <DrawerTrigger asChild>
+            <DropdownMenuItem
+              className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+              onSelect={(e) => e.preventDefault()}
+            >
+              <Wifi className='w-4 h-4' />
+              <span>Manage relays</span>
+            </DropdownMenuItem>
+          </DrawerTrigger>
+          <DrawerContent className='h-[80vh] max-h-[640px] flex flex-col'>
+            <DrawerHeader className='flex items-start justify-between gap-4 px-4 pt-6 pb-2'>
+              <div>
+                <DrawerTitle className='flex items-center gap-2'>
+                  <Wifi className='h-5 w-5' />
+                  <span>Relay connections</span>
+                </DrawerTitle>
+                <DrawerDescription>
+                  Choose which relays this client reads from and publishes to.
+                </DrawerDescription>
+              </div>
+              <DrawerClose asChild>
+                <Button variant='ghost' size='icon' className='rounded-full'>
+                  <X className='h-4 w-4' />
+                  <span className='sr-only'>Close</span>
+                </Button>
+              </DrawerClose>
+            </DrawerHeader>
+            <div className='px-4 pb-6 pt-2 overflow-y-auto'>
+              <RelayListManager />
+            </div>
+          </DrawerContent>
+        </Drawer>
         <WalletModal>
           <DropdownMenuItem
             className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
