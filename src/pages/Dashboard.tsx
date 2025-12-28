@@ -8,9 +8,16 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon } from 'lucide-react';
+import { Account, useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
+import { genUserName } from '@/lib/genUserName';
 
 export function Dashboard() {
   const { user } = useCurrentUser();
+  const { currentUser } = useLoggedInAccounts();
+
+  const getDisplayName = (account: Account): string => {
+    return account.metadata.name ?? genUserName(account.pubkey);
+  }
 
   return (
     <SidebarProvider>
@@ -40,7 +47,7 @@ export function Dashboard() {
               <>
                 <div className="space-y-2">
                   <h2 className="text-3xl font-bold tracking-tight">
-                    Welcome back!
+                    Welcome back {currentUser ? getDisplayName(currentUser) : ''}!
                   </h2>
                   <p className="text-muted-foreground">
                     Here's an overview of your Nostr activity and statistics.
