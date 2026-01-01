@@ -2,7 +2,7 @@ import { useSeoMeta } from '@unhead/react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, Copy, Server, Zap, Shield, Globe } from 'lucide-react';
+import { CheckCircle2, Copy, Server, Gift, Users, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import { LoginArea } from '@/components/auth/LoginArea';
 
@@ -36,14 +36,14 @@ const Index = () => {
 
   const features = [
     {
-      icon: Zap,
-      title: 'Lightning Fast',
-      description: 'Optimized for speed with low-latency connections',
+      icon: Gift,
+      title: 'Free',
+      description: 'No cost to use - accessible for everyone',
     },
     {
-      icon: Shield,
-      title: 'Reliable & Secure',
-      description: 'Always online with enterprise-grade security',
+      icon: Users,
+      title: 'Community driven',
+      description: 'Built and maintained by the Nostr community',
     },
     {
       icon: Globe,
