@@ -133,15 +133,15 @@ export function RecentActivityChart() {
   }
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader>
         <CardTitle>Recent Activity</CardTitle>
         <CardDescription>
           Your event activity over the last 30 days
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-[250px] w-full">
+      <CardContent className="overflow-x-auto">
+        <ChartContainer config={chartConfig} className="h-[250px] w-full min-w-[300px]">
           <BarChart data={chartData} accessibilityLayer>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis

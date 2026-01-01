@@ -156,7 +156,7 @@ export function EventKindsChart() {
   }
 
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col overflow-hidden">
       <CardHeader className="items-center pb-0">
         <CardTitle>Event Kinds Distribution</CardTitle>
         <CardDescription>Your top 5 event types</CardDescription>

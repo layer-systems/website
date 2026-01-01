@@ -89,16 +89,16 @@ export function RecentActivityList({ pubkey }: RecentActivityListProps) {
                   key={event.id}
                   className="flex items-start justify-between border-b pb-3 last:border-0"
                 >
-                  <div className="space-y-1 flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
+                  <div className="space-y-1 flex-1 min-w-0 overflow-hidden">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="secondary" className="text-xs shrink-0">
                         {kindName}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground shrink-0">
                         {relativeTime}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2 break-all">
                       {contentPreview}
                     </p>
                   </div>
