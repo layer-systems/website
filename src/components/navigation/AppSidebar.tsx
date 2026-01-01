@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, FileText } from 'lucide-react';
+import { Home, LayoutDashboard, FileText, BarChart3 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -28,6 +28,11 @@ const navigationItems = [
     title: 'My Events',
     url: '/dashboard/events',
     icon: FileText,
+  },
+  {
+    title: 'Relay Stats',
+    url: '/stats',
+    icon: BarChart3,
   },
 ];
 
