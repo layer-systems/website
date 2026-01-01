@@ -185,11 +185,11 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
 
   return (
     <>
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle>Your Events</CardTitle>
-            <CardDescription>
+          <div className="min-w-0">
+            <CardTitle className="break-words">Your Events</CardTitle>
+            <CardDescription className="break-words">
               Browse your published events and request deletion directly from your dashboard.
             </CardDescription>
           </div>
@@ -223,16 +223,16 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
                     key={event.id}
                     className="flex flex-col gap-2 rounded-lg border bg-card/40 p-3 transition hover:bg-accent/40 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0 overflow-hidden">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs shrink-0">
                           {label}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground shrink-0">
                           {createdAt.toLocaleString()}
                         </span>
                       </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2 max-w-xl">
+                      <p className="text-sm text-muted-foreground line-clamp-2 max-w-xl break-all">
                         {contentPreview}
                       </p>
                     </div>
@@ -311,8 +311,8 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
             </div>
           </ScrollArea>
 
-          <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-            <div>
+          <div className="mt-4 flex flex-col gap-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-center sm:text-left">
               Showing
               {' '}
               <span className="font-medium">
@@ -333,7 +333,7 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
               {' '}
               events
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
