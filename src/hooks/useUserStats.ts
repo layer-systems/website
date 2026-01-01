@@ -25,7 +25,7 @@ export function useUserStats(pubkey: string | undefined) {
         [
           {
             authors: [pubkey],
-            limit: 500,
+            // limit: 500,
           },
         ],
         { signal }
