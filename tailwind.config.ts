@@ -19,6 +19,10 @@ export default {
     		}
     	},
     	extend: {
+    		fontFamily: {
+    			sans: ['Outfit Variable', 'Outfit', 'system-ui', 'sans-serif'],
+    			serif: ['Bitter Variable', 'Bitter', 'Georgia', 'serif'],
+    		},
     		colors: {
     			border: 'hsl(var(--border))',
     			input: 'hsl(var(--input))',

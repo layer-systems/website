@@ -1,10 +1,11 @@
 import { useSeoMeta } from '@unhead/react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, Copy, Server, Gift, Users, Globe } from 'lucide-react';
+import { CheckCircle2, Copy, Server, Gift, Users, Globe, ArrowRight, Compass } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
-import { LoginArea } from '@/components/auth/LoginArea';
+import { Layout } from '@/components/Layout';
 
 const Index = () => {
   const [copied, setCopied] = useState(false);
@@ -37,205 +38,180 @@ const Index = () => {
   const features = [
     {
       icon: Gift,
-      title: 'Free',
-      description: 'No cost to use - accessible for everyone',
+      title: 'Free to use',
+      description: 'No signup, no fees. Open infrastructure for everyone.',
     },
     {
       icon: Users,
       title: 'Community driven',
-      description: 'Built and maintained by the Nostr community',
+      description: 'Built and maintained by the Nostr community.',
     },
     {
       icon: Globe,
-      title: 'Global Network',
-      description: 'Part of the decentralized Nostr ecosystem',
+      title: 'Global network',
+      description: 'Part of the decentralized Nostr ecosystem.',
     },
     {
       icon: Server,
-      title: 'Open Access',
-      description: 'Free to use for all Nostr clients',
+      title: 'Open access',
+      description: 'Compatible with every Nostr client out there.',
+    },
+  ];
+
+  const steps = [
+    {
+      num: '01',
+      title: 'Choose a client',
+      description: 'Pick a Nostr client like Damus, Amethyst, Snort, or any compatible application.',
+    },
+    {
+      num: '02',
+      title: 'Add the relay',
+      description: 'In your client settings, paste our relay URL into your relay list.',
+    },
+    {
+      num: '03',
+      title: 'Start connecting',
+      description: 'Post, follow, and engage with the global Nostr network.',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header */}
-      <header className="absolute top-0 left-0 right-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-end">
-            <LoginArea className="max-w-60" />
-          </div>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse delay-1000" />
+    <Layout>
+      {/* ─── Hero ─── */}
+      <section className="relative overflow-hidden">
+        {/* Abstract background shapes */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-24 -right-24 h-[480px] w-[480px] rounded-full bg-primary/[0.04] blur-3xl" />
+          <div className="absolute -bottom-32 -left-32 h-[400px] w-[400px] rounded-full bg-primary/[0.03] blur-3xl" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 sm:pt-32 sm:pb-24">
-          {/* Status Badge */}
-          {/* <div className="flex justify-center mb-8">
-            <Badge variant="outline" className="px-4 py-2 text-sm font-medium gap-2 border-primary/20 bg-primary/5">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              Relay Online
-            </Badge>
-          </div> */}
-
-          {/* Main Heading */}
-          <div className="text-center space-y-6 mb-12">
-            <h1 className="text-5xl sm:text-7xl font-bold tracking-tight">
-              <span className="bg-gradient-to-r from-primary via-primary to-primary/60 bg-clip-text text-transparent">
-                LAYER.systems
+        <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-16 sm:px-6 sm:pb-28 sm:pt-24 lg:px-8">
+          {/* Badge */}
+          <div className="animate-slide-up mb-6 flex justify-center">
+            <span className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground shadow-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
               </span>
+              Relay online
+            </span>
+          </div>
+
+          {/* Headline */}
+          <div className="animate-slide-up-delay-1 mx-auto max-w-3xl text-center">
+            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
+              Your gateway to the{' '}
+              <span className="text-primary">open social web</span>
             </h1>
-            <p className="text-xl sm:text-2xl text-muted-foreground max-w-2xl mx-auto font-light">
-              Your gateway to the decentralized social network
-            </p>
-            <p className="text-base sm:text-lg text-muted-foreground/80 max-w-xl mx-auto">
-              A fast, reliable, and open Nostr relay connecting you to the future of social media
+            <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
+              A fast, reliable Nostr relay connecting you to the future of decentralized social media.
             </p>
           </div>
 
-          {/* Relay URL Card */}
-          <div className="max-w-2xl mx-auto mb-16">
-            <Card className="border-2 border-primary/20 shadow-2xl shadow-primary/5 backdrop-blur-sm bg-card/95">
-              <CardContent className="p-8">
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="sm:flex-1 min-w-0">
-                      <p className="text-sm text-muted-foreground mb-2">Relay URL</p>
-                      <code className="text-lg sm:text-xl font-mono text-primary break-all">
-                        {relayUrl}
-                      </code>
-                    </div>
-                    <Button
-                      size="lg"
-                      onClick={copyToClipboard}
-                      className="w-full sm:w-auto sm:shrink-0 gap-2 hover:scale-105 transition-transform"
-                    >
-                      {copied ? (
-                        <>
-                          <CheckCircle2 className="w-5 h-5" />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-5 h-5" />
-                          Copy
-                        </>
-                      )}
-                    </Button>
+          {/* Relay URL card */}
+          <div className="animate-slide-up-delay-2 mx-auto mt-12 max-w-xl">
+            <Card className="border-primary/20 shadow-lg">
+              <CardContent className="p-6">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Relay URL
+                </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <code className="flex-1 break-all rounded-md bg-muted px-3 py-2 font-mono text-sm text-primary">
+                    {relayUrl}
+                  </code>
+                  <Button
+                    onClick={copyToClipboard}
+                    className="shrink-0 gap-2"
+                  >
+                    {copied ? (
+                      <><CheckCircle2 className="h-4 w-4" /> Copied</>
+                    ) : (
+                      <><Copy className="h-4 w-4" /> Copy URL</>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* CTAs */}
+          <div className="animate-slide-up-delay-3 mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Button variant="outline" asChild>
+              <Link to="/explore" className="gap-2">
+                <Compass className="h-4 w-4" />
+                Explore the network
+              </Link>
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/dashboard" className="gap-2">
+                Dashboard <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Features ─── */}
+      <section className="border-t bg-muted/20">
+        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold sm:text-4xl">Why LAYER.systems?</h2>
+            <p className="mt-3 text-muted-foreground">
+              Infrastructure you can rely on, built for the decentralized future.
+            </p>
+          </div>
+
+          <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {features.map((feature, i) => (
+              <Card
+                key={i}
+                className="group border-transparent bg-card/60 transition-all duration-300 hover:border-border hover:shadow-md"
+              >
+                <CardContent className="p-6">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/15">
+                    <feature.icon className="h-5 w-5 text-primary" />
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Add this URL to your Nostr client to connect to LAYER.systems
+                  <h3 className="font-serif text-base font-semibold">{feature.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    {feature.description}
                   </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Features Grid */}
-          <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12">Why Choose LAYER.systems?</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {features.map((feature, index) => (
-                <Card
-                  key={index}
-                  className="group hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1"
-                >
-                  <CardContent className="p-6 space-y-4">
-                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <feature.icon className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                      <p className="text-sm text-muted-foreground">{feature.description}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* How to Connect Section */}
-      <div className="border-t border-border/40">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-          <h2 className="text-3xl font-bold text-center mb-12">Getting Started</h2>
-          <div className="space-y-8">
-            <Card>
-              <CardContent className="p-8">
-                <div className="space-y-6">
-                  <div className="flex gap-4">
-                    <div className="shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                      1
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">Choose Your Client</h3>
-                      <p className="text-muted-foreground">
-                        Pick a Nostr client like Damus, Amethyst, Snort, or any other compatible application
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                      2
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">Add the Relay</h3>
-                      <p className="text-muted-foreground">
-                        In your client settings, add <code className="px-2 py-1 bg-muted rounded text-sm font-mono">{relayUrl}</code> to your relay list
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                      3
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">Start Connecting</h3>
-                      <p className="text-muted-foreground">
-                        You're all set! Start posting, following, and connecting with the Nostr network
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="border-t border-border/40 bg-muted/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} LAYER.systems. Powered by Nostr.
+      {/* ─── Getting Started ─── */}
+      <section className="border-t">
+        <div className="mx-auto max-w-4xl px-4 py-20 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold sm:text-4xl">Get started in minutes</h2>
+            <p className="mt-3 text-muted-foreground">
+              Three steps to join the Nostr network through our relay.
             </p>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Server className="w-4 h-4" />
-                <span>Open and free for all</span>
+          </div>
+
+          <div className="mt-14 space-y-6">
+            {steps.map((step) => (
+              <div
+                key={step.num}
+                className="flex items-start gap-5 rounded-xl border bg-card p-6 transition-shadow hover:shadow-sm"
+              >
+                <span className="shrink-0 font-mono text-2xl font-bold text-primary/40">
+                  {step.num}
+                </span>
+                <div>
+                  <h3 className="font-serif text-lg font-semibold">{step.title}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-4 text-sm">
-                <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Terms
-                </a>
-                <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Privacy
-                </a>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
-      </footer>
-    </div>
+      </section>
+    </Layout>
   );
 };
 

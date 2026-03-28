@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, FileText, Download } from 'lucide-react';
+import { Home, LayoutDashboard, FileText, Download, Layers } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -7,6 +7,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -41,9 +42,26 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
+      {/* Brand header */}
+      <SidebarHeader>
+        <Link
+          to="/"
+          className="flex items-center gap-2.5 px-2 py-1.5 font-serif text-sm font-bold tracking-tight transition-opacity hover:opacity-80"
+        >
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Layers className="h-3.5 w-3.5" />
+          </div>
+          <span>
+            LAYER<span className="text-primary">.systems</span>
+          </span>
+        </Link>
+      </SidebarHeader>
+
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+            Navigation
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => {
@@ -52,7 +70,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={isActive}>
                       <Link to={item.url}>
-                        <item.icon />
+                        <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -63,6 +81,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
       <SidebarFooter>
         <div className="p-2">
           <LoginArea className="w-full" />

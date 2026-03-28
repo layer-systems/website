@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NoteContent } from '@/components/NoteContent';
 import { genUserName } from '@/lib/genUserName';
+import { Layout } from '@/components/Layout';
 
 function TextNoteCard({ event }: { event: NostrEvent }) {
   const author = useAuthor(event.pubkey);
@@ -21,31 +22,28 @@ function TextNoteCard({ event }: { event: NostrEvent }) {
   const timestamp = new Date(event.created_at * 1000).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   });
 
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
+    <Card className="transition-shadow hover:shadow-md">
       <CardHeader className="pb-3">
-        <div className="flex items-start space-x-3">
-          <Avatar className="h-10 w-10 border-2 border-background">
+        <div className="flex items-start gap-3">
+          <Avatar className="h-9 w-9 border border-border">
             <AvatarImage src={profileImage} alt={displayName} />
-            <AvatarFallback>{displayName[0]?.toUpperCase()}</AvatarFallback>
+            <AvatarFallback className="text-xs">{displayName[0]?.toUpperCase()}</AvatarFallback>
           </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center space-x-2">
-              <h3 className="font-semibold text-sm truncate">{displayName}</h3>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="truncate text-sm font-semibold">{displayName}</span>
               {metadata?.nip05 && (
-                <Badge variant="secondary" className="text-xs">
-                  ✓
-                </Badge>
+                <Badge variant="secondary" className="shrink-0 px-1.5 py-0 text-[10px]">NIP-05</Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground truncate">@{username}</p>
+            <p className="truncate text-xs text-muted-foreground">@{username}</p>
           </div>
-          <time className="text-xs text-muted-foreground shrink-0">{timestamp}</time>
+          <time className="shrink-0 text-xs text-muted-foreground">{timestamp}</time>
         </div>
       </CardHeader>
       <CardContent className="pt-0">
@@ -59,7 +57,7 @@ function TextNoteCard({ event }: { event: NostrEvent }) {
 
 function ProfileCard({ event }: { event: NostrEvent }) {
   let metadata: NostrMetadata | undefined;
-  
+
   try {
     metadata = JSON.parse(event.content) as NostrMetadata;
   } catch {
@@ -75,52 +73,44 @@ function ProfileCard({ event }: { event: NostrEvent }) {
   const website = metadata?.website;
 
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      {banner && (
-        <div className="h-24 sm:h-32 bg-gradient-to-br from-primary/20 to-primary/5 relative">
-          <img
-            src={banner}
-            alt=""
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+    <Card className="overflow-hidden transition-shadow hover:shadow-md">
+      {banner ? (
+        <div className="h-24 bg-muted">
+          <img src={banner} alt="" className="h-full w-full object-cover" loading="lazy" />
         </div>
+      ) : (
+        <div className="h-16 bg-gradient-to-br from-primary/10 to-primary/5" />
       )}
-      <CardHeader className={banner ? '-mt-12 pb-3' : 'pb-3'}>
-        <div className="flex items-start space-x-4">
-          <Avatar className="h-20 w-20 border-4 border-background shadow-lg">
+      <CardHeader className="-mt-10 pb-3">
+        <div className="flex items-start gap-3">
+          <Avatar className="h-16 w-16 border-[3px] border-card shadow-sm">
             <AvatarImage src={profileImage} alt={displayName} />
-            <AvatarFallback className="text-2xl">{displayName[0]?.toUpperCase()}</AvatarFallback>
+            <AvatarFallback className="text-lg">{displayName[0]?.toUpperCase()}</AvatarFallback>
           </Avatar>
-          <div className="flex-1 min-w-0 pt-8">
-            <div className="flex items-center space-x-2">
-              <h3 className="font-bold text-lg truncate">{displayName}</h3>
+          <div className="min-w-0 flex-1 pt-6">
+            <div className="flex items-center gap-2">
+              <h3 className="truncate font-serif font-bold">{displayName}</h3>
               {nip05 && (
-                <Badge variant="secondary" className="text-xs">
-                  ✓
-                </Badge>
+                <Badge variant="secondary" className="shrink-0 px-1.5 py-0 text-[10px]">NIP-05</Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground truncate">@{username}</p>
-            {nip05 && (
-              <p className="text-xs text-muted-foreground/70 truncate mt-1">{nip05}</p>
-            )}
+            <p className="truncate text-xs text-muted-foreground">@{username}</p>
           </div>
         </div>
       </CardHeader>
       {(about || website) && (
-        <CardContent className="pt-0 space-y-2">
+        <CardContent className="space-y-2 pt-0">
           {about && (
-            <p className="text-sm text-muted-foreground line-clamp-3">{about}</p>
+            <p className="line-clamp-3 text-sm text-muted-foreground">{about}</p>
           )}
           {website && (
             <a
               href={website}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline inline-flex items-center"
+              className="inline-block text-sm text-primary hover:underline"
             >
-              🔗 {website.replace(/^https?:\/\//, '')}
+              {website.replace(/^https?:\/\//, '')}
             </a>
           )}
         </CardContent>
@@ -135,11 +125,11 @@ function LoadingSkeleton() {
       {[1, 2, 3].map((i) => (
         <Card key={i}>
           <CardHeader>
-            <div className="flex items-center space-x-3">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div className="space-y-2 flex-1">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-24" />
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-9 w-9 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-20" />
               </div>
             </div>
           </CardHeader>
@@ -161,21 +151,19 @@ export function Explore() {
   const { data, isLoading, isError } = useExploreEvents();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
-      <div className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
+    <Layout>
+      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Explore
-          </h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Discover the latest text notes and profiles from the Nostr
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold sm:text-4xl">Explore</h1>
+          <p className="mt-1 text-muted-foreground">
+            The latest notes and profiles from the network.
           </p>
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6 grid w-full max-w-xs grid-cols-2">
             <TabsTrigger value="notes">
               Notes ({data?.textNotes?.length || 0})
             </TabsTrigger>
@@ -184,15 +172,15 @@ export function Explore() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Text Notes Tab */}
-          <TabsContent value="notes" className="mt-6 space-y-4">
+          {/* Notes Tab */}
+          <TabsContent value="notes" className="space-y-4">
             {isLoading && <LoadingSkeleton />}
-            
+
             {isError && (
               <Card className="border-dashed">
-                <CardContent className="py-12 px-8 text-center">
+                <CardContent className="py-12 text-center">
                   <p className="text-muted-foreground">
-                    Unable to load notes. Please check your relay connections.
+                    Unable to load notes. Check your relay connections.
                   </p>
                 </CardContent>
               </Card>
@@ -200,9 +188,9 @@ export function Explore() {
 
             {!isLoading && !isError && data?.textNotes.length === 0 && (
               <Card className="border-dashed">
-                <CardContent className="py-12 px-8 text-center">
+                <CardContent className="py-12 text-center">
                   <p className="text-muted-foreground">
-                    No text notes found. Try refreshing or check your relay connections.
+                    No notes found. Try refreshing or check your relay connections.
                   </p>
                 </CardContent>
               </Card>
@@ -214,18 +202,18 @@ export function Explore() {
           </TabsContent>
 
           {/* Profiles Tab */}
-          <TabsContent value="profiles" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <TabsContent value="profiles">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {isLoading && (
                 <>
                   {[1, 2, 3, 4].map((i) => (
                     <Card key={i}>
                       <CardHeader>
-                        <div className="flex items-center space-x-3">
-                          <Skeleton className="h-20 w-20 rounded-full" />
-                          <div className="space-y-2 flex-1">
-                            <Skeleton className="h-4 w-32" />
-                            <Skeleton className="h-3 w-24" />
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-16 w-16 rounded-full" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-28" />
+                            <Skeleton className="h-3 w-20" />
                           </div>
                         </div>
                       </CardHeader>
@@ -237,9 +225,9 @@ export function Explore() {
               {isError && (
                 <div className="col-span-full">
                   <Card className="border-dashed">
-                    <CardContent className="py-12 px-8 text-center">
+                    <CardContent className="py-12 text-center">
                       <p className="text-muted-foreground">
-                        Unable to load profiles. Please check your relay connections.
+                        Unable to load profiles. Check your relay connections.
                       </p>
                     </CardContent>
                   </Card>
@@ -249,9 +237,9 @@ export function Explore() {
               {!isLoading && !isError && data?.profiles.length === 0 && (
                 <div className="col-span-full">
                   <Card className="border-dashed">
-                    <CardContent className="py-12 px-8 text-center">
+                    <CardContent className="py-12 text-center">
                       <p className="text-muted-foreground">
-                        No profiles found. Try refreshing or check your relay connections.
+                        No profiles found.
                       </p>
                     </CardContent>
                   </Card>
@@ -265,6 +253,6 @@ export function Explore() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </Layout>
   );
 }
