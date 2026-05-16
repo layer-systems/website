@@ -121,3 +121,84 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .relay-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+      linear-gradient(rgba(251, 191, 36, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(251, 191, 36, 0.08) 1px, transparent 1px);
+    background-size: 44px 44px, 44px 44px, 176px 176px, 176px 176px;
+  }
+
+  .relay-scanline {
+    animation: relay-scan 5.5s linear infinite;
+    background: linear-gradient(to bottom, transparent, rgba(251, 191, 36, 0.18), transparent);
+  }
+
+  .event-packet {
+    animation: event-packet-pop 1.6s ease-out both;
+    box-shadow: 0 0 22px currentColor;
+  }
+
+  .event-packet-live {
+    animation: event-packet-pop 1.6s ease-out both, event-packet-breathe 2.4s ease-in-out infinite;
+  }
+
+  .live-row-new {
+    animation: live-row-arrive 1.4s ease-out both;
+  }
+}
+
+@keyframes relay-scan {
+  0% {
+    transform: translateY(-7rem);
+  }
+
+  100% {
+    transform: translateY(28rem);
+  }
+}
+
+@keyframes event-packet-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.25);
+  }
+
+  55% {
+    opacity: 1;
+    transform: scale(1.7);
+  }
+
+  100% {
+    opacity: 0.92;
+    transform: scale(1);
+  }
+}
+
+@keyframes event-packet-breathe {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+
+  50% {
+    filter: brightness(1.45);
+  }
+}
+
+@keyframes live-row-arrive {
+  0% {
+    border-color: rgba(190, 242, 100, 0.72);
+    box-shadow: 0 0 0 1px rgba(190, 242, 100, 0.22), 0 0 34px rgba(190, 242, 100, 0.16);
+    transform: translateY(-4px);
+  }
+
+  100% {
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+    transform: translateY(0);
+  }
+}
