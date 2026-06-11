@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, FileText, Download } from 'lucide-react';
+import { Home, LayoutDashboard, FileText, Download, RadioTower } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -33,6 +33,11 @@ const navigationItems = [
     title: 'Export Following',
     url: '/dashboard/export',
     icon: Download,
+  },
+  {
+    title: 'Relay Lists',
+    url: '/dashboard/relays',
+    icon: RadioTower,
   },
 ];
 

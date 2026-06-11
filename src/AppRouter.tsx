@@ -6,6 +6,7 @@ import { Explore } from "./pages/Explore";
 import { Dashboard } from "./pages/Dashboard";
 import { DashboardEvents } from "./pages/DashboardEvents";
 import { DashboardExport } from "./pages/DashboardExport";
+import { DashboardRelays } from "./pages/DashboardRelays";
 import { NIP19Page } from "./pages/NIP19Page";
 import { Terms } from "./pages/Terms";
 import { Privacy } from "./pages/Privacy";
@@ -21,6 +22,7 @@ export function AppRouter() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/dashboard/events" element={<DashboardEvents />} />
         <Route path="/dashboard/export" element={<DashboardExport />} />
+        <Route path="/dashboard/relays" element={<DashboardRelays />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
         {/* NIP-19 route for npub1, note1, naddr1, nevent1, nprofile1 */}
