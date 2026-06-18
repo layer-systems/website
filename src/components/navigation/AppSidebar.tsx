@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, FileText, Download } from 'lucide-react';
+import { Download, FileText, Home, LayoutDashboard, Radio } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -40,17 +40,28 @@ export function AppSidebar() {
   const location = useLocation();
 
   return (
-    <Sidebar>
+    <Sidebar className="border-r-2 border-foreground">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <div className="m-2 mb-4 border-2 border-foreground bg-primary p-3 text-primary-foreground shadow-[4px_4px_0_hsl(var(--foreground))]">
+            <div className="flex items-center gap-2 font-black uppercase leading-none">
+              <Radio className="h-5 w-5" />
+              LAYER.systems
+            </div>
+            <p className="mt-2 text-xs font-bold uppercase">Relay dashboard</p>
+          </div>
+          <SidebarGroupLabel className="font-black uppercase text-foreground">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => {
                 const isActive = location.pathname === item.url;
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      className="rounded-none font-bold data-[active=true]:border-2 data-[active=true]:border-foreground data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
+                    >
                       <Link to={item.url}>
                         <item.icon />
                         <span>{item.title}</span>

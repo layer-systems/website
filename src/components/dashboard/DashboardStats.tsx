@@ -14,7 +14,7 @@ export function DashboardStats({ pubkey }: DashboardStatsProps) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <Card key={i}>
+          <Card key={i} className="rounded-none border-2 border-foreground bg-card shadow-none">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-4 w-4 rounded" />
@@ -41,39 +41,39 @@ export function DashboardStats({ pubkey }: DashboardStatsProps) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card>
+      <Card className="rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Loaded Events</CardTitle>
-          <FileText className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-black uppercase">Loaded Events</CardTitle>
+          <FileText className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.totalEvents}</div>
+          <div className="font-mono text-3xl font-black">{stats.totalEvents}</div>
           <p className="text-xs text-muted-foreground">
             All events loaded
           </p>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Event Types</CardTitle>
-          <Hash className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-black uppercase">Event Types</CardTitle>
+          <Hash className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{uniqueKinds}</div>
+          <div className="font-mono text-3xl font-black">{uniqueKinds}</div>
           <p className="text-xs text-muted-foreground">
             Different kinds used
           </p>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Most Used</CardTitle>
-          <Activity className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-black uppercase">Most Used</CardTitle>
+          <Activity className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="font-mono text-3xl font-black">
             {Object.entries(stats.eventsByKind).length > 0
               ? `Kind ${
                   Object.entries(stats.eventsByKind).sort(
@@ -94,13 +94,13 @@ export function DashboardStats({ pubkey }: DashboardStatsProps) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Last Activity</CardTitle>
-          <Clock className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-black uppercase">Last Activity</CardTitle>
+          <Clock className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
+          <div className="font-mono text-3xl font-black">
             {stats.lastActivity
               ? new Date(stats.lastActivity * 1000).toLocaleDateString(
                   undefined,

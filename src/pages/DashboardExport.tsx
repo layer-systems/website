@@ -89,17 +89,17 @@ export function DashboardExport() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full overflow-x-hidden">
+      <div className="flex min-h-screen w-full overflow-x-hidden bg-background">
         <AppSidebar />
         <main className="flex-1 min-w-0">
-          <div className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
+          <div className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b-2 border-foreground bg-background/95 px-4 backdrop-blur lg:h-[60px] lg:px-6">
             <SidebarTrigger />
-            <h1 className="text-lg font-semibold md:text-xl truncate">Export Following List</h1>
+            <h1 className="truncate text-lg font-black uppercase md:text-xl">Export Following List</h1>
           </div>
 
-          <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8 overflow-x-hidden">
+          <div className="flex-1 space-y-6 overflow-x-hidden bg-[linear-gradient(90deg,hsl(var(--border))_1px,transparent_1px),linear-gradient(180deg,hsl(var(--border))_1px,transparent_1px)] bg-[size:32px_32px] p-4 md:p-6 lg:p-8">
             {!user ? (
-              <Card className="border-dashed">
+              <Card className="rounded-none border-2 border-dashed border-foreground bg-card shadow-[6px_6px_0_hsl(var(--primary))]">
                 <CardContent className="py-12 px-8 text-center">
                   <div className="max-w-sm mx-auto space-y-4">
                     <Alert>
@@ -112,10 +112,13 @@ export function DashboardExport() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="max-w-2xl mx-auto space-y-6">
-                <Card>
+              <div className="mx-auto max-w-3xl space-y-6">
+                <Card className="rounded-none border-2 border-foreground bg-card shadow-[6px_6px_0_hsl(var(--primary))]">
                   <CardHeader>
-                    <CardTitle>Backup Your Following List</CardTitle>
+                    <div className="mb-2 inline-flex w-fit border-2 border-foreground bg-primary px-3 py-1 text-xs font-black uppercase text-primary-foreground">
+                      Kind 3 backup
+                    </div>
+                    <CardTitle className="text-3xl font-black leading-none">Backup your following list</CardTitle>
                     <CardDescription>
                       Export your contact list as a JSON file for backup or migration purposes.
                     </CardDescription>
@@ -148,11 +151,11 @@ export function DashboardExport() {
                     ) : (
                       <>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Card>
+                          <Card className="rounded-none border-2 border-foreground shadow-none">
                             <CardContent className="pt-6">
                               <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                  <Users className="h-6 w-6 text-primary" />
+                                <div className="flex h-12 w-12 items-center justify-center border-2 border-foreground bg-primary text-primary-foreground">
+                                  <Users className="h-6 w-6 text-primary-foreground" />
                                 </div>
                                 <div>
                                   <p className="text-sm text-muted-foreground">Following</p>
@@ -162,11 +165,11 @@ export function DashboardExport() {
                             </CardContent>
                           </Card>
 
-                          <Card>
+                          <Card className="rounded-none border-2 border-foreground shadow-none">
                             <CardContent className="pt-6">
                               <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                  <Calendar className="h-6 w-6 text-primary" />
+                                <div className="flex h-12 w-12 items-center justify-center border-2 border-foreground bg-primary text-primary-foreground">
+                                  <Calendar className="h-6 w-6 text-primary-foreground" />
                                 </div>
                                 <div>
                                   <p className="text-sm text-muted-foreground">Last Updated</p>
@@ -194,8 +197,8 @@ export function DashboardExport() {
                         </div>
 
                         <div className="space-y-4">
-                          <div className="rounded-lg border p-4 space-y-2">
-                            <h3 className="font-semibold text-sm">What's included:</h3>
+                          <div className="space-y-2 border-2 border-foreground bg-secondary p-4">
+                            <h3 className="text-sm font-black uppercase">What's included:</h3>
                             <ul className="text-sm text-muted-foreground space-y-1">
                               <li>• Complete list of all {followingCount} accounts you follow</li>
                               <li>• Public keys (pubkeys) for each account</li>
@@ -208,7 +211,7 @@ export function DashboardExport() {
                           <Button
                             onClick={handleExport}
                             disabled={isExporting || !contactListEvent}
-                            className="w-full"
+                            className="w-full rounded-none border-2 border-foreground font-black uppercase"
                             size="lg"
                           >
                             <Download className="mr-2 h-5 w-5" />
@@ -224,9 +227,9 @@ export function DashboardExport() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="rounded-none border-2 border-foreground bg-card shadow-none">
                   <CardHeader>
-                    <CardTitle className="text-base">About Your Following List</CardTitle>
+                    <CardTitle className="text-base font-black uppercase">About your following list</CardTitle>
                   </CardHeader>
                   <CardContent className="text-sm text-muted-foreground space-y-2">
                     <p>

@@ -122,7 +122,7 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader>
           <Skeleton className="h-6 w-40 mb-2" />
           <Skeleton className="h-4 w-64" />
@@ -146,9 +146,9 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
 
   if (isError || !stats) {
     return (
-      <Card className="border-dashed">
+      <Card className="rounded-none border-2 border-dashed border-foreground bg-card shadow-none">
         <CardHeader>
-          <CardTitle>Your Events</CardTitle>
+          <CardTitle className="font-black uppercase">Your Events</CardTitle>
           <CardDescription>
             Explore your published events and manage deletion requests.
           </CardDescription>
@@ -164,9 +164,9 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
 
   if (stats.events.length === 0) {
     return (
-      <Card className="border-dashed">
+      <Card className="rounded-none border-2 border-dashed border-foreground bg-card shadow-none">
         <CardHeader>
-          <CardTitle>Your Events</CardTitle>
+          <CardTitle className="font-black uppercase">Your Events</CardTitle>
           <CardDescription>
             Explore your published events and manage deletion requests.
           </CardDescription>
@@ -185,10 +185,10 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
 
   return (
     <>
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <CardTitle className="break-words">Your Events</CardTitle>
+            <CardTitle className="break-words font-black uppercase">Your Events</CardTitle>
             <CardDescription className="break-words">
               Browse your published events and request deletion directly from your dashboard.
             </CardDescription>
@@ -197,7 +197,7 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                className="pl-8"
+                className="rounded-none border-2 border-foreground pl-8"
                 placeholder="Search content..."
                 value={search}
                 onChange={(event) => {
@@ -221,11 +221,11 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
                 return (
                   <div
                     key={event.id}
-                    className="flex flex-col gap-2 rounded-lg border bg-card/40 p-3 transition hover:bg-accent/40 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-2 border-2 border-foreground bg-card p-3 transition hover:-translate-y-0.5 hover:bg-secondary sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="space-y-1 min-w-0 overflow-hidden">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="secondary" className="text-xs shrink-0">
+                        <Badge variant="secondary" className="shrink-0 rounded-none border border-foreground text-xs font-black uppercase">
                           {label}
                         </Badge>
                         <span className="text-xs text-muted-foreground shrink-0">
@@ -252,7 +252,7 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="whitespace-nowrap"
+                          className="whitespace-nowrap rounded-none border-2 border-foreground font-bold"
                           onClick={() => handleOpenDialog(event)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
@@ -268,9 +268,9 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <div className="space-y-3 py-2 text-sm">
-                            <div className="rounded-md bg-muted px-3 py-2">
+                            <div className="border-2 border-foreground bg-muted px-3 py-2">
                               <div className="flex items-center justify-between mb-1">
-                                <Badge variant="secondary" className="text-2xs">
+                                <Badge variant="secondary" className="rounded-none border border-foreground text-2xs">
                                   {label}
                                 </Badge>
                                 <span className="text-xs text-muted-foreground">
@@ -288,7 +288,7 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
                               <Textarea
                                 value={reason}
                                 onChange={(event) => setReason(event.target.value)}
-                                className="min-h-[80px] text-sm"
+                                className="min-h-[80px] rounded-none border-2 border-foreground text-sm"
                                 placeholder="Explain why you are requesting this deletion."
                               />
                             </div>
@@ -337,6 +337,7 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
               <Button
                 variant="outline"
                 size="sm"
+                className="rounded-none border-2 border-foreground font-bold"
                 disabled={pageSafe <= 1}
                 onClick={() => setPage((current) => Math.max(current - 1, 1))}
               >
@@ -354,6 +355,7 @@ export function EventExplorer({ pubkey }: EventExplorerProps) {
               <Button
                 variant="outline"
                 size="sm"
+                className="rounded-none border-2 border-foreground font-bold"
                 disabled={pageSafe >= totalPages}
                 onClick={() =>
                   setPage((current) => Math.min(current + 1, totalPages))

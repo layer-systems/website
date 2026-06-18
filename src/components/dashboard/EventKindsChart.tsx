@@ -109,7 +109,7 @@ export function EventKindsChart() {
 
   if (isLoading) {
     return (
-      <Card className="flex flex-col">
+      <Card className="flex flex-col rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader className="items-center pb-0">
           <Skeleton className="h-6 w-32" />
           <Skeleton className="h-4 w-48 mt-2" />
@@ -129,7 +129,7 @@ export function EventKindsChart() {
 
   if (!user) {
     return (
-      <Card className="flex flex-col">
+      <Card className="flex flex-col rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader className="items-center pb-0">
           <CardTitle>Event Kinds Distribution</CardTitle>
           <CardDescription>Log in to see your event distribution</CardDescription>
@@ -143,7 +143,7 @@ export function EventKindsChart() {
 
   if (!stats || chartData.length === 0) {
     return (
-      <Card className="flex flex-col">
+      <Card className="flex flex-col rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader className="items-center pb-0">
           <CardTitle>Event Kinds Distribution</CardTitle>
           <CardDescription>Your published event types</CardDescription>
@@ -156,9 +156,9 @@ export function EventKindsChart() {
   }
 
   return (
-    <Card className="flex flex-col overflow-hidden">
+    <Card className="flex flex-col overflow-hidden rounded-none border-2 border-foreground bg-card shadow-none">
       <CardHeader className="items-center pb-0">
-        <CardTitle>Event Kinds Distribution</CardTitle>
+        <CardTitle className="font-black uppercase">Event Kinds Distribution</CardTitle>
         <CardDescription>Your top 5 event types</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">

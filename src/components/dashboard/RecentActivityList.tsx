@@ -27,7 +27,7 @@ export function RecentActivityList({ pubkey }: RecentActivityListProps) {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader>
           <Skeleton className="h-6 w-32 mb-2" />
           <Skeleton className="h-4 w-48" />
@@ -51,9 +51,9 @@ export function RecentActivityList({ pubkey }: RecentActivityListProps) {
 
   if (!stats || stats.recentEvents.length === 0) {
     return (
-      <Card>
+      <Card className="rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+          <CardTitle className="font-black uppercase">Recent Activity</CardTitle>
           <CardDescription>Your latest events</CardDescription>
         </CardHeader>
         <CardContent>
@@ -66,9 +66,9 @@ export function RecentActivityList({ pubkey }: RecentActivityListProps) {
   }
 
   return (
-    <Card>
+    <Card className="rounded-none border-2 border-foreground bg-card shadow-none">
       <CardHeader>
-        <CardTitle>Recent Activity</CardTitle>
+        <CardTitle className="font-black uppercase">Recent Activity</CardTitle>
         <CardDescription>Your latest {stats.recentEvents.length} events</CardDescription>
       </CardHeader>
       <CardContent>
@@ -91,7 +91,7 @@ export function RecentActivityList({ pubkey }: RecentActivityListProps) {
                 >
                   <div className="space-y-1 flex-1 min-w-0 overflow-hidden">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="secondary" className="text-xs shrink-0">
+                      <Badge variant="secondary" className="shrink-0 rounded-none border border-foreground text-xs font-black uppercase">
                         {kindName}
                       </Badge>
                       <span className="text-xs text-muted-foreground shrink-0">

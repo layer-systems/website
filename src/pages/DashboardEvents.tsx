@@ -11,17 +11,17 @@ export function DashboardEvents() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full overflow-x-hidden">
+      <div className="flex min-h-screen w-full overflow-x-hidden bg-background">
         <AppSidebar />
         <main className="flex-1 min-w-0">
-          <div className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
+          <div className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b-2 border-foreground bg-background/95 px-4 backdrop-blur lg:h-[60px] lg:px-6">
             <SidebarTrigger />
-            <h1 className="text-lg font-semibold md:text-xl truncate">My Events</h1>
+            <h1 className="truncate text-lg font-black uppercase md:text-xl">My Events</h1>
           </div>
 
-          <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8 overflow-x-hidden">
+          <div className="flex-1 space-y-6 overflow-x-hidden bg-[linear-gradient(90deg,hsl(var(--border))_1px,transparent_1px),linear-gradient(180deg,hsl(var(--border))_1px,transparent_1px)] bg-[size:32px_32px] p-4 md:p-6 lg:p-8">
             {!user ? (
-              <Card className="border-dashed">
+              <Card className="rounded-none border-2 border-dashed border-foreground bg-card shadow-[6px_6px_0_hsl(var(--primary))]">
                 <CardContent className="py-12 px-8 text-center">
                   <div className="max-w-sm mx-auto space-y-4">
                     <Alert>
@@ -35,11 +35,14 @@ export function DashboardEvents() {
               </Card>
             ) : (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <h2 className="text-2xl md:text-3xl font-bold tracking-tight break-words">
+                <div className="border-2 border-foreground bg-card p-5 shadow-[6px_6px_0_hsl(var(--primary))]">
+                  <div className="mb-4 inline-flex border-2 border-foreground bg-primary px-3 py-1 text-xs font-black uppercase text-primary-foreground">
+                    Event explorer
+                  </div>
+                  <h2 className="break-words text-3xl font-black leading-none md:text-5xl">
                     Your Nostr events
                   </h2>
-                  <p className="text-sm md:text-base text-muted-foreground max-w-2xl">
+                  <p className="mt-3 max-w-2xl text-sm font-medium leading-7 text-muted-foreground md:text-base">
                     Browse all events you have published on Nostr, search through their content,
                     and publish deletion requests when you want something removed.
                   </p>

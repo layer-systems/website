@@ -88,7 +88,7 @@ export function RecentActivityChart() {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader>
           <Skeleton className="h-6 w-40 mb-2" />
           <Skeleton className="h-4 w-60" />
@@ -102,7 +102,7 @@ export function RecentActivityChart() {
 
   if (!user) {
     return (
-      <Card>
+      <Card className="rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
           <CardDescription>Last 30 days</CardDescription>
@@ -118,7 +118,7 @@ export function RecentActivityChart() {
 
   if (chartData.length === 0) {
     return (
-      <Card>
+      <Card className="rounded-none border-2 border-foreground bg-card shadow-none">
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
           <CardDescription>Last 30 days</CardDescription>
@@ -133,9 +133,9 @@ export function RecentActivityChart() {
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden rounded-none border-2 border-foreground bg-card shadow-none">
       <CardHeader>
-        <CardTitle>Recent Activity</CardTitle>
+        <CardTitle className="font-black uppercase">Recent Activity</CardTitle>
         <CardDescription>
           Your event activity over the last 30 days
         </CardDescription>
