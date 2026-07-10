@@ -1,241 +1,87 @@
 import { useSeoMeta } from '@unhead/react';
+import { ArrowUpRight, Boxes, Copy, Fingerprint, Network, Orbit, Sparkles, Terminal, Waves } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, Copy, Server, Gift, Users, Globe } from 'lucide-react';
+import { OsShell } from '@/components/navigation/OsShell';
 import { useToast } from '@/hooks/useToast';
-import { LoginArea } from '@/components/auth/LoginArea';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+
+const workspaces = [
+  { title: 'Discover', detail: 'Live notes & people', path: '/explore', icon: Orbit, tone: 'from-cyan-400/20 to-blue-500/5', index: '01' },
+  { title: 'Activity', detail: 'Your Nostr footprint', path: '/dashboard', icon: Waves, tone: 'from-amber-300/20 to-orange-500/5', index: '02' },
+  { title: 'Studio', detail: 'Browse your events', path: '/dashboard/events', icon: Sparkles, tone: 'from-fuchsia-400/20 to-violet-500/5', index: '03' },
+  { title: 'Archive', detail: 'Export your follows', path: '/dashboard/export', icon: Boxes, tone: 'from-emerald-300/20 to-teal-500/5', index: '04' },
+];
 
 const Index = () => {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+  const { user } = useCurrentUser();
   const relayUrl = 'wss://relay.layer.systems';
 
   useSeoMeta({
-    title: 'LAYER.systems - Public Nostr Relay',
-    description: 'A fast, reliable, and open Nostr relay serving the decentralized social network.',
+    title: 'Nostr OS · Layer Systems',
+    description: 'A beautiful operating system for your Nostr identity.',
   });
 
-  const copyToClipboard = async () => {
+  const copyRelay = async () => {
     try {
       await navigator.clipboard.writeText(relayUrl);
       setCopied(true);
-      toast({
-        title: 'Copied!',
-        description: 'Relay URL copied to clipboard',
-      });
-      setTimeout(() => setCopied(false), 2000);
+      window.setTimeout(() => setCopied(false), 1600);
+      toast({ title: 'Relay address copied', description: 'Paste it into any Nostr client.' });
     } catch {
-      toast({
-        title: 'Failed to copy',
-        description: 'Please copy the URL manually',
-        variant: 'destructive',
-      });
+      toast({ title: 'Could not copy relay address', description: relayUrl, variant: 'destructive' });
     }
   };
 
-  const features = [
-    {
-      icon: Gift,
-      title: 'Free',
-      description: 'No cost to use - accessible for everyone',
-    },
-    {
-      icon: Users,
-      title: 'Community driven',
-      description: 'Built and maintained by the Nostr community',
-    },
-    {
-      icon: Globe,
-      title: 'Global Network',
-      description: 'Part of the decentralized Nostr ecosystem',
-    },
-    {
-      icon: Server,
-      title: 'Open Access',
-      description: 'Free to use for all Nostr clients',
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header */}
-      <header className="absolute top-0 left-0 right-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-end">
-            <LoginArea className="max-w-60" />
-          </div>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse delay-1000" />
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 sm:pt-32 sm:pb-24">
-          {/* Status Badge */}
-          {/* <div className="flex justify-center mb-8">
-            <Badge variant="outline" className="px-4 py-2 text-sm font-medium gap-2 border-primary/20 bg-primary/5">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              Relay Online
-            </Badge>
-          </div> */}
-
-          {/* Main Heading */}
-          <div className="text-center space-y-6 mb-12">
-            <h1 className="text-5xl sm:text-7xl font-bold tracking-tight">
-              <span className="bg-gradient-to-r from-primary via-primary to-primary/60 bg-clip-text text-transparent">
-                LAYER.systems
-              </span>
-            </h1>
-            <p className="text-xl sm:text-2xl text-muted-foreground max-w-2xl mx-auto font-light">
-              Your gateway to the decentralized social network
-            </p>
-            <p className="text-base sm:text-lg text-muted-foreground/80 max-w-xl mx-auto">
-              A fast, reliable, and open Nostr relay connecting you to the future of social media
-            </p>
-          </div>
-
-          {/* Relay URL Card */}
-          <div className="max-w-2xl mx-auto mb-16">
-            <Card className="border-2 border-primary/20 shadow-2xl shadow-primary/5 backdrop-blur-sm bg-card/95">
-              <CardContent className="p-8">
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="sm:flex-1 min-w-0">
-                      <p className="text-sm text-muted-foreground mb-2">Relay URL</p>
-                      <code className="text-lg sm:text-xl font-mono text-primary break-all">
-                        {relayUrl}
-                      </code>
-                    </div>
-                    <Button
-                      size="lg"
-                      onClick={copyToClipboard}
-                      className="w-full sm:w-auto sm:shrink-0 gap-2 hover:scale-105 transition-transform"
-                    >
-                      {copied ? (
-                        <>
-                          <CheckCircle2 className="w-5 h-5" />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-5 h-5" />
-                          Copy
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Add this URL to your Nostr client to connect to LAYER.systems
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Features Grid */}
-          <div className="max-w-5xl mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12">Why Choose LAYER.systems?</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {features.map((feature, index) => (
-                <Card
-                  key={index}
-                  className="group hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1"
-                >
-                  <CardContent className="p-6 space-y-4">
-                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <feature.icon className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                      <p className="text-sm text-muted-foreground">{feature.description}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+    <OsShell title="Home" eyebrow="Layer Systems / Nostr OS">
+      <section className="os-hero relative isolate overflow-hidden rounded-[28px] border border-white/10 px-5 py-7 shadow-2xl shadow-black/10 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+        <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="relative grid gap-8 lg:grid-cols-[1.35fr_.65fr] lg:items-end">
+          <div>
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/15 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-slate-300">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> Personal signal online
+            </div>
+            <p className="max-w-xl text-balance text-4xl font-semibold leading-[0.98] tracking-[-0.055em] text-white sm:text-5xl lg:text-6xl">One place for the network that belongs to you.</p>
+            <p className="mt-5 max-w-lg text-pretty text-sm leading-6 text-slate-300 sm:text-base">A calm control surface for your Nostr identity: discover public conversations, inspect your signal, and keep your network portable.</p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link to={user ? '/dashboard' : '/explore'} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                {user ? 'Open my activity' : 'Enter discover'} <ArrowUpRight className="h-4 w-4" />
+              </Link>
+              <Link to="/network" className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                <Network className="h-4 w-4" /> Network routes
+              </Link>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* How to Connect Section */}
-      <div className="border-t border-border/40">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-          <h2 className="text-3xl font-bold text-center mb-12">Getting Started</h2>
-          <div className="space-y-8">
-            <Card>
-              <CardContent className="p-8">
-                <div className="space-y-6">
-                  <div className="flex gap-4">
-                    <div className="shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                      1
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">Choose Your Client</h3>
-                      <p className="text-muted-foreground">
-                        Pick a Nostr client like Damus, Amethyst, Snort, or any other compatible application
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                      2
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">Add the Relay</h3>
-                      <p className="text-muted-foreground">
-                        In your client settings, add <code className="px-2 py-1 bg-muted rounded text-sm font-mono">{relayUrl}</code> to your relay list
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                      3
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">Start Connecting</h3>
-                      <p className="text-muted-foreground">
-                        You're all set! Start posting, following, and connecting with the Nostr network
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-5 backdrop-blur-sm">
+            <div className="mb-8 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-slate-400"><span>Identity</span><Fingerprint className="h-4 w-4 text-primary" /></div>
+            <p className="text-lg font-medium text-white">{user ? 'Signer connected' : 'Your Nostr key is waiting'}</p>
+            <p className="mt-2 font-mono text-xs leading-5 text-slate-400">{user ? `${user.pubkey.slice(0, 12)}…${user.pubkey.slice(-8)}` : 'Use a signer extension or nsec login to begin.'}</p>
+            <div className="mt-7 flex items-center gap-2 text-xs text-emerald-300"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Your identity never leaves your signer</div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border/40 bg-muted/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} LAYER.systems. Powered by Nostr.
-            </p>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Server className="w-4 h-4" />
-                <span>Open and free for all</span>
-              </div>
-              <div className="flex items-center gap-4 text-sm">
-                <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Terms
-                </a>
-                <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Privacy
-                </a>
-              </div>
-            </div>
-          </div>
+      <section className="mt-8">
+        <div className="mb-4 flex items-end justify-between gap-4"><div><p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Your desktop</p><h2 className="mt-1 text-2xl font-semibold tracking-tight">Open an app</h2></div><span className="hidden font-mono text-[10px] text-muted-foreground sm:block">04 MODULES READY</span></div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {workspaces.map((workspace) => (
+            <Link key={workspace.path} to={workspace.path} className="group relative min-h-[178px] overflow-hidden rounded-2xl border border-border/70 bg-card/80 p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              <div className={`absolute inset-0 bg-gradient-to-br ${workspace.tone} opacity-0 transition-opacity duration-300 group-hover:opacity-100`} />
+              <div className="relative flex h-full flex-col"><div className="flex items-start justify-between"><span className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-background/80"><workspace.icon className="h-5 w-5 text-primary" /></span><span className="font-mono text-[10px] text-muted-foreground">{workspace.index}</span></div><div className="mt-auto"><h3 className="font-semibold">{workspace.title}</h3><p className="mt-1 text-sm text-muted-foreground">{workspace.detail}</p></div></div>
+            </Link>
+          ))}
         </div>
-      </footer>
-    </div>
+      </section>
+
+      <section className="mt-8 grid gap-4 lg:grid-cols-[1.35fr_.65fr]">
+        <div className="rounded-2xl border border-border/70 bg-card/70 p-5 sm:p-6"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><Terminal className="h-5 w-5" /></span><div><h2 className="font-semibold">Bring Layer Systems with you</h2><p className="text-sm text-muted-foreground">A preferred relay, ready for any Nostr client.</p></div></div><div className="mt-5 flex flex-col gap-3 rounded-xl border border-border bg-background/60 p-3 sm:flex-row sm:items-center sm:justify-between"><code className="min-w-0 truncate font-mono text-sm text-foreground">{relayUrl}</code><button type="button" onClick={copyRelay} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-secondary px-3 py-2 text-xs font-semibold transition-colors hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"><Copy className="h-3.5 w-3.5" />{copied ? 'Copied' : 'Copy relay'}</button></div></div>
+        <Link to="/network" className="group rounded-2xl border border-border/70 bg-card/70 p-5 transition-colors hover:border-primary/40 sm:p-6"><p className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary">Your route table</p><p className="mt-3 text-lg font-semibold">Control what carries your signal.</p><p className="mt-2 text-sm leading-6 text-muted-foreground">Manage read and write relays from one focused network app.</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-primary">Open Network <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></span></Link>
+      </section>
+    </OsShell>
   );
 };
 

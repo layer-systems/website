@@ -2,6 +2,7 @@ import { useSeoMeta } from '@unhead/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { OsShell } from '@/components/navigation/OsShell';
 
 export function Privacy() {
   useSeoMeta({
@@ -10,19 +11,8 @@ export function Privacy() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
-          <Link to="/" className="inline-flex items-center gap-2 text-xl font-bold hover:opacity-80 transition-opacity">
-            <Shield className="h-6 w-6" />
-            <span>LAYER.systems</span>
-          </Link>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-12 max-w-4xl">
+    <OsShell title="Privacy" eyebrow="Layer Systems">
+      <main className="mx-auto max-w-4xl">
         <div className="space-y-8">
           {/* Hero Section */}
           <div className="text-center space-y-4 pb-8">
@@ -36,7 +26,7 @@ export function Privacy() {
           </div>
 
           {/* Introduction */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>Introduction</CardTitle>
             </CardHeader>
@@ -48,7 +38,7 @@ export function Privacy() {
           </Card>
 
           {/* Information We Collect */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>1. Information We Collect</CardTitle>
             </CardHeader>
@@ -88,7 +78,7 @@ export function Privacy() {
           </Card>
 
           {/* How We Use Information */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>2. How We Use Information</CardTitle>
             </CardHeader>
@@ -107,7 +97,7 @@ export function Privacy() {
           </Card>
 
           {/* Data Storage and Security */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>3. Data Storage and Security</CardTitle>
             </CardHeader>
@@ -131,7 +121,7 @@ export function Privacy() {
           </Card>
 
           {/* Data Retention */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>4. Data Retention</CardTitle>
             </CardHeader>
@@ -152,7 +142,7 @@ export function Privacy() {
           </Card>
 
           {/* Third-Party Services */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>5. Third-Party Services</CardTitle>
             </CardHeader>
@@ -173,7 +163,7 @@ export function Privacy() {
           </Card>
 
           {/* Your Rights */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>6. Your Rights and Choices</CardTitle>
             </CardHeader>
@@ -191,7 +181,7 @@ export function Privacy() {
           </Card>
 
           {/* Cookies and Tracking */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>7. Cookies and Tracking</CardTitle>
             </CardHeader>
@@ -211,7 +201,7 @@ export function Privacy() {
           </Card>
 
           {/* Children's Privacy */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>8. Children's Privacy</CardTitle>
             </CardHeader>
@@ -223,7 +213,7 @@ export function Privacy() {
           </Card>
 
           {/* International Users */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>9. International Users</CardTitle>
             </CardHeader>
@@ -235,7 +225,7 @@ export function Privacy() {
           </Card>
 
           {/* Changes to Privacy Policy */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>10. Changes to This Privacy Policy</CardTitle>
             </CardHeader>
@@ -271,7 +261,7 @@ export function Privacy() {
           </div>
         </div>
       </main>
-    </div>
+    </OsShell>
   );
 }
 

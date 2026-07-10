@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/navigation/AppSidebar';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostr } from '@nostrify/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,11 +7,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { InfoIcon, Download, Users, Calendar } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { OsShell } from '@/components/navigation/OsShell';
+import { useSeoMeta } from '@unhead/react';
 
 export function DashboardExport() {
   const { user } = useCurrentUser();
   const { nostr } = useNostr();
   const [isExporting, setIsExporting] = useState(false);
+
+  useSeoMeta({ title: 'Archive · Nostr OS', description: 'Export and preserve your Nostr following list.' });
 
   // Fetch the user's contact list (kind 3 event)
   const { data: contactListEvent, isLoading } = useQuery({
@@ -88,19 +90,11 @@ export function DashboardExport() {
   };
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full overflow-x-hidden">
-        <AppSidebar />
-        <main className="flex-1 min-w-0">
-          <div className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
-            <SidebarTrigger />
-            <h1 className="text-lg font-semibold md:text-xl truncate">Export Following List</h1>
-          </div>
-
-          <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8 overflow-x-hidden">
+    <OsShell title="Archive" eyebrow="Portable identity">
+      <div className="space-y-6 overflow-x-hidden">
             {!user ? (
-              <Card className="border-dashed">
-                <CardContent className="py-12 px-8 text-center">
+              <Card className="border-dashed bg-card/70">
+                <CardContent className="py-16 px-8 text-center">
                   <div className="max-w-sm mx-auto space-y-4">
                     <Alert>
                       <InfoIcon className="h-4 w-4" />
@@ -113,7 +107,12 @@ export function DashboardExport() {
               </Card>
             ) : (
               <div className="max-w-2xl mx-auto space-y-6">
-                <Card>
+                <section className="rounded-3xl border border-border/70 bg-card/70 p-5 sm:p-7">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Portable social graph</p>
+                  <h2 className="mt-2 text-3xl font-semibold tracking-tight">Keep your follows close.</h2>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">Your Nostr social graph belongs to you. Export a signed copy whenever you need it.</p>
+                </section>
+                <Card className="border-border/70 bg-card/70">
                   <CardHeader>
                     <CardTitle>Backup Your Following List</CardTitle>
                     <CardDescription>
@@ -224,7 +223,7 @@ export function DashboardExport() {
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="border-border/70 bg-card/70">
                   <CardHeader>
                     <CardTitle className="text-base">About Your Following List</CardTitle>
                   </CardHeader>
@@ -243,9 +242,7 @@ export function DashboardExport() {
                 </Card>
               </div>
             )}
-          </div>
-        </main>
       </div>
-    </SidebarProvider>
+    </OsShell>
   );
 }

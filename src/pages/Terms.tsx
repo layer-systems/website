@@ -2,6 +2,7 @@ import { useSeoMeta } from '@unhead/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollText } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { OsShell } from '@/components/navigation/OsShell';
 
 export function Terms() {
   useSeoMeta({
@@ -10,19 +11,8 @@ export function Terms() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
-          <Link to="/" className="inline-flex items-center gap-2 text-xl font-bold hover:opacity-80 transition-opacity">
-            <ScrollText className="h-6 w-6" />
-            <span>LAYER.systems</span>
-          </Link>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-12 max-w-4xl">
+    <OsShell title="Terms" eyebrow="Layer Systems">
+      <main className="mx-auto max-w-4xl">
         <div className="space-y-8">
           {/* Hero Section */}
           <div className="text-center space-y-4 pb-8">
@@ -36,7 +26,7 @@ export function Terms() {
           </div>
 
           {/* Introduction */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>Introduction</CardTitle>
             </CardHeader>
@@ -48,7 +38,7 @@ export function Terms() {
           </Card>
 
           {/* Service Description */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>1. Service Description</CardTitle>
             </CardHeader>
@@ -65,7 +55,7 @@ export function Terms() {
           </Card>
 
           {/* User Conduct */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>2. User Conduct</CardTitle>
             </CardHeader>
@@ -88,7 +78,7 @@ export function Terms() {
           </Card>
 
           {/* Content Policy */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>3. Content Policy</CardTitle>
             </CardHeader>
@@ -109,7 +99,7 @@ export function Terms() {
           </Card>
 
           {/* Limitation of Liability */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>4. Limitation of Liability</CardTitle>
             </CardHeader>
@@ -131,7 +121,7 @@ export function Terms() {
           </Card>
 
           {/* Privacy */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>5. Privacy</CardTitle>
             </CardHeader>
@@ -147,7 +137,7 @@ export function Terms() {
           </Card>
 
           {/* Changes to Terms */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>6. Changes to Terms</CardTitle>
             </CardHeader>
@@ -159,7 +149,7 @@ export function Terms() {
           </Card>
 
           {/* Termination */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>7. Termination</CardTitle>
             </CardHeader>
@@ -171,7 +161,7 @@ export function Terms() {
           </Card>
 
           {/* Governing Law */}
-          <Card>
+          <Card className="border-border/70 bg-card/70">
             <CardHeader>
               <CardTitle>8. Governing Law</CardTitle>
             </CardHeader>
@@ -207,7 +197,7 @@ export function Terms() {
           </div>
         </div>
       </main>
-    </div>
+    </OsShell>
   );
 }
 

@@ -1,5 +1,3 @@
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/navigation/AppSidebar';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { EventKindsChart } from '@/components/dashboard/EventKindsChart';
 import { RecentActivityChart } from '@/components/dashboard/RecentActivityChart';
@@ -10,29 +8,25 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon } from 'lucide-react';
 import { Account, useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
 import { genUserName } from '@/lib/genUserName';
+import { OsShell } from '@/components/navigation/OsShell';
+import { useSeoMeta } from '@unhead/react';
 
 export function Dashboard() {
   const { user } = useCurrentUser();
   const { currentUser } = useLoggedInAccounts();
+
+  useSeoMeta({ title: 'Activity · Nostr OS', description: 'Your Nostr activity at a glance.' });
 
   const getDisplayName = (account: Account): string => {
     return account.metadata.name ?? genUserName(account.pubkey);
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full overflow-x-hidden">
-        <AppSidebar />
-        <main className="flex-1 min-w-0">
-          <div className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
-            <SidebarTrigger />
-            <h1 className="text-lg font-semibold md:text-xl truncate">Dashboard</h1>
-          </div>
-          
-          <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8 overflow-x-hidden">
+    <OsShell title="Activity" eyebrow="Personal telemetry">
+      <div className="space-y-6 overflow-x-hidden">
             {!user ? (
-              <Card className="border-dashed">
-                <CardContent className="py-12 px-8 text-center">
+              <Card className="border-dashed bg-card/70">
+                <CardContent className="py-16 px-8 text-center">
                   <div className="max-w-sm mx-auto space-y-4">
                     <Alert>
                       <InfoIcon className="h-4 w-4" />
@@ -45,14 +39,15 @@ export function Dashboard() {
               </Card>
             ) : (
               <>
-                <div className="space-y-2">
-                  <h2 className="text-2xl md:text-3xl font-bold tracking-tight break-words">
+                <section className="rounded-3xl border border-border/70 bg-card/70 p-5 sm:p-7">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Identity dashboard</p>
+                  <h2 className="mt-2 text-3xl md:text-4xl font-semibold tracking-tight break-words">
                     Welcome back {currentUser ? getDisplayName(currentUser) : ''}!
                   </h2>
-                  <p className="text-sm md:text-base text-muted-foreground">
+                  <p className="mt-3 text-sm md:text-base text-muted-foreground">
                     Here's an overview of your Nostr activity and statistics.
                   </p>
-                </div>
+                </section>
 
                 <DashboardStats pubkey={user.pubkey} />
 
@@ -64,10 +59,8 @@ export function Dashboard() {
                 </div>
               </>
             )}
-          </div>
-        </main>
       </div>
-    </SidebarProvider>
+    </OsShell>
   );
 }
 

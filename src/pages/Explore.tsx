@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NoteContent } from '@/components/NoteContent';
 import { genUserName } from '@/lib/genUserName';
+import { OsShell } from '@/components/navigation/OsShell';
+import { useSeoMeta } from '@unhead/react';
 
 function TextNoteCard({ event }: { event: NostrEvent }) {
   const author = useAuthor(event.pubkey);
@@ -160,22 +162,22 @@ export function Explore() {
   const [activeTab, setActiveTab] = useState('notes');
   const { data, isLoading, isError } = useExploreEvents();
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
-      <div className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Explore
-          </h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Discover the latest text notes and profiles from the Nostr
-          </p>
-        </div>
+  useSeoMeta({
+    title: 'Discover · Nostr OS',
+    description: 'Explore notes and profiles through the Nostr network.',
+  });
 
-        {/* Tabs */}
+  return (
+    <OsShell title="Discover" eyebrow="Public network">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <section className="overflow-hidden rounded-3xl border border-border/70 bg-card/70 p-5 sm:p-7">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Public network scan</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Follow the live signal.</h2>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">A quiet window into the notes and profiles moving through your configured Nostr relays.</p>
+        </section>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
+          <TabsList className="grid h-11 w-full grid-cols-2 rounded-xl border border-border bg-card p-1 sm:max-w-md">
             <TabsTrigger value="notes">
               Notes ({data?.textNotes?.length || 0})
             </TabsTrigger>
@@ -184,7 +186,6 @@ export function Explore() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Text Notes Tab */}
           <TabsContent value="notes" className="mt-6 space-y-4">
             {isLoading && <LoadingSkeleton />}
             
@@ -213,7 +214,6 @@ export function Explore() {
             ))}
           </TabsContent>
 
-          {/* Profiles Tab */}
           <TabsContent value="profiles" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {isLoading && (
@@ -265,6 +265,6 @@ export function Explore() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </OsShell>
   );
 }

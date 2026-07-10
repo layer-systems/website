@@ -1,6 +1,9 @@
 import { useSeoMeta } from "@unhead/react";
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { Link } from 'react-router-dom';
+import { ArrowLeft, Radar } from 'lucide-react';
+import { OsShell } from '@/components/navigation/OsShell';
 
 const NotFound = () => {
   const location = useLocation();
@@ -18,15 +21,17 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-gray-100">404</h1>
-        <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">Oops! Page not found</p>
-        <a href="/" className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline">
-          Return to Home
-        </a>
+    <OsShell title="Lost signal" eyebrow="404">
+      <div className="grid min-h-[60vh] place-items-center">
+        <div className="max-w-md text-center">
+          <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-3xl bg-primary/10 text-primary"><Radar className="h-7 w-7" /></div>
+          <p className="font-mono text-xs tracking-[0.22em] text-primary">404 / NO ROUTE</p>
+          <h2 className="mt-3 text-4xl font-semibold tracking-tight">That signal isn’t here.</h2>
+          <p className="mt-4 text-muted-foreground">The route may have moved, expired, or never existed in this Nostr OS.</p>
+          <Link to="/" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"><ArrowLeft className="h-4 w-4" /> Return home</Link>
+        </div>
       </div>
-    </div>
+    </OsShell>
   );
 };
 
