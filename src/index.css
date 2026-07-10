@@ -179,3 +179,95 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+@layer components {
+  .signal-wallpaper {
+    background:
+      radial-gradient(circle at 12% 18%, hsl(187 90% 55% / 0.17), transparent 28rem),
+      radial-gradient(circle at 85% 22%, hsl(39 96% 55% / 0.13), transparent 23rem),
+      radial-gradient(circle at 50% 105%, hsl(270 75% 58% / 0.14), transparent 35rem),
+      linear-gradient(145deg, #080b14 0%, #10152a 47%, #090d17 100%);
+  }
+
+  .signal-grid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.32;
+    background-image:
+      linear-gradient(hsl(0 0% 100% / 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(0 0% 100% / 0.035) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to bottom, black, transparent 80%);
+  }
+
+  .signal-orb {
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(1px);
+    opacity: 0.7;
+    animation: signal-drift 16s ease-in-out infinite alternate;
+  }
+
+  .signal-orb-one { top: 18%; left: 37%; width: 7px; height: 7px; background: #fbbf24; box-shadow: 0 0 32px 12px hsl(42 100% 62% / 0.4); }
+  .signal-orb-two { top: 57%; right: 18%; width: 5px; height: 5px; background: #5eead4; box-shadow: 0 0 28px 10px hsl(172 75% 57% / 0.35); animation-delay: -7s; }
+  .signal-menubar { background: hsl(225 27% 8% / 0.78); backdrop-filter: blur(20px); }
+  .signal-workspace { min-height: calc(100dvh - 2.75rem); }
+  .signal-window { transition: transform 180ms ease, box-shadow 180ms ease; }
+  .signal-titlebar { cursor: grab; }
+  .signal-titlebar:active { cursor: grabbing; }
+
+  .signal-home {
+    background:
+      radial-gradient(circle at 67% 22%, hsl(214 92% 62% / 0.16), transparent 22rem),
+      radial-gradient(circle at 14% 83%, hsl(38 96% 60% / 0.1), transparent 22rem),
+      hsl(225 23% 12% / 0.58);
+    backdrop-filter: blur(16px);
+  }
+
+  .desktop-icon { display: block; opacity: 0; animation: desktop-icon-in 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .desktop-icon-mark { display: grid; width: 68px; height: 68px; margin: 0 auto; place-items: center; border: 1px solid hsl(0 0% 100% / 0.16); border-radius: 21px; color: white; box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.22), 0 14px 28px hsl(225 40% 2% / 0.3); transition: transform 180ms ease, filter 180ms ease; }
+  .desktop-icon:hover .desktop-icon-mark, .desktop-icon:focus-visible .desktop-icon-mark { transform: translateY(-4px) scale(1.04); filter: brightness(1.1); }
+  .desktop-icon:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 6px; border-radius: 16px; }
+  .desktop-icon-cyan, .launcher-icon-cyan { background: linear-gradient(140deg, #14b8c5, #1d4ed8); }
+  .desktop-icon-amber, .launcher-icon-amber { background: linear-gradient(140deg, #fbbf24, #ea580c); }
+  .desktop-icon-violet, .launcher-icon-violet { background: linear-gradient(140deg, #c084fc, #6d28d9); }
+  .desktop-icon-emerald, .launcher-icon-emerald { background: linear-gradient(140deg, #34d399, #047857); }
+  .desktop-icon-rose, .launcher-icon-rose { background: linear-gradient(140deg, #fb7185, #be123c); }
+
+  .signal-dock { min-height: 56px; }
+  .dock-app { position: relative; display: grid; width: 40px; height: 40px; flex: 0 0 auto; place-items: center; border-radius: 12px; color: hsl(220 13% 78%); transition: transform 150ms ease, background-color 150ms ease, color 150ms ease; }
+  .dock-app:hover, .dock-app:focus-visible { transform: translateY(-5px) scale(1.08); background: hsl(0 0% 100% / 0.11); color: white; outline: none; }
+  .dock-app-active { background: hsl(0 0% 100% / 0.14); color: hsl(var(--primary)); }
+  .dock-app-active::after { position: absolute; right: 50%; bottom: -3px; width: 4px; height: 4px; border-radius: 999px; background: hsl(var(--primary)); content: ''; transform: translateX(50%); }
+  .dock-tooltip { pointer-events: none; position: absolute; bottom: calc(100% + 10px); display: none; white-space: nowrap; border: 1px solid hsl(0 0% 100% / 0.12); border-radius: 8px; background: #151927; padding: 4px 7px; font-family: var(--font-mono); font-size: 10px; color: white; }
+  .dock-app:hover .dock-tooltip { display: block; }
+
+  .launcher-app { display: flex; width: 100%; align-items: center; gap: 12px; border-radius: 15px; padding: 10px; text-align: left; color: white; transition: background-color 150ms ease, transform 150ms ease; }
+  .launcher-app:hover, .launcher-app:focus-visible { background: hsl(0 0% 100% / 0.09); transform: translateX(2px); outline: none; }
+  .launcher-app strong { display: block; font-size: 14px; font-weight: 600; }
+  .launcher-app small { display: block; margin-top: 2px; font-size: 11px; color: hsl(220 15% 70%); }
+  .launcher-icon { display: grid; width: 40px; height: 40px; flex: 0 0 auto; place-items: center; border: 1px solid hsl(0 0% 100% / 0.12); border-radius: 13px; color: white; }
+  .launcher-icon-slate { background: linear-gradient(140deg, #475569, #0f172a); }
+}
+
+@media (max-width: 640px) {
+  .signal-dock { gap: 0; padding: 4px; }
+  .dock-app { width: 34px; height: 38px; }
+  .dock-app svg { width: 16px; height: 16px; }
+  .signal-home { border-radius: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-orb, .desktop-icon { animation: none; opacity: 1; }
+  .signal-window, .desktop-icon-mark, .dock-app, .launcher-app { transition: none; }
+}
+
+@keyframes signal-drift {
+  from { transform: translate3d(-12px, -8px, 0); }
+  to { transform: translate3d(18px, 15px, 0); }
+}
+
+@keyframes desktop-icon-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
