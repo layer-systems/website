@@ -94,7 +94,7 @@ export function DashboardExport() {
         <main className="flex-1 min-w-0">
           <div className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
             <SidebarTrigger />
-            <h1 className="text-lg font-semibold md:text-xl truncate">Export Following List</h1>
+            <h1 className="font-display text-lg font-semibold md:text-xl truncate">Export Following List</h1>
           </div>
 
           <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8 overflow-x-hidden">

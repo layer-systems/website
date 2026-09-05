@@ -116,6 +116,8 @@ The project includes a **`docs/`** directory containing specialized documentatio
 
 - **`docs/NOSTR_DIRECT_MESSAGES.md`**: Read when implementing direct messaging features, building chat interfaces, or working with encrypted peer-to-peer communication (NIP-04 and NIP-17).
 
+- **`docs/DESIGN_STYLEGUIDE.md`**: Read before making any visual change — color, type, spacing, or component styling. Covers the design tokens in `src/index.css`, the "layer stack" signature motif, and the rationale behind them. The live version is the `/styleguide` route (`src/pages/Styleguide.tsx`).
+
 ## System Prompt Management
 
 The AI assistant's behavior and knowledge is defined by the AGENTS.md file, which serves as the system prompt. To modify the assistant's instructions or add new project-specific guidelines:

@@ -1,4 +1,4 @@
-import { Home, LayoutDashboard, FileText, Download } from 'lucide-react';
+import { Home, LayoutDashboard, FileText, Download, Compass, MessageCircle } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -7,17 +7,24 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { LoginArea } from '@/components/auth/LoginArea';
+import { Wordmark } from '@/components/brand/Wordmark';
 
 const navigationItems = [
   {
     title: 'Home',
     url: '/',
     icon: Home,
+  },
+  {
+    title: 'Explore',
+    url: '/explore',
+    icon: Compass,
   },
   {
     title: 'Dashboard',
@@ -34,6 +41,11 @@ const navigationItems = [
     url: '/dashboard/export',
     icon: Download,
   },
+  {
+    title: 'Messages',
+    url: '/messages',
+    icon: MessageCircle,
+  },
 ];
 
 export function AppSidebar() {
@@ -41,9 +53,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
+      <SidebarHeader>
+        <Link to="/" className="flex items-center px-2 py-1 transition-opacity hover:opacity-80">
+          <Wordmark className="text-base" />
+        </Link>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="eyebrow">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => {

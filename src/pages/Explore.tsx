@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSeoMeta } from '@unhead/react';
 import type { NostrEvent, NostrMetadata } from '@nostrify/nostrify';
 import { useExploreEvents } from '@/hooks/useExploreEvents';
 import { useAuthor } from '@/hooks/useAuthor';
@@ -9,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NoteContent } from '@/components/NoteContent';
 import { genUserName } from '@/lib/genUserName';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/navigation/AppSidebar';
 
 function TextNoteCard({ event }: { event: NostrEvent }) {
   const author = useAuthor(event.pubkey);
@@ -160,18 +163,25 @@ export function Explore() {
   const [activeTab, setActiveTab] = useState('notes');
   const { data, isLoading, isError } = useExploreEvents();
 
+  useSeoMeta({
+    title: 'Explore — LAYER.systems',
+    description: 'The latest text notes and profiles passing through the LAYER.systems relay.',
+  });
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
-      <div className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Explore
-          </h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Discover the latest text notes and profiles from the Nostr
-          </p>
-        </div>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full overflow-x-hidden">
+        <AppSidebar />
+        <main className="flex-1 min-w-0">
+          <div className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
+            <SidebarTrigger />
+            <h1 className="font-display text-lg font-semibold md:text-xl truncate">Explore</h1>
+          </div>
+
+          <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+            <p className="text-muted-foreground text-sm sm:text-base">
+              The latest text notes and profiles passing through this relay.
+            </p>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -264,7 +274,9 @@ export function Explore() {
             </div>
           </TabsContent>
         </Tabs>
+          </div>
+        </main>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

@@ -2,24 +2,18 @@ import { useSeoMeta } from '@unhead/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollText } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SiteHeader } from '@/components/brand/SiteHeader';
+import { SiteFooter } from '@/components/brand/SiteFooter';
 
 export function Terms() {
   useSeoMeta({
-    title: 'Terms of Service - LAYER.systems',
-    description: 'Terms of Service for LAYER.systems Nostr relay',
+    title: 'Terms of Service — LAYER.systems',
+    description: 'Terms of Service for the LAYER.systems Nostr relay.',
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
-          <Link to="/" className="inline-flex items-center gap-2 text-xl font-bold hover:opacity-80 transition-opacity">
-            <ScrollText className="h-6 w-6" />
-            <span>LAYER.systems</span>
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background">
+      <SiteHeader />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12 max-w-4xl">
@@ -29,6 +23,7 @@ export function Terms() {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
               <ScrollText className="h-8 w-8 text-primary" />
             </div>
+            <p className="eyebrow text-primary">Legal</p>
             <h1 className="text-4xl font-bold tracking-tight">Terms of Service</h1>
             <p className="text-muted-foreground text-lg">
               Last updated: December 27, 2025
@@ -194,19 +189,9 @@ export function Terms() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Footer Navigation */}
-        <div className="mt-12 pt-8 border-t text-center space-y-4">
-          <div className="flex justify-center gap-6 text-sm">
-            <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
-              Home
-            </Link>
-            <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
-              Privacy Policy
-            </Link>
-          </div>
-        </div>
       </main>
+
+      <SiteFooter />
     </div>
   );
 }
