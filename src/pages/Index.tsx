@@ -1,8 +1,9 @@
 import { useSeoMeta } from '@unhead/react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, Copy, Server, Gift, Users, Globe } from 'lucide-react';
+import { CheckCircle2, Copy, Server, Gift, Users, Globe, LayoutGrid } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import { LoginArea } from '@/components/auth/LoginArea';
 
@@ -62,7 +63,13 @@ const Index = () => {
       {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-end">
+          <div className="flex justify-end items-center gap-3">
+            <Button asChild variant="outline" className="gap-2">
+              <Link to="/os">
+                <LayoutGrid className="w-4 h-4" />
+                <span>Open the Desktop</span>
+              </Link>
+            </Button>
             <LoginArea className="max-w-60" />
           </div>
         </div>
@@ -98,6 +105,14 @@ const Index = () => {
             <p className="text-base sm:text-lg text-muted-foreground/80 max-w-xl mx-auto">
               A fast, reliable, and open Nostr relay connecting you to the future of social media
             </p>
+            <div className="flex justify-center pt-2">
+              <Button asChild size="lg" className="gap-2 hover:scale-105 transition-transform">
+                <Link to="/os">
+                  <LayoutGrid className="w-5 h-5" />
+                  Launch the App
+                </Link>
+              </Button>
+            </div>
           </div>
 
           {/* Relay URL Card */}

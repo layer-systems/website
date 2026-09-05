@@ -121,3 +121,29 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .os-wallpaper-layer {
+    animation: os-wallpaper-drift 40s ease-in-out infinite;
+  }
+
+  .os-wallpaper-layer-slow {
+    animation-duration: 60s;
+    animation-direction: reverse;
+  }
+}
+
+@keyframes os-wallpaper-drift {
+  0%, 100% {
+    transform: translateX(-2%) rotate(var(--tw-rotate, 0deg));
+  }
+  50% {
+    transform: translateX(2%) rotate(var(--tw-rotate, 0deg));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .os-wallpaper-layer {
+    animation: none;
+  }
+}

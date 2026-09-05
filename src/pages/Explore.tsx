@@ -156,13 +156,14 @@ function LoadingSkeleton() {
   );
 }
 
+/** The Explore ("Browser") app, rendered inside an OS window — see docs/DESKTOP_OS.md. */
 export function Explore() {
   const [activeTab, setActiveTab] = useState('notes');
   const { data, isLoading, isError } = useExploreEvents();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
-      <div className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
+    <div className="h-full overflow-y-auto bg-gradient-to-b from-background via-background to-muted/20">
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <div className="space-y-2">
           <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">

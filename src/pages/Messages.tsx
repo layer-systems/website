@@ -1,24 +1,25 @@
 import { useSeoMeta } from '@unhead/react';
 import { DMMessagingInterface } from '@/components/dm/DMMessagingInterface';
+import { DMProvider } from '@/components/DMProvider';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
+/** The Messages app, rendered inside an OS window — see docs/DESKTOP_OS.md. */
 const Messages = () => {
   useSeoMeta({
     title: 'Messages',
     description: 'Private encrypted messaging on Nostr',
   });
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4 h-screen flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-semibold">Messages</h1>
-        </div>
+  const { user } = useCurrentUser();
 
+  return (
+    <DMProvider config={{ enabled: !!user }}>
+      <div className="h-full flex flex-col p-4">
         <DMMessagingInterface className="flex-1" />
       </div>
-    </div>
+    </DMProvider>
   );
 };
 
 export default Messages;
+export { Messages };

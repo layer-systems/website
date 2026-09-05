@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/navigation/AppSidebar';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostr } from '@nostrify/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { InfoIcon, Download, Users, Calendar } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
+/** The Export Following ("Export") app, rendered inside an OS window — see docs/DESKTOP_OS.md. */
 export function DashboardExport() {
   const { user } = useCurrentUser();
   const { nostr } = useNostr();
@@ -88,16 +87,8 @@ export function DashboardExport() {
   };
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full overflow-x-hidden">
-        <AppSidebar />
-        <main className="flex-1 min-w-0">
-          <div className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
-            <SidebarTrigger />
-            <h1 className="text-lg font-semibold md:text-xl truncate">Export Following List</h1>
-          </div>
-
-          <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8 overflow-x-hidden">
+    <div className="flex h-full w-full flex-col overflow-y-auto">
+      <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8 overflow-x-hidden">
             {!user ? (
               <Card className="border-dashed">
                 <CardContent className="py-12 px-8 text-center">
@@ -243,9 +234,7 @@ export function DashboardExport() {
                 </Card>
               </div>
             )}
-          </div>
-        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 }
