@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import type { ParsedCalendarEvent } from '@/lib/calendarEvents';
 import { localDateKey } from '@/lib/calendarEvents';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -43,10 +43,12 @@ export function MonthGrid({
   onSelectDate,
   onShiftMonth,
 }: MonthGridProps) {
-  const weeks = buildWeeks(monthAnchor);
+  const weeks = useMemo(() => buildWeeks(monthAnchor), [monthAnchor]);
   const monthIndex = monthAnchor.getMonth();
   const todayKey = localDateKey(today);
   const cellRefs = useRef(new Map<string, HTMLButtonElement>());
+
+  const inViewKeys = useMemo(() => new Set(weeks.flat().map((date) => localDateKey(date))), [weeks]);
 
   // Exactly one cell must be tab-focusable, or a keyboard user who tabs away
   // and back can never re-enter the grid. Prefer the selected day — but only
@@ -55,7 +57,7 @@ export function MonthGrid({
   // PageUp/PageDown it commonly points outside the newly displayed grid.
   // Otherwise prefer today if it's in the displayed month, and only
   // otherwise fall back to the 1st.
-  const selectedInView = selectedDate ? weeks.some((week) => week.some((date) => localDateKey(date) === selectedDate)) : false;
+  const selectedInView = selectedDate ? inViewKeys.has(selectedDate) : false;
   const isTodayInMonth = today.getFullYear() === monthAnchor.getFullYear() && today.getMonth() === monthIndex;
   const focusKey = selectedInView
     ? selectedDate!
@@ -65,6 +67,10 @@ export function MonthGrid({
 
   const focusDate = (date: Date) => {
     const key = localDateKey(date);
+    // Arrow-key navigation can compute a date outside the currently rendered
+    // grid (e.g. ArrowRight from the last cell); bail out rather than
+    // selecting a cell with no matching ref, which would drop focus entirely.
+    if (!inViewKeys.has(key)) return;
     onSelectDate(key, { focus: true });
     requestAnimationFrame(() => cellRefs.current.get(key)?.focus());
   };
