@@ -34,6 +34,12 @@ export function HighlightLayer({
   const { toast } = useToast();
 
   useEffect(() => {
+    // No point tracking selection at all when highlighting can't happen —
+    // signed out, or the article has no usable address to attach one to.
+    // (Stale selection state from before either went missing is harmless:
+    // the button below also requires `user && address` to render.)
+    if (!user || !address) return;
+
     function handleSelectionChange() {
       const sel = window.getSelection();
       const container = containerRef.current;
@@ -60,10 +66,10 @@ export function HighlightLayer({
 
     document.addEventListener('selectionchange', handleSelectionChange);
     return () => document.removeEventListener('selectionchange', handleSelectionChange);
-  }, []);
+  }, [user, address]);
 
   const handleHighlight = async () => {
-    if (!selection) return;
+    if (!selection || !address) return;
     const { text } = selection;
     window.getSelection()?.removeAllRanges();
     setSelection(null);
@@ -84,7 +90,7 @@ export function HighlightLayer({
       <div ref={containerRef} className="relative">
         {children}
 
-        {user && selection && (
+        {user && address && selection && (
           <button
             type="button"
             // Selection collapses on mousedown before onClick fires unless

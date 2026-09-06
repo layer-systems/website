@@ -105,8 +105,8 @@ export default function ExampleApp({ setTitle }: AppProps) {
 
 `HighlightLayer` (`src/apps/articles/HighlightLayer.tsx`) tracks `window.getSelection()`
 against the rendered article, not the raw markdown — the highlighted text saved to a kind
-9802 event is whatever `Range.toString()` returns, i.e. the plain-text content the reader
-actually saw, not markdown syntax.
+9802 event is whatever that `Selection`'s `.toString()` returns, i.e. the plain-text content
+the reader actually saw, not markdown syntax.
 
 ### Follow lists are a whole-list replacement
 

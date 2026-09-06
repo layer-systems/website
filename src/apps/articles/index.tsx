@@ -321,7 +321,10 @@ function ArticleView({ event }: { event: NostrEvent }) {
       </header>
 
       <HighlightLayer
-        address={`${event.kind}:${event.pubkey}:${tagValue(event, 'd') ?? ''}`}
+        // An empty string (rather than a malformed "kind:pubkey:" address)
+        // when the article has no `d` tag — HighlightLayer treats a falsy
+        // address as "highlighting isn't available for this article."
+        address={tagValue(event, 'd') ? `${event.kind}:${event.pubkey}:${tagValue(event, 'd')}` : ''}
         authorPubkey={event.pubkey}
       >
         <div className="mt-6 text-[15px]">
