@@ -24,11 +24,17 @@ function SnapPreview({ zone }: { zone: Exclude<SnapZone, null> }) {
 }
 
 export function WindowLayer() {
-  const { windows, focusedId } = useWindowManager();
+  // Deliberately the unsorted list. `windows` from the context is sorted by
+  // z-order, so raising a window reorders the DOM nodes; the browser then
+  // replays the enter animation on the moved element. Stacking is already
+  // handled by the inline `z-index` each frame sets, so render order is free
+  // to stay stable.
+  const { state, focusedId } = useWindowManager();
+  const windows = state.windows;
   const [snap, setSnap] = useState<SnapZone>(null);
 
   return (
-    <div className="os-window-enter pointer-events-none absolute inset-0">
+    <div className="pointer-events-none absolute inset-0">
       {snap && <SnapPreview zone={snap} />}
 
       {windows.map((win) => {
