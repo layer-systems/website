@@ -1,0 +1,13 @@
+[mcp_servers.js-dev]
+args = [
+    "-y",
+    "@soapbox.pub/js-dev-mcp@latest",
+]
+command = "npx"
+
+[mcp_servers.nostr]
+args = [
+    "-y",
+    "@nostrbook/mcp@latest",
+]
+command = "npx"

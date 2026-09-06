@@ -5,12 +5,19 @@ import { useCurrentUser } from "./useCurrentUser";
 
 import type { NostrEvent } from "@nostrify/nostrify";
 
-export function useNostrPublish(): UseMutationResult<NostrEvent> {
+type EventTemplate = Pick<NostrEvent, 'kind' | 'content'> &
+  Partial<Pick<NostrEvent, 'tags' | 'created_at'>>;
+
+export function useNostrPublish(): UseMutationResult<
+  NostrEvent,
+  Error,
+  EventTemplate
+> {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
 
   return useMutation({
-    mutationFn: async (t: Omit<NostrEvent, 'id' | 'pubkey' | 'sig'>) => {
+    mutationFn: async (t: EventTemplate) => {
       if (user) {
         const tags = t.tags ?? [];
 

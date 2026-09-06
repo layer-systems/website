@@ -1,62 +1,86 @@
-// NOTE: This file is stable and usually should not be modified.
-// It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
-
 import { useState } from 'react';
-import { User, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button.tsx';
-import LoginDialog from './LoginDialog';
-import SignupDialog from './SignupDialog';
+import AuthDialog from './AuthDialog';
+import { QuickLoginDialog } from './QuickLoginDialog';
 import { useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
 import { AccountSwitcher } from './AccountSwitcher';
 import { cn } from '@/lib/utils';
 
-export interface LoginAreaProps {
-  className?: string;
+/** Minimal shape of the NIP-07 provider injected at `window.nostr`. */
+interface Nip07Provider {
+  getPublicKey(): Promise<string>;
 }
 
-export function LoginArea({ className }: LoginAreaProps) {
-  const { currentUser } = useLoggedInAccounts();
-  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
-  const [signupDialogOpen, setSignupDialogOpen] = useState(false);
+function getNip07Provider(): Nip07Provider | undefined {
+  if (typeof window === 'undefined' || !('nostr' in window)) return undefined;
+  const provider = (window as { nostr?: unknown }).nostr;
+  if (
+    provider &&
+    typeof (provider as Nip07Provider).getPublicKey === 'function'
+  ) {
+    return provider as Nip07Provider;
+  }
+  return undefined;
+}
 
-  const handleLogin = () => {
-    setLoginDialogOpen(false);
-    setSignupDialogOpen(false);
+export interface LoginAreaProps {
+  className?: string;
+  /** Sized to sit inside the OS menu bar rather than a page header. */
+  compact?: boolean;
+}
+
+export function LoginArea({ className, compact }: LoginAreaProps) {
+  const { currentUser } = useLoggedInAccounts();
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [quickLoginPubkey, setQuickLoginPubkey] = useState<string | null>(null);
+
+  const handleJoin = async () => {
+    const provider = getNip07Provider();
+    if (provider) {
+      try {
+        const pubkey = await provider.getPublicKey();
+        if (pubkey) {
+          setQuickLoginPubkey(pubkey);
+          return;
+        }
+      } catch {
+        // Extension declined or errored — fall through to the full dialog.
+      }
+    }
+    setAuthDialogOpen(true);
   };
 
   return (
-    <div className={cn("inline-flex items-center justify-center", className)}>
+    <div className={cn('inline-flex items-center justify-center', className)}>
       {currentUser ? (
-        <AccountSwitcher onAddAccountClick={() => setLoginDialogOpen(true)} />
+        <AccountSwitcher compact={compact} onAddAccountClick={() => setAuthDialogOpen(true)} />
       ) : (
-        <div className="flex gap-3 justify-center">
-          <Button
-            onClick={() => setLoginDialogOpen(true)}
-            className='flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground w-full font-medium transition-all hover:bg-primary/90 animate-scale-in'
-          >
-            <User className='w-4 h-4' />
-            <span className='truncate'>Log in</span>
-          </Button><Button
-            onClick={() => setSignupDialogOpen(true)}
-            variant="outline"
-            className="flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Sign Up</span>
-          </Button>
-        </div>
+        <Button
+          onClick={handleJoin}
+          className={cn(
+            'flex items-center gap-2 rounded-full bg-primary font-medium text-primary-foreground transition-all hover:bg-primary/90 animate-scale-in',
+            compact ? 'h-5 px-2.5 text-xs' : 'px-5 py-2',
+          )}
+        >
+          <span className="truncate">Join</span>
+        </Button>
       )}
 
-      <LoginDialog
-        isOpen={loginDialogOpen}
-        onClose={() => setLoginDialogOpen(false)}
-        onLogin={handleLogin}
-        onSignup={() => setSignupDialogOpen(true)}
-      />
+      {quickLoginPubkey && (
+        <QuickLoginDialog
+          isOpen={quickLoginPubkey !== null}
+          pubkey={quickLoginPubkey}
+          onClose={() => setQuickLoginPubkey(null)}
+          onOtherLogin={() => {
+            setQuickLoginPubkey(null);
+            setAuthDialogOpen(true);
+          }}
+        />
+      )}
 
-      <SignupDialog
-        isOpen={signupDialogOpen}
-        onClose={() => setSignupDialogOpen(false)}
+      <AuthDialog
+        isOpen={authDialogOpen}
+        onClose={() => setAuthDialogOpen(false)}
       />
     </div>
   );

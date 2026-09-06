@@ -1,21 +1,17 @@
 {
-  "name": "LAYER.systems",
-  "short_name": "LAYER.systems",
-  "description": "Hosting nostr services",
+  "name": "Nostr OS — a desktop for Nostr",
+  "short_name": "Nostr OS",
+  "description": "A Nostr client shaped like a desktop: feeds, profiles, threads and long-form articles open as windows you can move, resize and keep side by side.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#f4f1ec",
+  "theme_color": "#8b5cf6",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }
