@@ -89,7 +89,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 }
 ```
 
-## The eleven apps
+## The twelve apps
 
 | App | `id` | Params | Notes |
 |---|---|---|---|
@@ -97,6 +97,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Profile | `profile` | `pubkey`, `relays?` | kind 0 metadata, the author's notes, follow/unfollow |
 | Note | `notes` | `id?`, `relays?` | One note and its replies, or a blank local draft when `id` is absent. **Not** a singleton |
 | Reader | `articles` | `pubkey?`, `identifier?`, `kind?`, `relays?` | NIP-23 long-form, `react-markdown`, NIP-84 highlights |
+| Documents | `documents` | `doc?` | Tiptap + Yjs rich-text editor, autosaves to IndexedDB, explicit NIP-23 publish. Shows a login prompt when signed out |
 | Bookmarks | `bookmarks` | — | NIP-51 kind 10003 list — bookmarked notes and articles |
 | Web Bookmarks | `web-bookmarks` | — | NIP-B0 kind 39701 — one addressable event per saved URL |
 | Live | `live` | `pubkey?`, `identifier?` | NIP-53 kind 30311 live events + kind 1311 chat |
@@ -104,6 +105,25 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Settings | `settings` | — | Theme, relay list, Blossom servers, account, session |
 | About | `about` | — | What this is, the app list, the shortcuts |
+
+### Documents keeps the live draft local, publishes a snapshot
+
+The Documents app (`src/apps/documents`, `src/lib/documents`) is the solo-editing phase of a
+larger collaborative-editor plan. The working draft is a **Yjs document** persisted to
+IndexedDB (`openDocumentSession` in `src/lib/documents/ydoc.ts`) and edited through Tiptap's
+`Collaboration` extension (`useDocumentEditor`). That extension is the exact seam where a
+Hocuspocus-style WebSocket provider attaches later — the live draft never touches Nostr
+relays, and no custom event kinds are introduced.
+
+Publishing is a deliberate owner action that serializes the document to portable Markdown
+(`src/lib/documents/markdown.ts`) and emits a NIP-23 kind 30023 snapshot
+(`buildPublishTemplate` in `src/lib/documents/publish.ts`). The snapshot is a one-way release
+that opens in the Reader; it never replaces or interrupts the live draft. Blossom attachments
+ride along as validated NIP-94 `imeta` metadata (`src/lib/documents/attachments.ts`).
+
+Pasted and imported HTML passes an allowlist sanitizer (`src/lib/documents/sanitizeHtml.ts`)
+before the constrained Tiptap schema parses it, and link hrefs are restricted to the shared
+`sanitizeUrl` protocol allowlist — the editor never uses `dangerouslySetInnerHTML`.
 
 ### Spells are a third-party kind, adopted for interop
 
