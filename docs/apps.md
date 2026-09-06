@@ -89,7 +89,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 }
 ```
 
-## The nine apps
+## The ten apps
 
 | App | `id` | Params | Notes |
 |---|---|---|---|
@@ -99,9 +99,18 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Reader | `articles` | `pubkey?`, `identifier?`, `kind?`, `relays?` | NIP-23 long-form, `react-markdown`, NIP-84 highlights |
 | Bookmarks | `bookmarks` | — | NIP-51 kind 10003 list — bookmarked notes and articles |
 | Web Bookmarks | `web-bookmarks` | — | NIP-B0 kind 39701 — one addressable event per saved URL |
+| Live | `live` | `pubkey?`, `identifier?` | NIP-53 kind 30311 live events + kind 1311 chat |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Settings | `settings` | — | Theme, relay list, Blossom servers, account, session |
 | About | `about` | — | What this is, the app list, the shortcuts |
+
+### Live only links out to playback, it doesn't embed a player
+
+NIP-53's `streaming` tag is typically an HLS (`.m3u8`) URL, which no browser plays natively
+without a library like hls.js. Rather than pull that dependency in for a first cut, the Live
+app (`src/apps/live`) shows the stream's metadata and chat and opens `streaming` (or
+`recording`, once `status` is `ended`) in a new tab. Spaces/interactive rooms (kind
+30312/30313) are a separate, larger effort — see the tracking issue.
 
 ### Web bookmarks are one event per URL, not a list
 
