@@ -93,15 +93,25 @@ export function tagValues(event: NostrEvent, name: string): string[] {
 
 /**
  * The event a reply points at, following NIP-10: prefer an explicit `root`
- * marker, fall back to the last positional `e` tag.
+ * marker, fall back to the first *unmarked* `e` tag (the deprecated scheme
+ * puts the root id first: `["e", <root-id>], ["e", <reply-id>]`). A `mention`
+ * or `reply`-only marker is never treated as the root — a mention isn't
+ * part of the thread, and a lone `reply` marker without `root` is malformed
+ * per NIP-10 rather than an implicit root.
  */
 export function rootReference(event: NostrEvent): string | undefined {
   const marked = event.tags.find(([name, , , marker]) => name === 'e' && marker === 'root');
   if (marked) return marked[1];
-  const positional = event.tags.filter(([name]) => name === 'e');
+  const positional = event.tags.filter(([name, , , marker]) => name === 'e' && !marker);
   return positional[0]?.[1];
 }
 
+/**
+ * True for a reply per NIP-10: a marked `root`/`reply` `e` tag, or an
+ * unmarked one (the deprecated positional scheme). An `e` tag marked
+ * `mention` alone does not make an event a reply — it cites another event
+ * without being part of its thread.
+ */
 export function isReply(event: NostrEvent): boolean {
-  return event.tags.some(([name]) => name === 'e');
+  return event.tags.some(([name, , , marker]) => name === 'e' && marker !== 'mention');
 }
