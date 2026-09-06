@@ -308,14 +308,20 @@ body.os-dragging .os-window-content {
 
 /* ------------------------------------------------------------- Animations */
 
+/*
+ * Windows carry their position in an inline `transform: translate3d(...)`, so
+ * the opening animation must not touch `transform` — animating it would pin
+ * the window at 0,0 for the duration. The standalone `scale` property
+ * composes with the inline transform instead of replacing it.
+ */
 @keyframes os-window-in {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    scale: 0.96;
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    scale: 1;
   }
 }
 
@@ -328,7 +334,7 @@ body.os-dragging .os-window-content {
   }
 }
 
-.os-window-enter > * {
+.os-window {
   animation: os-window-in 160ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -339,9 +345,6 @@ body.os-dragging .os-window-content {
 @media (prefers-reduced-motion: reduce) {
   .os-window {
     transition: none;
-  }
-
-  .os-window-enter > * {
     animation: os-fade-in 120ms ease-out;
   }
 }
