@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -7,7 +7,7 @@ import { LoginRequired } from '@/components/nostr/LoginRequired';
 import { NoteCard } from '@/components/nostr/NoteCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthor } from '@/hooks/useAuthor';
-import { useBookmarkList } from '@/hooks/useBookmarks';
+import { useBookmarkedNoteIds, useMyBookmarkedArticles } from '@/hooks/useBookmarks';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useWindowManager } from '@/os/useWindowManager';
 import { displayName, relativeTime, tagValue } from '@/lib/nostrUtils';
@@ -30,55 +30,22 @@ function useBookmarkedNotes(ids: string[]) {
   });
 }
 
-/** Addresses are `kind:pubkey:d-identifier`; only the `d` half is queryable, so matches are narrowed back down locally. */
-function useBookmarkedArticles(addresses: string[]) {
-  const { nostr } = useNostr();
-  const dTags = useMemo(
-    () => [...new Set(addresses.map((address) => address.split(':')[2]).filter(Boolean))],
-    [addresses],
-  );
-
-  return useQuery<NostrEvent[]>({
-    queryKey: ['nostr', 'bookmarked-articles', addresses.join(',')],
-    enabled: dTags.length > 0,
-    queryFn: async ({ signal }) => {
-      const events = await nostr.query(
-        [{ kinds: [30023], '#d': dTags, limit: dTags.length * 4 }],
-        { signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]) },
-      );
-      const wanted = new Set(addresses);
-      return events.filter((event) => wanted.has(`${event.kind}:${event.pubkey}:${tagValue(event, 'd')}`));
-    },
-    staleTime: 60_000,
-  });
-}
-
 export default function BookmarksApp({ setTitle }: AppProps) {
   const { user } = useCurrentUser();
   const { openApp } = useWindowManager();
 
   useEffect(() => setTitle('Bookmarks'), [setTitle]);
 
-  const list = useBookmarkList();
-  const noteIds = useMemo(
-    () => (list.data?.tags ?? []).filter(([name]) => name === 'e').map(([, id]) => id),
-    [list.data],
-  );
-  const addresses = useMemo(
-    () => (list.data?.tags ?? []).filter(([name]) => name === 'a').map(([, address]) => address),
-    [list.data],
-  );
-
+  const noteIds = useBookmarkedNoteIds();
   const notes = useBookmarkedNotes(noteIds);
-  const articles = useBookmarkedArticles(addresses);
+  const articles = useMyBookmarkedArticles();
 
   if (!user) {
     return <LoginRequired action="see your bookmarks" />;
   }
 
-  const isLoading =
-    list.isLoading || (noteIds.length > 0 && notes.isLoading) || (addresses.length > 0 && articles.isLoading);
-  const isEmpty = !isLoading && noteIds.length === 0 && addresses.length === 0;
+  const isLoading = (noteIds.length > 0 && notes.isLoading) || articles.isLoading;
+  const isEmpty = !isLoading && (notes.data?.length ?? 0) === 0 && (articles.data?.length ?? 0) === 0;
 
   return (
     <AppLayout>

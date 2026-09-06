@@ -30,6 +30,7 @@ export function BookmarkButton({ target, className }: { target: BookmarkTarget; 
 
   return (
     <Button
+      type="button"
       variant="ghost"
       size="sm"
       className={cn('h-7 gap-1.5 px-2 text-xs text-muted-foreground', bookmarked && 'text-primary', className)}

@@ -1,7 +1,7 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, Link2 } from 'lucide-react';
+import { Bookmark, ChevronLeft, Link2, Rss } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import {
   AppBody,
@@ -19,6 +19,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { nip19 } from 'nostr-tools';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useMyBookmarkedArticles } from '@/hooks/useBookmarks';
 import {
   absoluteTime,
   decodeRelayHints,
@@ -32,6 +34,8 @@ import { useRelayHints } from '@/hooks/useRelayHints';
 import { useToast } from '@/hooks/useToast';
 import { cn } from '@/lib/utils';
 import type { AppParams, AppProps } from '@/os/types';
+
+type ListScope = 'recent' | 'bookmarked';
 
 const ARTICLE_KIND = 30023;
 
@@ -85,6 +89,13 @@ function useArticle(
 
 export default function ArticlesApp({ params, setTitle, setParams }: AppProps) {
   const isMobile = useIsMobile();
+  const { user } = useCurrentUser();
+
+  // Signing out mid-session must not strand the reader on a "Bookmarked" tab
+  // it can no longer see anything in, so the effective scope is derived
+  // rather than corrected after render — same reasoning as the Feed.
+  const [requestedScope, setRequestedScope] = useState<ListScope>('recent');
+  const scope: ListScope = user ? requestedScope : 'recent';
 
   // The selection lives in the window's params rather than local state, so the
   // URL, a reload and the switch between the desktop and mobile shells all
@@ -103,7 +114,9 @@ export default function ArticlesApp({ params, setTitle, setParams }: AppProps) {
     [setParams],
   );
 
-  const list = useRecentArticles();
+  const recent = useRecentArticles();
+  const bookmarked = useMyBookmarkedArticles();
+  const list = scope === 'recent' ? recent : bookmarked;
   const article = useArticle(
     selected?.pubkey,
     selected?.identifier,
@@ -117,13 +130,19 @@ export default function ArticlesApp({ params, setTitle, setParams }: AppProps) {
   }, [title, setTitle]);
 
   const listPane = (
-    <ArticleList
-      query={list}
-      selected={selected}
-      onSelect={(event, identifier) =>
-        select({ pubkey: event.pubkey, identifier, kind: String(event.kind) })
-      }
-    />
+    <div className="flex h-full min-h-0 flex-col">
+      <ListScopeTabs scope={requestedScope} disabled={!user} onChange={setRequestedScope} />
+      <div className="os-scroll min-h-0 flex-1 overflow-y-auto">
+        <ArticleList
+          query={list}
+          scope={scope}
+          selected={selected}
+          onSelect={(event, identifier) =>
+            select({ pubkey: event.pubkey, identifier, kind: String(event.kind) })
+          }
+        />
+      </div>
+    </div>
   );
 
   const readerPane = !selected ? (
@@ -176,12 +195,14 @@ export default function ArticlesApp({ params, setTitle, setParams }: AppProps) {
         </span>
         {article.data && (
           <div className="ml-auto flex items-center gap-2">
-            <BookmarkButton
-              target={{
-                type: 'a',
-                value: `${article.data.kind}:${article.data.pubkey}:${tagValue(article.data, 'd') ?? ''}`,
-              }}
-            />
+            {tagValue(article.data, 'd') && (
+              <BookmarkButton
+                target={{
+                  type: 'a',
+                  value: `${article.data.kind}:${article.data.pubkey}:${tagValue(article.data, 'd')}`,
+                }}
+              />
+            )}
             <CopyArticleLink event={article.data} />
           </div>
         )}
@@ -225,12 +246,74 @@ function CopyArticleLink({ event }: { event: NostrEvent }) {
   );
 }
 
+function ListScopeTabs({
+  scope,
+  disabled,
+  onChange,
+}: {
+  scope: ListScope;
+  disabled: boolean;
+  onChange: (scope: ListScope) => void;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-1 border-b border-border p-2">
+      <ScopeTab
+        active={scope === 'recent'}
+        onClick={() => onChange('recent')}
+        icon={<Rss className="size-3.5" aria-hidden />}
+        label="Recent"
+      />
+      <ScopeTab
+        active={scope === 'bookmarked'}
+        disabled={disabled}
+        onClick={() => onChange('bookmarked')}
+        icon={<Bookmark className="size-3.5" aria-hidden />}
+        label="Bookmarked"
+      />
+    </div>
+  );
+}
+
+function ScopeTab({
+  active,
+  disabled,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      className={cn(
+        'flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium transition-colors',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        'disabled:cursor-not-allowed disabled:opacity-40',
+        active ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-muted',
+      )}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
 function ArticleList({
   query,
+  scope,
   selected,
   onSelect,
 }: {
   query: ReturnType<typeof useRecentArticles>;
+  scope: ListScope;
   selected: { pubkey: string; identifier: string } | null;
   onSelect: (event: NostrEvent, identifier: string) => void;
 }) {
@@ -247,14 +330,14 @@ function ArticleList({
   if (!query.data || query.data.length === 0) {
     return (
       <p className="px-3 py-6 text-center text-xs text-muted-foreground">
-        No articles on your relays.
+        {scope === 'bookmarked' ? 'You haven’t bookmarked any articles yet.' : 'No articles on your relays.'}
       </p>
     );
   }
 
   return (
     <>
-      <AppSectionTitle>Recent</AppSectionTitle>
+      <AppSectionTitle>{scope === 'bookmarked' ? 'Bookmarked' : 'Recent'}</AppSectionTitle>
       <ul className="pb-2">
         {query.data.map((event) => {
           const identifier = tagValue(event, 'd')!;
