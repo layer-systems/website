@@ -1,7 +1,7 @@
 {
-  "name": "Nostr OS — a desktop for Nostr",
-  "short_name": "Nostr OS",
-  "description": "A Nostr client shaped like a desktop: feeds, profiles, threads and long-form articles open as windows you can move, resize and keep side by side.",
+  "name": "LAYER.systems",
+  "short_name": "LAYER.systems",
+  "description": "LAYER.systems — a Nostr client shaped like a desktop: feeds, profiles, threads and long-form articles open as windows you can move, resize and keep side by side.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f4f1ec",

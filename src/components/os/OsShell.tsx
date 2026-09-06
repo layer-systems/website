@@ -80,7 +80,7 @@ export function OsShell({ boot, syncUrl = false }: OsShellProps) {
   const app = focused ? getApp(focused.appId) : undefined;
 
   useSeoMeta({
-    title: focused ? `${focused.title} — Nostr OS` : 'Nostr OS — a desktop for Nostr',
+    title: focused ? `${focused.title} — LAYER.systems` : 'LAYER.systems',
     description:
       app?.description ??
       'A desktop-style Nostr client: every app is a window you can move, resize and stack.',
