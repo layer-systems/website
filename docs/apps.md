@@ -89,7 +89,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 }
 ```
 
-## The seven apps
+## The eight apps
 
 | App | `id` | Params | Notes |
 |---|---|---|---|
@@ -97,9 +97,18 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Profile | `profile` | `pubkey`, `relays?` | kind 0 metadata, the author's notes, follow/unfollow |
 | Note | `notes` | `id`, `relays?` | One note and its replies. **Not** a singleton |
 | Reader | `articles` | `pubkey?`, `identifier?`, `kind?`, `relays?` | NIP-23 long-form, `react-markdown` |
+| Web Bookmarks | `web-bookmarks` | — | NIP-B0 kind 39701 — one addressable event per saved URL |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Settings | `settings` | — | Theme, relay list, Blossom servers, account, session |
 | About | `about` | — | What this is, the app list, the shortcuts |
+
+### Web bookmarks are one event per URL, not a list
+
+Unlike a NIP-51 list, each NIP-B0 web bookmark (kind 39701) is its own addressable event —
+the `d` tag is the URL itself (scheme stripped for `https`, see `bookmarkDTag` in
+`src/hooks/useWebBookmarks.ts`). Removing one publishes a NIP-09 kind 5 deletion request,
+which relays are free to ignore, so the client also drops it from its own query cache
+rather than trusting a refetch to reflect it.
 
 ### Follow lists are a whole-list replacement
 
