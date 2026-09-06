@@ -49,11 +49,19 @@ export function MonthGrid({
   const cellRefs = useRef(new Map<string, HTMLButtonElement>());
 
   // Exactly one cell must be tab-focusable, or a keyboard user who tabs away
-  // and back can never re-enter the grid. Prefer the selected day, then
-  // today if it's in the displayed month, and only otherwise fall back to
-  // the 1st — e.g. after PageUp/PageDown lands on a month with neither.
+  // and back can never re-enter the grid. Prefer the selected day — but only
+  // when it's actually one of the rendered cells: `selectedDate` survives
+  // month navigation (so the agenda can keep showing it), so after Prev/Next/
+  // PageUp/PageDown it commonly points outside the newly displayed grid.
+  // Otherwise prefer today if it's in the displayed month, and only
+  // otherwise fall back to the 1st.
+  const selectedInView = selectedDate ? weeks.some((week) => week.some((date) => localDateKey(date) === selectedDate)) : false;
   const isTodayInMonth = today.getFullYear() === monthAnchor.getFullYear() && today.getMonth() === monthIndex;
-  const focusKey = selectedDate ?? (isTodayInMonth ? todayKey : localDateKey(new Date(monthAnchor.getFullYear(), monthIndex, 1)));
+  const focusKey = selectedInView
+    ? selectedDate!
+    : isTodayInMonth
+      ? todayKey
+      : localDateKey(new Date(monthAnchor.getFullYear(), monthIndex, 1));
 
   const focusDate = (date: Date) => {
     const key = localDateKey(date);
@@ -101,21 +109,20 @@ export function MonthGrid({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col" aria-hidden={isLoading || undefined}>
-      <div className="grid grid-cols-7 border-b border-border text-center text-[11px] font-medium text-muted-foreground" role="row">
+    <div role="grid" aria-label="Month" className="flex h-full min-h-0 flex-col" aria-hidden={isLoading || undefined}>
+      <div
+        role="row"
+        className="grid grid-cols-7 border-b border-border text-center text-[11px] font-medium text-muted-foreground"
+      >
         {WEEKDAY_LABELS.map((label) => (
           <div key={label} role="columnheader" className="py-1.5" aria-label={label}>
             <span aria-hidden>{label}</span>
           </div>
         ))}
       </div>
-      <div
-        role="grid"
-        aria-label="Month"
-        className="grid flex-1 auto-rows-fr grid-cols-7 divide-x divide-y divide-border"
-      >
+      <div className="grid flex-1 auto-rows-fr grid-cols-7 divide-x divide-y divide-border">
         {isLoading
-          ? Array.from({ length: 35 }).map((_, index) => (
+          ? Array.from({ length: weeks.length * 7 }).map((_, index) => (
               <div key={index} className="p-1.5">
                 <Skeleton className="h-full w-full" />
               </div>
