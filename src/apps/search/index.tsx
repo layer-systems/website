@@ -25,9 +25,9 @@ interface SearchResults {
 function profileMatches(event: NostrEvent, term: string): boolean {
   try {
     const metadata = JSON.parse(event.content) as NostrMetadata;
-    const query = term.toLocaleLowerCase();
+    const query = term.toLowerCase();
     return [metadata.name, metadata.display_name, metadata.nip05]
-      .some((value) => value?.toLocaleLowerCase().includes(query));
+      .some((value) => value?.toLowerCase()?.includes(query));
   } catch {
     return false;
   }
@@ -42,14 +42,26 @@ function useSearch(input: SearchInput) {
     queryFn: async ({ signal }) => {
       const options = { signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]) };
       if (input.type === 'profile') {
-        const events = await nostr.query([{ kinds: [0, 1], authors: [input.pubkey], limit: LIMIT }], options);
+        const events = await nostr.query(
+          [
+            { kinds: [0], authors: [input.pubkey], limit: LIMIT },
+            { kinds: [1], authors: [input.pubkey], limit: LIMIT },
+          ],
+          { ...options, relays: input.relays },
+        );
         return { notes: events.filter((event) => event.kind === 1), profiles: events.filter((event) => event.kind === 0) };
       }
 
       if (input.type === 'nip05') {
         const pointer = await nip05.queryProfile(input.value);
         if (!pointer || !/^[0-9a-f]{64}$/.test(pointer.pubkey)) return { notes: [], profiles: [] };
-        const events = await nostr.query([{ kinds: [0, 1], authors: [pointer.pubkey], limit: LIMIT }], options);
+        const events = await nostr.query(
+          [
+            { kinds: [0], authors: [pointer.pubkey], limit: LIMIT },
+            { kinds: [1], authors: [pointer.pubkey], limit: LIMIT },
+          ],
+          options,
+        );
         return { notes: events.filter((event) => event.kind === 1), profiles: events.filter((event) => event.kind === 0) };
       }
 

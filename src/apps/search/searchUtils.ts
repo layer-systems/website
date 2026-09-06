@@ -3,7 +3,7 @@ import { nip19 } from 'nostr-tools';
 export type SearchInput =
   | { type: 'empty' }
   | { type: 'hashtag'; value: string }
-  | { type: 'profile'; pubkey: string }
+  | { type: 'profile'; pubkey: string; relays?: string[] }
   | { type: 'nip05'; value: string }
   | { type: 'text'; value: string };
 
@@ -20,7 +20,7 @@ export function parseSearchInput(input: string): SearchInput {
   try {
     const decoded = nip19.decode(value);
     if (decoded.type === 'npub') return { type: 'profile', pubkey: decoded.data };
-    if (decoded.type === 'nprofile') return { type: 'profile', pubkey: decoded.data.pubkey };
+    if (decoded.type === 'nprofile') return { type: 'profile', pubkey: decoded.data.pubkey, relays: decoded.data.relays };
   } catch {
     // A normal text search need not be a NIP-19 identifier.
   }

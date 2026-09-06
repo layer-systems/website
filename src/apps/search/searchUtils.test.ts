@@ -12,6 +12,12 @@ describe('parseSearchInput', () => {
     expect(parseSearchInput(nip19.npubEncode(pubkey))).toEqual({ type: 'profile', pubkey });
   });
 
+  it('preserves relay hints from nprofiles', () => {
+    const pubkey = 'f'.repeat(64);
+    const relays = ['wss://relay.example'];
+    expect(parseSearchInput(nip19.nprofileEncode({ pubkey, relays }))).toEqual({ type: 'profile', pubkey, relays });
+  });
+
   it('recognizes NIP-05 addresses', () => {
     expect(parseSearchInput('Alice@Example.com')).toEqual({ type: 'nip05', value: 'alice@example.com' });
   });
