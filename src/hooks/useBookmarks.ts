@@ -101,12 +101,16 @@ interface ParsedAddress {
   identifier: string;
 }
 
-/** Parses a NIP-01 `kind:pubkey:d-identifier` address tag value, or null if malformed. */
+/**
+ * Parses a NIP-01 `kind:pubkey:d-identifier` address tag value, or null if
+ * malformed — including an empty identifier, which would otherwise produce
+ * a `#d: ['']` relay query and a bookmark nothing can reliably resolve.
+ */
 function parseAddress(address: string): ParsedAddress | null {
   const [kindPart, pubkey, ...rest] = address.split(':');
   const kind = Number(kindPart);
   const identifier = rest.join(':');
-  if (!Number.isInteger(kind) || !pubkey) return null;
+  if (!Number.isInteger(kind) || !pubkey || !identifier) return null;
   return { kind, pubkey, identifier };
 }
 
@@ -148,7 +152,11 @@ export function useMyBookmarkedArticles() {
         { signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]) },
       );
       const wanted = new Set(addresses);
-      return events.filter((event) => wanted.has(`${event.kind}:${event.pubkey}:${tagValue(event, 'd')}`));
+      return events.filter(
+        (event) =>
+          wanted.has(`${event.kind}:${event.pubkey}:${tagValue(event, 'd')}`) &&
+          event.content.trim().length > 0,
+      );
     },
     staleTime: 60_000,
   });

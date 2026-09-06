@@ -5,6 +5,7 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { AppBody, AppLayout, AppSectionTitle, AppToolbar, EmptyState } from '@/components/os/AppChrome';
 import { LoginRequired } from '@/components/nostr/LoginRequired';
 import { NoteCard } from '@/components/nostr/NoteCard';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useBookmarkedNoteIds, useMyBookmarkedArticles } from '@/hooks/useBookmarks';
@@ -45,7 +46,12 @@ export default function BookmarksApp({ setTitle }: AppProps) {
   }
 
   const isLoading = (noteIds.length > 0 && notes.isLoading) || articles.isLoading;
-  const isEmpty = !isLoading && (notes.data?.length ?? 0) === 0 && (articles.data?.length ?? 0) === 0;
+  // React Query leaves `data` undefined on a failed query too, so an error
+  // must be checked before treating "no data" as "no bookmarks" — otherwise
+  // a relay/network failure reads as an empty list.
+  const isError = notes.isError || articles.isError;
+  const isEmpty =
+    !isLoading && !isError && (notes.data?.length ?? 0) === 0 && (articles.data?.length ?? 0) === 0;
 
   return (
     <AppLayout>
@@ -60,6 +66,23 @@ export default function BookmarksApp({ setTitle }: AppProps) {
               <Skeleton key={index} className="h-16 w-full" />
             ))}
           </div>
+        ) : isError ? (
+          <EmptyState
+            title="Couldn't load your bookmarks"
+            hint="None of your relays responded. Check the Relays app or try again."
+            action={
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  notes.refetch();
+                  articles.refetch();
+                }}
+              >
+                Try again
+              </Button>
+            }
+          />
         ) : isEmpty ? (
           <EmptyState
             title="No bookmarks yet"
