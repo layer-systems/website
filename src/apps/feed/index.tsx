@@ -12,6 +12,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useMyFollows } from '@/hooks/useFollows';
 import { cn } from '@/lib/utils';
 import { useWindowManager } from '@/os/useWindowManager';
+import { isReply } from '@/lib/nostrUtils';
 import type { AppProps } from '@/os/types';
 
 type Scope = 'following' | 'global';
@@ -21,9 +22,17 @@ const PAGE_SIZE = 50;
 /**
  * A kind 1 event is only worth rendering if it has something to render. Relays
  * happily return blanks and oddities, so the feed validates before it draws.
+ * Replies (NIP-10 `e` tags) are excluded too: without their parent for
+ * context they read as indistinguishable, orphaned root posts — open the
+ * thread from the Note app instead.
  */
 function isRenderableNote(event: NostrEvent): boolean {
-  return event.kind === 1 && typeof event.content === 'string' && event.content.trim().length > 0;
+  return (
+    event.kind === 1 &&
+    typeof event.content === 'string' &&
+    event.content.trim().length > 0 &&
+    !isReply(event)
+  );
 }
 
 function useFeed(scope: Scope, authors: string[] | undefined) {
