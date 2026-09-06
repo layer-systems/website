@@ -13,6 +13,7 @@ import {
   EmptyState,
 } from '@/components/os/AppChrome';
 import { AuthorLine } from '@/components/nostr/AuthorLine';
+import { HighlightLayer } from './HighlightLayer';
 import { BookmarkButton } from '@/components/nostr/BookmarkButton';
 import { Markdown } from './Markdown';
 import { Button } from '@/components/ui/button';
@@ -413,9 +414,17 @@ function ArticleView({ event }: { event: NostrEvent }) {
         )}
       </header>
 
-      <div className="mt-6 text-[15px]">
-        <Markdown>{event.content}</Markdown>
-      </div>
+      <HighlightLayer
+        // An empty string (rather than a malformed "kind:pubkey:" address)
+        // when the article has no `d` tag — HighlightLayer treats a falsy
+        // address as "highlighting isn't available for this article."
+        address={tagValue(event, 'd') ? `${event.kind}:${event.pubkey}:${tagValue(event, 'd')}` : ''}
+        authorPubkey={event.pubkey}
+      >
+        <div className="mt-6 text-[15px]">
+          <Markdown>{event.content}</Markdown>
+        </div>
+      </HighlightLayer>
     </article>
   );
 }

@@ -96,11 +96,18 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Feed | `feed` | — | kind 1 timeline, Following/Global, composer (⌘↵ publishes) |
 | Profile | `profile` | `pubkey`, `relays?` | kind 0 metadata, the author's notes, follow/unfollow |
 | Note | `notes` | `id?`, `relays?` | One note and its replies, or a blank local draft when `id` is absent. **Not** a singleton |
-| Reader | `articles` | `pubkey?`, `identifier?`, `kind?`, `relays?` | NIP-23 long-form, `react-markdown` |
+| Reader | `articles` | `pubkey?`, `identifier?`, `kind?`, `relays?` | NIP-23 long-form, `react-markdown`, NIP-84 highlights |
 | Bookmarks | `bookmarks` | — | NIP-51 kind 10003 list — bookmarked notes and articles |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Settings | `settings` | — | Theme, relay list, Blossom servers, account, session |
 | About | `about` | — | What this is, the app list, the shortcuts |
+
+### Highlighting selects against the DOM, not the markdown source
+
+`HighlightLayer` (`src/apps/articles/HighlightLayer.tsx`) tracks `window.getSelection()`
+against the rendered article, not the raw markdown — the highlighted text saved to a kind
+9802 event is whatever that `Selection`'s `.toString()` returns, i.e. the plain-text content
+the reader actually saw, not markdown syntax.
 
 ### Bookmarks are one whole-list replacement, like follow lists
 
