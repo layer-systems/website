@@ -67,7 +67,7 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
   }, [id, name, setTitle]);
 
   if (!id) {
-    return <DraftNote onPublished={(publishedId) => setParams({ id: publishedId })} />;
+    return <DraftNote onPublished={(publishedId) => setParams({ ...params, id: publishedId })} />;
   }
 
   if (note.isLoading) {

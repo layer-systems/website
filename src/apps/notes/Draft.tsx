@@ -27,7 +27,10 @@ export function DraftNote({ onPublished }: { onPublished: (id: string) => void }
   const trimmed = draft.trim();
 
   const handlePublish = async () => {
-    if (!trimmed) return;
+    // Guarded here too, not just via the button's `disabled` — React hasn't
+    // necessarily re-rendered with publish.isPending yet when a second click
+    // lands in the same tick, and mutateAsync itself doesn't dedupe calls.
+    if (!trimmed || publish.isPending) return;
     try {
       const event = await publish.mutateAsync({ kind: 1, content: trimmed, tags: [] });
       setDraft('');
