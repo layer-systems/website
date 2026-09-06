@@ -26,6 +26,21 @@ describe('isReply', () => {
   it('is true for a note using the deprecated positional e tag', () => {
     expect(isReply(note([['e', 'parent-id']]))).toBe(true);
   });
+
+  it('is false for a note that only mentions another event', () => {
+    expect(isReply(note([['e', 'mentioned-id', '', 'mention']]))).toBe(false);
+  });
+
+  it('is true for a note with a mention alongside a marked reply', () => {
+    expect(
+      isReply(
+        note([
+          ['e', 'root-id', '', 'root'],
+          ['e', 'mentioned-id', '', 'mention'],
+        ]),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe('rootReference', () => {
