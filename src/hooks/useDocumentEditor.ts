@@ -45,9 +45,9 @@ export interface DocumentEditor {
  *   extension, which is the exact seam where the Phase 2 Hocuspocus provider
  *   attaches (`Collaboration.configure({ document, provider })`). Nothing
  *   else about the app changes when that lands.
- * - Local undo/redo stays enabled: Collaboration swaps in the Yjs undo
- *   manager only when a provider connects, so solo Phase 1 editing keeps the
- *   expected Word-like per-user history.
+ * - Collaboration replaces local undo/redo with the Yjs UndoManager, which
+ *   tracks local-origin changes only — so undo behaves per-user (Word-like)
+ *   now, and stays correct when remote peers join in Phase 2.
  * - Pasted/dropped HTML passes through the allowlist sanitizer before the
  *   editor's schema parse; the schema itself drops anything else.
  */
@@ -125,12 +125,10 @@ export function useDocumentEditor({
           link: {
             openOnClick: false,
             autolink: true,
-            // Only allowlisted protocols may become links. Everything else
-            // (javascript:, data:, vbscript:) is dropped by the extension.
-            isAllowedUri: (url, ctx) => {
-              if (ctx.defaultValidate(url)) return true;
-              return sanitizeUrl(url) !== undefined;
-            },
+            // Only protocols on the shared allowlist may become links. This
+            // keeps `nostr:` mentions working while `javascript:`/`data:`
+            // hrefs are dropped.
+            isAllowedUri: (url) => sanitizeUrl(url) !== undefined,
           },
         }),
         ...(sessionDoc ? [Collaboration.configure({ document: sessionDoc })] : []),
