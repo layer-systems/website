@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { NostrEvent } from '@nostrify/nostrify';
-import { encodeSpellTags, parseSpell, resolveSpellFilter, resolveTimestamp, type ParsedSpell } from './useSpells';
+import {
+  encodeSpellTags,
+  isValidTagLetter,
+  parseSpell,
+  resolveSpellFilter,
+  resolveTimestamp,
+  type ParsedSpell,
+} from './useSpells';
 
 function spellEvent(tags: string[][], content = ''): NostrEvent {
   return { id: 'x', pubkey: 'author', created_at: 0, kind: 777, tags, content, sig: '' };
@@ -61,6 +68,36 @@ describe('encodeSpellTags / parseSpell round-trip', () => {
     expect(parsed.since).toBe('7d');
     expect(parsed.limit).toBe(50);
     expect(parsed.topics).toEqual(['bitcoin', 'social']);
+  });
+
+  it('drops an invalid tag-filter letter instead of publishing a spell that can never run', () => {
+    const tags = encodeSpellTags({ kinds: [1], tagFilter: { letter: '', values: ['x'] } });
+    expect(tags.some(([name]) => name === 'tag')).toBe(false);
+  });
+
+  it('drops a non-positive or non-integer limit instead of publishing one resolveSpellFilter will ignore', () => {
+    expect(encodeSpellTags({ kinds: [1], limit: 0 }).some(([name]) => name === 'limit')).toBe(false);
+    expect(encodeSpellTags({ kinds: [1], limit: -5 }).some(([name]) => name === 'limit')).toBe(false);
+    expect(encodeSpellTags({ kinds: [1], limit: 1.5 }).some(([name]) => name === 'limit')).toBe(false);
+  });
+
+  it('keeps a valid limit and tag filter', () => {
+    const tags = encodeSpellTags({ kinds: [1], limit: 50, tagFilter: { letter: 't', values: ['x'] } });
+    expect(tags).toContainEqual(['limit', '50']);
+    expect(tags).toContainEqual(['tag', 't', 'x']);
+  });
+});
+
+describe('isValidTagLetter', () => {
+  it('accepts a single letter', () => {
+    expect(isValidTagLetter('t')).toBe(true);
+    expect(isValidTagLetter('P')).toBe(true);
+  });
+
+  it('rejects empty, multi-character, and non-letter values', () => {
+    expect(isValidTagLetter('')).toBe(false);
+    expect(isValidTagLetter('tt')).toBe(false);
+    expect(isValidTagLetter('1')).toBe(false);
   });
 });
 

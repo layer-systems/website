@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import {
+  isValidTagLetter,
   parseSpell,
   resolveSpellFilter,
   useDiscoverSpells,
@@ -297,7 +298,7 @@ function SpellDetail({ event }: { event: NostrEvent }) {
             authors: {spell.authors.join(', ')}
           </Badge>
         )}
-        {spell.tagFilter && (
+        {spell.tagFilter && isValidTagLetter(spell.tagFilter.letter) && spell.tagFilter.values.length > 0 && (
           <Badge variant="outline" className="text-[11px]">
             #{spell.tagFilter.letter}: {spell.tagFilter.values.join(', ')}
           </Badge>

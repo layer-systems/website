@@ -31,6 +31,11 @@ const TAG_LETTER_RE = /^[a-zA-Z]$/;
 /** Caps a relay-sourced spell's `limit` so Run can't be tricked into a huge query. */
 const MAX_SPELL_LIMIT = 500;
 
+/** A valid NIP-01 tag-filter letter — the only kind `resolveSpellFilter` will act on. */
+export function isValidTagLetter(letter: string): boolean {
+  return TAG_LETTER_RE.test(letter);
+}
+
 /** Resolves `now`, `<n><unit>` (e.g. `7d`) or a literal unix timestamp string. */
 export function resolveTimestamp(value: string): number | undefined {
   const trimmed = value.trim();
@@ -74,13 +79,24 @@ export interface ParsedSpell {
   event: NostrEvent;
 }
 
-/** Builds the tag set for a spell event per the draft NIP. */
+/**
+ * Builds the tag set for a spell event per the draft NIP. Validates the tag
+ * filter's letter and the limit before writing them — an invalid `letter`
+ * or a non-positive/non-integer `limit` is dropped rather than published,
+ * since `resolveSpellFilter` would silently ignore it on Run anyway and a
+ * saved-but-inert filter is worse than one that never made it into the
+ * event at all.
+ */
 export function encodeSpellTags(input: SpellInput): string[][] {
   const tags: string[][] = [['cmd', 'REQ']];
   for (const kind of input.kinds) tags.push(['k', String(kind)]);
   if (input.authors?.length) tags.push(['authors', ...input.authors]);
-  if (input.tagFilter?.values.length) tags.push(['tag', input.tagFilter.letter, ...input.tagFilter.values]);
-  if (input.limit) tags.push(['limit', String(input.limit)]);
+  if (input.tagFilter?.values.length && isValidTagLetter(input.tagFilter.letter)) {
+    tags.push(['tag', input.tagFilter.letter, ...input.tagFilter.values]);
+  }
+  if (input.limit !== undefined && Number.isInteger(input.limit) && input.limit > 0) {
+    tags.push(['limit', String(input.limit)]);
+  }
   if (input.since?.trim()) tags.push(['since', input.since.trim()]);
   if (input.until?.trim()) tags.push(['until', input.until.trim()]);
   if (input.search?.trim()) tags.push(['search', input.search.trim()]);
@@ -133,7 +149,7 @@ export function resolveSpellFilter(
   // Relay-provided events are untrusted: a malformed spell must not produce
   // a filter key like "#undefined", or a limit that is 0/NaN/huge enough to
   // lock up the UI on Run.
-  if (spell.tagFilter && TAG_LETTER_RE.test(spell.tagFilter.letter) && spell.tagFilter.values.length > 0) {
+  if (spell.tagFilter && isValidTagLetter(spell.tagFilter.letter) && spell.tagFilter.values.length > 0) {
     filter[`#${spell.tagFilter.letter}`] = spell.tagFilter.values;
   }
 
