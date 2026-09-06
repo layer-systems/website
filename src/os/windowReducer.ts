@@ -54,8 +54,12 @@ function mapWindow(
   let changed = false;
   const windows = state.windows.map((win) => {
     if (win.id !== id) return win;
-    changed = true;
-    return fn(win);
+    const next = fn(win);
+    // Only a window that actually came back different counts as a change:
+    // returning a fresh state object for a no-op update makes every consumer
+    // of the context re-render, which is enough to spin a render loop.
+    if (next !== win) changed = true;
+    return next;
   });
   return changed ? { ...state, windows } : state;
 }
