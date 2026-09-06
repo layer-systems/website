@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { bookmarkDTag, bookmarkUrl } from './useWebBookmarks';
+import type { NostrEvent } from '@nostrify/nostrify';
+import { bookmarkDTag, bookmarkUrl, dedupeLatestByDTag } from './useWebBookmarks';
+
+function bookmarkEvent(dTag: string, createdAt: number, id = `${dTag}-${createdAt}`): NostrEvent {
+  return { id, pubkey: 'author', created_at: createdAt, kind: 39701, tags: [['d', dTag]], content: '', sig: '' };
+}
 
 describe('bookmarkDTag / bookmarkUrl', () => {
   it('strips the https scheme per NIP-B0', () => {
@@ -39,5 +44,32 @@ describe('bookmarkDTag / bookmarkUrl', () => {
 
   it('does not mistake a port number in a stripped https URL for a scheme', () => {
     expect(bookmarkUrl('alice.blog:8080/post')).toBe('https://alice.blog:8080/post');
+  });
+});
+
+describe('dedupeLatestByDTag', () => {
+  it('keeps only the newest event for each d tag', () => {
+    const older = bookmarkEvent('alice.blog/post', 100);
+    const newer = bookmarkEvent('alice.blog/post', 200);
+    const result = dedupeLatestByDTag([older, newer]);
+    expect(result).toEqual([newer]);
+  });
+
+  it('is order-independent', () => {
+    const older = bookmarkEvent('alice.blog/post', 100);
+    const newer = bookmarkEvent('alice.blog/post', 200);
+    expect(dedupeLatestByDTag([newer, older])).toEqual([newer]);
+  });
+
+  it('keeps distinct d tags separately, sorted newest first', () => {
+    const a = bookmarkEvent('a.com', 100);
+    const b = bookmarkEvent('b.com', 300);
+    const c = bookmarkEvent('c.com', 200);
+    expect(dedupeLatestByDTag([a, b, c])).toEqual([b, c, a]);
+  });
+
+  it('drops events with no d tag', () => {
+    const noD: NostrEvent = { id: 'x', pubkey: 'author', created_at: 0, kind: 39701, tags: [], content: '', sig: '' };
+    expect(dedupeLatestByDTag([noD])).toEqual([]);
   });
 });

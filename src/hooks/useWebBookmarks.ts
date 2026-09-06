@@ -44,6 +44,22 @@ export interface WebBookmarkInput {
   tags?: string[];
 }
 
+/**
+ * Addressable events: relays across the pool can hand back more than one
+ * revision of the same `d` tag (an edit history, or just multiple relays
+ * disagreeing on what's current). Keeps only the newest per `d`, newest first.
+ */
+export function dedupeLatestByDTag(events: NostrEvent[]): NostrEvent[] {
+  const latest = new Map<string, NostrEvent>();
+  for (const event of events) {
+    const dTag = tagValue(event, 'd');
+    if (!dTag) continue;
+    const current = latest.get(dTag);
+    if (!current || event.created_at > current.created_at) latest.set(dTag, event);
+  }
+  return [...latest.values()].sort((a, b) => b.created_at - a.created_at);
+}
+
 export function useMyWebBookmarks() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
@@ -56,9 +72,7 @@ export function useMyWebBookmarks() {
         [{ kinds: [WEB_BOOKMARK_KIND], authors: [user!.pubkey], limit: 200 }],
         { signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]) },
       );
-      return events
-        .filter((event) => Boolean(tagValue(event, 'd')))
-        .sort((a, b) => b.created_at - a.created_at);
+      return dedupeLatestByDTag(events);
     },
     staleTime: 60_000,
   });
