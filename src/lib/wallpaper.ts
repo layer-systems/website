@@ -90,6 +90,9 @@ export function sanitizeWallpaperUrl(value: string | undefined): string | undefi
   return isSafeWallpaperUrl(value) ? value : undefined;
 }
 
+/** Kept in sync with the Zod schema's `url` length cap below. */
+export const MAX_WALLPAPER_URL_LENGTH = 2048;
+
 const WallpaperPresentationSchema = z.object({
   fit: z.enum(['cover', 'contain']),
   dim: z.number().min(0).max(80),
@@ -102,7 +105,7 @@ const CuratedSelectionSchema = z.object({
 
 const UrlSelectionSchema = z.object({
   source: z.literal('url'),
-  url: z.string().max(2048).refine(isSafeWallpaperUrl, 'Wallpaper URL must be a valid https:// URL'),
+  url: z.string().max(MAX_WALLPAPER_URL_LENGTH).refine(isSafeWallpaperUrl, 'Wallpaper URL must be a valid https:// URL'),
   presentation: WallpaperPresentationSchema,
 });
 

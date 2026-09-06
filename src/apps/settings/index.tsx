@@ -24,6 +24,7 @@ import {
   CURATED_WALLPAPERS,
   DEFAULT_CURATED_ID,
   isSafeWallpaperUrl,
+  MAX_WALLPAPER_URL_LENGTH,
   resolveCurated,
   type WallpaperFit,
 } from '@/lib/wallpaper';
@@ -205,6 +206,10 @@ export function WallpaperSection() {
     const trimmed = urlDraft.trim();
     if (!isSafeWallpaperUrl(trimmed)) {
       toast({ title: 'Enter a valid https:// image URL', variant: 'destructive' });
+      return;
+    }
+    if (trimmed.length > MAX_WALLPAPER_URL_LENGTH) {
+      toast({ title: 'That URL is too long', description: `URLs must be ${MAX_WALLPAPER_URL_LENGTH} characters or fewer.`, variant: 'destructive' });
       return;
     }
     setPendingPreviewUrl(trimmed);
