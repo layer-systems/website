@@ -89,14 +89,15 @@ export default function ExampleApp({ setTitle }: AppProps) {
 }
 ```
 
-## The eight apps
+## The nine apps
 
 | App | `id` | Params | Notes |
 |---|---|---|---|
 | Feed | `feed` | — | kind 1 timeline, Following/Global, composer (⌘↵ publishes) |
 | Profile | `profile` | `pubkey`, `relays?` | kind 0 metadata, the author's notes, follow/unfollow |
-| Note | `notes` | `id`, `relays?` | One note and its replies. **Not** a singleton |
-| Reader | `articles` | `pubkey?`, `identifier?`, `kind?`, `relays?` | NIP-23 long-form, `react-markdown` |
+| Note | `notes` | `id?`, `relays?` | One note and its replies, or a blank local draft when `id` is absent. **Not** a singleton |
+| Reader | `articles` | `pubkey?`, `identifier?`, `kind?`, `relays?` | NIP-23 long-form, `react-markdown`, NIP-84 highlights |
+| Bookmarks | `bookmarks` | — | NIP-51 kind 10003 list — bookmarked notes and articles |
 | Web Bookmarks | `web-bookmarks` | — | NIP-B0 kind 39701 — one addressable event per saved URL |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Settings | `settings` | — | Theme, relay list, Blossom servers, account, session |
@@ -109,6 +110,19 @@ the `d` tag is the URL itself (scheme stripped for `https`, see `bookmarkDTag` i
 `src/hooks/useWebBookmarks.ts`). Removing one publishes a NIP-09 kind 5 deletion request,
 which relays are free to ignore, so the client also drops it from its own query cache
 rather than trusting a refetch to reflect it.
+
+### Highlighting selects against the DOM, not the markdown source
+
+`HighlightLayer` (`src/apps/articles/HighlightLayer.tsx`) tracks `window.getSelection()`
+against the rendered article, not the raw markdown — the highlighted text saved to a kind
+9802 event is whatever that `Selection`'s `.toString()` returns, i.e. the plain-text content
+the reader actually saw, not markdown syntax.
+
+### Bookmarks are one whole-list replacement, like follow lists
+
+kind 10003 is a replaceable event: publishing it replaces the entire list. `useToggleBookmark`
+(`src/hooks/useBookmarks.ts`) therefore reads the current list back before publishing an
+update, the same trap [follow lists](#follow-lists-are-a-whole-list-replacement) have.
 
 ### Follow lists are a whole-list replacement
 
