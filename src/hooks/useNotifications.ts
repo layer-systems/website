@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import type { NostrEvent } from '@nostrify/nostrify';
+import { isReply } from '@/lib/nostrUtils';
 import { useCurrentUser } from './useCurrentUser';
 import { useLocalStorage } from './useLocalStorage';
 
@@ -26,7 +27,7 @@ function notificationKind(event: NostrEvent): NotificationKind {
     case 9735:
       return 'zap';
     case 1:
-      return event.tags.some(([name]) => name === 'e') ? 'reply' : 'mention';
+      return isReply(event) ? 'reply' : 'mention';
     default:
       return 'mention';
   }
@@ -58,7 +59,11 @@ export function useNotifications() {
 
       const seen = new Set<string>();
       return events
-        .filter((event) => event.pubkey !== user.pubkey && !seen.has(event.id) && seen.add(event.id))
+        .filter((event) => {
+          if (event.pubkey === user.pubkey || seen.has(event.id)) return false;
+          seen.add(event.id);
+          return true;
+        })
         .sort((left, right) => right.created_at - left.created_at)
         .map((event) => ({ event, kind: notificationKind(event) }));
     },

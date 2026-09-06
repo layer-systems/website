@@ -22,7 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useAuthor } from '@/hooks/useAuthor';
 import { useNotificationReadState, useNotifications, type Notification, type NotificationKind } from '@/hooks/useNotifications';
 import { useWindowManager } from '@/os/useWindowManager';
-import { displayName, relativeTime } from '@/lib/nostrUtils';
+import { displayName, relativeTime, rootReference } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
 
 const ICONS: Record<NotificationKind, typeof Bell> = {
@@ -179,7 +179,9 @@ function NotificationRow({ notification, unread, onNavigate }: { notification: N
   const Icon = ICONS[notification.kind];
   const author = displayName(notification.event.pubkey, data?.metadata);
   const preview = notification.event.content.replace(/\s+/g, ' ').trim();
-  const targetEvent = notification.event.tags.find(([name]) => name === 'e')?.[1];
+  const targetEvent = notification.kind === 'mention' || notification.kind === 'reply'
+    ? notification.event.id
+    : rootReference(notification.event);
 
   const openNotification = () => {
     if (targetEvent) openApp('notes', { id: targetEvent });

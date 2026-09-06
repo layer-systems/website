@@ -29,7 +29,7 @@ export function useLocalStorage<T>(
   const serialize = serializer?.serialize || JSON.stringify;
   const deserialize = serializer?.deserialize || JSON.parse;
 
-  const [state, setState] = useState<T>(() => {
+  const readValue = () => {
     try {
       const item = localStorage.getItem(key);
       return item ? deserialize(item) : defaultValue;
@@ -37,7 +37,14 @@ export function useLocalStorage<T>(
       console.warn(`Failed to load ${key} from localStorage:`, error);
       return defaultValue;
     }
-  });
+  };
+
+  const [state, setState] = useState<T>(readValue);
+  const [storageKey, setStorageKey] = useState(key);
+  if (storageKey !== key) {
+    setStorageKey(key);
+    setState(readValue());
+  }
 
   const setValue = useCallback(
     (value: T | ((prev: T) => T)) => {
