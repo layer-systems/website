@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, Bookmark, BookOpen, CalendarDays, FileText, Info, Link2, Radio, Rss, Settings, Sparkles, User } from 'lucide-react';
+import { Activity, Bookmark, BookOpen, CalendarDays, FileText, Image, Info, Link2, Radio, Rss, Settings, Sparkles, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -48,6 +48,16 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/articles')),
     defaultSize: { width: 780, height: 760 },
     minSize: { width: 360, height: 320 },
+  },
+  {
+    id: 'images',
+    title: 'Images',
+    description: 'Discover and share picture posts on Nostr',
+    icon: Image,
+    category: 'social',
+    component: lazy(() => import('@/apps/images')),
+    defaultSize: { width: 820, height: 720 },
+    minSize: { width: 360, height: 360 },
   },
   {
     id: 'bookmarks',
