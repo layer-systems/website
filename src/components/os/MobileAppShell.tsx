@@ -3,6 +3,7 @@ import { ChevronLeft, LayoutGrid, Zap } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LoginArea } from '@/components/auth/LoginArea';
+import { NotificationsSheet } from '@/components/nostr/NotificationsCenter';
 import {
   Sheet,
   SheetContent,
@@ -77,6 +78,8 @@ export function MobileAppShell() {
         )}
 
         <span className="mx-auto truncate text-sm font-medium">{active?.title}</span>
+
+        <NotificationsSheet />
 
         {windows.length > 0 ? (
           <Sheet open={switcherOpen} onOpenChange={setSwitcherOpen}>

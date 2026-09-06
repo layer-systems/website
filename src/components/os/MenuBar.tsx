@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/menubar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { LoginArea } from '@/components/auth/LoginArea';
+import { NotificationsPopover } from '@/components/nostr/NotificationsCenter';
 import { MenuBarClock } from './MenuBarClock';
 import { useWindowManager } from '@/os/useWindowManager';
 import { APPS, getApp } from '@/os/registry';
@@ -158,6 +159,7 @@ export function MenuBar({ onOpenCommandPalette }: MenuBarProps) {
       <div className="flex items-center gap-3 pr-1 text-muted-foreground">
         <RelayIndicator onOpen={() => openApp('relays')} />
         <ThemeToggle />
+        <NotificationsPopover />
         <MenuBarClock />
         <LoginArea compact />
       </div>
