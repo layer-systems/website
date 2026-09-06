@@ -2,6 +2,7 @@ import { nip19 } from 'nostr-tools';
 import { useParams } from 'react-router-dom';
 import { OsShell } from '@/components/os/OsShell';
 import NotFound from './NotFound';
+import { isCalendarEventKind } from '@/lib/calendarEvents';
 import { encodeRelayHints } from '@/lib/nostrUtils';
 import type { AppParams } from '@/os/types';
 
@@ -42,7 +43,7 @@ export function NIP19Page() {
         break;
       case 'naddr':
         boot = {
-          appId: 'articles',
+          appId: isCalendarEventKind(decoded.data.kind) ? 'calendar' : 'articles',
           params: withHints(
             {
               pubkey: decoded.data.pubkey,
