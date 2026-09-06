@@ -48,6 +48,13 @@ export function MonthGrid({
   const todayKey = localDateKey(today);
   const cellRefs = useRef(new Map<string, HTMLButtonElement>());
 
+  // Exactly one cell must be tab-focusable, or a keyboard user who tabs away
+  // and back can never re-enter the grid. Prefer the selected day, then
+  // today if it's in the displayed month, and only otherwise fall back to
+  // the 1st — e.g. after PageUp/PageDown lands on a month with neither.
+  const isTodayInMonth = today.getFullYear() === monthAnchor.getFullYear() && today.getMonth() === monthIndex;
+  const focusKey = selectedDate ?? (isTodayInMonth ? todayKey : localDateKey(new Date(monthAnchor.getFullYear(), monthIndex, 1)));
+
   const focusDate = (date: Date) => {
     const key = localDateKey(date);
     onSelectDate(key, { focus: true });
@@ -121,7 +128,7 @@ export function MonthGrid({
                   const isCurrentMonth = date.getMonth() === monthIndex;
                   const isToday = key === todayKey;
                   const isSelected = key === selectedDate;
-                  const isFocusable = selectedDate ? isSelected : isToday && isCurrentMonth;
+                  const isFocusable = key === focusKey;
 
                   return (
                     <button

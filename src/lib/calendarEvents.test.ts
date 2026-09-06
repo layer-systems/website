@@ -199,4 +199,25 @@ describe('formatEventTimeRange', () => {
     )!;
     expect(formatEventTimeRange(parsed)).toContain('–');
   });
+
+  it('treats a time-based event ending exactly at local midnight as ending on the start day, not the next', () => {
+    // `end` is exclusive, so this instant belongs to the start day, same as eventDateKeys() would attribute it.
+    const start = new Date(2026, 5, 1, 23, 0, 0);
+    const end = new Date(2026, 5, 2, 0, 0, 0);
+    const parsed = parseCalendarEvent(
+      makeEvent({
+        kind: TIME_BASED_KIND,
+        tags: [
+          ['d', 'a'],
+          ['title', 'T'],
+          ['start', String(Math.floor(start.getTime() / 1000))],
+          ['end', String(Math.floor(end.getTime() / 1000))],
+        ],
+      }),
+    )!;
+
+    const startDate = start.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    const expected = `${startDate}, ${start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })} – ${end.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+    expect(formatEventTimeRange(parsed)).toBe(expected);
+  });
 });

@@ -80,13 +80,13 @@ export function CalendarFilters({ filters, onChange, authorError, resolvedAuthor
         </Label>
         <Input
           id="calendar-filter-author"
-          placeholder="npub or hex pubkey"
+          placeholder="npub, nprofile, or hex pubkey"
           value={filters.authorInput}
           onChange={(event) => set('authorInput', event.target.value)}
           aria-invalid={authorError || undefined}
           className="h-8 text-xs"
         />
-        {authorError && <p className="text-[11px] text-destructive">Not a valid npub or hex pubkey.</p>}
+        {authorError && <p className="text-[11px] text-destructive">Not a valid npub, nprofile, or hex pubkey.</p>}
       </div>
 
       <div className="space-y-1.5">

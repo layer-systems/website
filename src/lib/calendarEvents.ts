@@ -225,14 +225,18 @@ export function formatEventTimeRange(parsed: ParsedCalendarEvent): string {
     return `${formatAllDayDate(parsed.start)} – ${formatAllDayDate(lastDay)}`;
   }
 
-  const sameDay = localDateKey(parsed.start) === localDateKey(parsed.end);
   const startDate = parsed.start.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   if (parsed.start.getTime() === parsed.end.getTime()) {
     return `${startDate} at ${formatTime(parsed.start)}`;
   }
+  // `end` is exclusive, so an event ending exactly at midnight belongs to
+  // the *previous* instant's day — the same day `eventDateKeys()` puts it
+  // on — not the day `end` technically ticks over into.
+  const lastInstant = new Date(parsed.end.getTime() - 1);
+  const sameDay = localDateKey(parsed.start) === localDateKey(lastInstant);
   if (sameDay) {
     return `${startDate}, ${formatTime(parsed.start)} – ${formatTime(parsed.end)}`;
   }
-  const endDate = parsed.end.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  const endDate = lastInstant.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   return `${startDate} ${formatTime(parsed.start)} – ${endDate} ${formatTime(parsed.end)}`;
 }
