@@ -1,5 +1,5 @@
 import { Bell, BellRing, Heart, MessageCircle, Repeat2, UserPlus, Zap } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -98,16 +98,24 @@ function useNotificationState() {
     : null;
 }
 
-function NotificationButton({ unreadCount }: { unreadCount: number }) {
+function NotificationButton({
+  unreadCount,
+  className,
+  ...props
+}: { unreadCount: number } & ComponentProps<'button'>) {
   const label = unreadCount > 0
     ? `Notifications, ${unreadCount > 99 ? '99 or more' : unreadCount} unread`
     : 'Notifications, no unread notifications';
 
   return (
     <button
-      type="button"
-      className="relative flex size-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-      aria-label={label}
+      {...props}
+      type={props.type ?? 'button'}
+      className={cn(
+        'relative flex size-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        className,
+      )}
+      aria-label={props['aria-label'] ?? label}
     >
       {unreadCount > 0 ? <BellRing className="size-3.5" aria-hidden /> : <Bell className="size-3.5" aria-hidden />}
       {unreadCount > 0 && (
