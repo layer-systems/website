@@ -91,7 +91,7 @@ export default function FeedApp({ setTitle }: AppProps) {
             variant="ghost"
             size="sm"
             className="h-7 gap-1.5 px-2 text-xs"
-            onClick={() => openApp('notes', {})}
+            onClick={() => openApp('notes')}
           >
             <FileText className="size-3.5" aria-hidden />
             New note
