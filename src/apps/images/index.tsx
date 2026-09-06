@@ -76,7 +76,7 @@ export default function ImagesApp({ params, setParams, setTitle }: AppProps) {
   useEffect(() => { setTitle(params.id ? 'Image' : 'Images'); }, [params.id, setTitle]);
 
   if (params.id) {
-    return <PictureDetail event={selected.data} loading={selected.isLoading} replies={replies.data ?? []} onRefresh={() => replies.refetch()} />;
+    return <PictureDetail event={selected.data} loading={selected.isLoading} replies={replies.data ?? []} onBack={() => setParams({})} onRefresh={() => replies.refetch()} />;
   }
 
   return <PictureFeed
@@ -136,13 +136,13 @@ function PictureTile({ event, onOpen }: { event: NostrEvent; onOpen: (id: string
   </button>;
 }
 
-function PictureDetail({ event, loading, replies, onRefresh }: { event: NostrEvent | null | undefined; loading: boolean; replies: NostrEvent[]; onRefresh: () => void }) {
+function PictureDetail({ event, loading, replies, onBack, onRefresh }: { event: NostrEvent | null | undefined; loading: boolean; replies: NostrEvent[]; onBack: () => void; onRefresh: () => void }) {
   const { user } = useCurrentUser();
-  if (loading) return <PictureSkeleton />;
-  if (!event) return <EmptyState title="Picture not found" hint="None of your relays returned this picture post." />;
+  if (loading) return <AppLayout><AppToolbar><Button variant="ghost" size="sm" onClick={onBack}>All images</Button></AppToolbar><AppBody><PictureSkeleton /></AppBody></AppLayout>;
+  if (!event) return <AppLayout><AppToolbar><Button variant="ghost" size="sm" onClick={onBack}>All images</Button></AppToolbar><EmptyState title="Picture not found" hint="None of your relays returned this picture post." /></AppLayout>;
   const url = pictureUrl(event)!;
   const replyTags = [['e', event.id, '', 'root'], ['p', event.pubkey]];
-  return <AppLayout><AppBody>
+  return <AppLayout><AppToolbar><Button variant="ghost" size="sm" onClick={onBack}>All images</Button></AppToolbar><AppBody>
     <article className="mx-auto max-w-3xl">
       <img src={url} alt={event.content || 'Picture post'} className="max-h-[65vh] w-full bg-muted object-contain" />
       <div className="space-y-3 p-4"><AuthorLine pubkey={event.pubkey} createdAt={event.created_at} /><p className="whitespace-pre-wrap text-sm">{event.content}</p><p className="text-xs text-muted-foreground">{absoluteTime(event.created_at)}</p>
