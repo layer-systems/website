@@ -46,7 +46,7 @@ export function MobileAppShell() {
         ) : (
           <span className="flex items-center gap-1.5 text-sm font-semibold">
             <Zap className="size-4 text-primary" aria-hidden />
-            Nostr OS
+            LAYER.systems
           </span>
         )}
 

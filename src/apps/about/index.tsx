@@ -27,7 +27,7 @@ export default function AboutApp({ setTitle }: AppProps) {
             <span className="inline-flex size-11 items-center justify-center rounded-xl border border-border bg-background shadow-sm">
               <Zap className="size-5 text-primary" aria-hidden />
             </span>
-            <h1 className="text-xl font-semibold tracking-tight">Nostr OS</h1>
+            <h1 className="text-xl font-semibold tracking-tight">LAYER.systems</h1>
             <p className="text-sm leading-relaxed text-muted-foreground">
               A Nostr client shaped like a desktop. Every part of it is an app in a window you
               can move, resize, stack and keep open side by side — reading a thread does not
