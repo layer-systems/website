@@ -14,9 +14,14 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useMyFollows } from '@/hooks/useFollows';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
-import { decodeRelayHints, displayName, npubOf, sanitizeUrl } from '@/lib/nostrUtils';
+import { decodeRelayHints, displayName, isReply, npubOf, sanitizeUrl } from '@/lib/nostrUtils';
 import type { AppProps } from '@/os/types';
 
+/**
+ * Replies are excluded here for the same reason as the Feed: without their
+ * parent for context, a reply on a profile's timeline reads as an orphaned
+ * root post rather than what it is.
+ */
 function useAuthorNotes(pubkey: string | undefined, relays: string[] | undefined) {
   const { nostr } = useNostr();
 
@@ -29,7 +34,7 @@ function useAuthorNotes(pubkey: string | undefined, relays: string[] | undefined
         { signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]), relays },
       );
       return events
-        .filter((event) => event.content.trim().length > 0)
+        .filter((event) => event.content.trim().length > 0 && !isReply(event))
         .sort((a, b) => b.created_at - a.created_at);
     },
     staleTime: 60_000,

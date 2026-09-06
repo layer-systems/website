@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, BookOpen, FileText, Info, Radio, Rss, Settings, User } from 'lucide-react';
+import { Activity, Bookmark, BookOpen, FileText, Info, Link2, Radio, Rss, Settings, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -48,6 +48,26 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/articles')),
     defaultSize: { width: 780, height: 760 },
     minSize: { width: 360, height: 320 },
+  },
+  {
+    id: 'bookmarks',
+    title: 'Bookmarks',
+    description: 'Notes and articles you have saved',
+    icon: Bookmark,
+    category: 'social',
+    component: lazy(() => import('@/apps/bookmarks')),
+    defaultSize: { width: 600, height: 660 },
+    minSize: { width: 340, height: 300 },
+  },
+  {
+    id: 'web-bookmarks',
+    title: 'Web Bookmarks',
+    description: 'Links you have saved from around the web',
+    icon: Link2,
+    category: 'social',
+    component: lazy(() => import('@/apps/web-bookmarks')),
+    defaultSize: { width: 600, height: 660 },
+    minSize: { width: 340, height: 300 },
   },
   {
     id: 'live',
