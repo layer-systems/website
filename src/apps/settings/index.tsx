@@ -179,6 +179,22 @@ export function WallpaperSection() {
   const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | undefined>(undefined);
   const preview = useDecodedImage(pendingPreviewUrl);
 
+  // Keep the draft/presentation fields in sync if the saved selection changes
+  // from elsewhere (e.g. the desktop context menu's curated shortcut, or
+  // another open Settings window), so this form never shows a stale value.
+  // Adjusted during render (mirroring useLocalStorage's "key changed" reset
+  // pattern) rather than in a useEffect, since setState synchronously at the
+  // top of an effect body is flagged by react-hooks/set-state-in-effect.
+  const [trackedSelection, setTrackedSelection] = useState(selection);
+  if (trackedSelection !== selection) {
+    setTrackedSelection(selection);
+    setUrlDraft(selection.source === 'url' ? selection.url : '');
+    setFit(selection.source === 'url' ? selection.presentation.fit : 'cover');
+    setDim(selection.source === 'url' ? selection.presentation.dim : 0);
+    setPendingPreviewUrl(undefined);
+  }
+
+
   const applyCurated = (id: string) => {
     updateConfig((current) => ({ ...current, wallpaper: { version: 1, selection: { source: 'curated', id } } }));
     setPendingPreviewUrl(undefined);
@@ -269,7 +285,7 @@ export function WallpaperSection() {
       description="Personalize the desktop background. Curated patterns recolor with your theme and never leave the device; a custom image is saved only in this browser."
     >
       <RadioGroup
-        value={selection.source === 'curated' ? selection.id : undefined}
+        value={selection.source === 'curated' ? selection.id : ''}
         onValueChange={applyCurated}
         aria-label="Curated wallpapers"
         className="grid grid-cols-2 gap-3 sm:grid-cols-3"
