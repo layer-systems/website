@@ -31,3 +31,7 @@ yarn.lock
 .env
 .env.*
 !.env.example
+
+# Build caches
+.eslintcache
+.tsbuildinfo
