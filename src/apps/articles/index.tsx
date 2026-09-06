@@ -13,6 +13,7 @@ import {
   EmptyState,
 } from '@/components/os/AppChrome';
 import { AuthorLine } from '@/components/nostr/AuthorLine';
+import { HighlightLayer } from './HighlightLayer';
 import { Markdown } from './Markdown';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -319,9 +320,14 @@ function ArticleView({ event }: { event: NostrEvent }) {
         )}
       </header>
 
-      <div className="mt-6 text-[15px]">
-        <Markdown>{event.content}</Markdown>
-      </div>
+      <HighlightLayer
+        address={`${event.kind}:${event.pubkey}:${tagValue(event, 'd') ?? ''}`}
+        authorPubkey={event.pubkey}
+      >
+        <div className="mt-6 text-[15px]">
+          <Markdown>{event.content}</Markdown>
+        </div>
+      </HighlightLayer>
     </article>
   );
 }
