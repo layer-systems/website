@@ -3,7 +3,12 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuRadioGroup,
+  ContextMenuRadioItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { DesktopIcon } from './DesktopIcon';
@@ -13,6 +18,10 @@ import { desktopApps } from '@/os/registry';
 import { MENUBAR_HEIGHT } from '@/os/layout';
 import { swapDesktopSlots, type DesktopSlot, type GridGeometry } from '@/os/iconLayout';
 import { useIconLayout } from '@/os/useIconLayout';
+import { useAppContext } from '@/hooks/useAppContext';
+import { useDecodedImage } from '@/hooks/useDecodedImage';
+import { CURATED_WALLPAPERS, DEFAULT_CURATED_ID, isSafeWallpaperUrl, resolveCurated } from '@/lib/wallpaper';
+import { cn } from '@/lib/utils';
 
 const CELL_WIDTH = 96;
 const CELL_HEIGHT = 92;
@@ -33,6 +42,7 @@ function geometryFor(width: number, height: number): GridGeometry {
  */
 export function Desktop() {
   const { openApp, windows, minimizeAll, closeAll } = useWindowManager();
+  const { config, updateConfig } = useAppContext();
   const [selected, setSelected] = useState<string | null>(null);
   const [surfaceSize, setSurfaceSize] = useState(() => ({ width: window.innerWidth, height: window.innerHeight - MENUBAR_HEIGHT }));
   const [dragging, setDragging] = useState<string | null>(null);
@@ -45,6 +55,16 @@ export function Desktop() {
   const geometry = useMemo(() => geometryFor(surfaceSize.width, surfaceSize.height), [surfaceSize]);
   const { layout, setDesktop, reset } = useIconLayout(apps.map((app) => app.id), geometry);
   const slots = layout.desktop;
+
+  const wallpaper = config.wallpaper.selection;
+  const isCustomWallpaper = wallpaper.source === 'url' && isSafeWallpaperUrl(wallpaper.url);
+  const decoded = useDecodedImage(isCustomWallpaper ? wallpaper.url : undefined);
+  const showWallpaperImage = isCustomWallpaper && decoded.status === 'ready' && decoded.url === wallpaper.url;
+  const wallpaperDataAttr = wallpaper.source === 'curated' ? wallpaper.id : undefined;
+
+  const setCuratedWallpaper = useCallback((id: string) => {
+    updateConfig((current) => ({ ...current, wallpaper: { version: 1, selection: { source: 'curated', id } } }));
+  }, [updateConfig]);
 
   useEffect(() => {
     const onResize = () => setSurfaceSize({ width: window.innerWidth, height: window.innerHeight - MENUBAR_HEIGHT });
@@ -133,12 +153,38 @@ export function Desktop() {
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <main
-          className="os-desktop-surface absolute inset-x-0 bottom-0 overflow-hidden"
+          className={cn(
+            'os-desktop-surface absolute inset-x-0 bottom-0 overflow-hidden',
+            wallpaperDataAttr && resolveCurated(wallpaperDataAttr).className,
+          )}
           style={{ top: MENUBAR_HEIGHT }}
           onPointerDown={(event) => {
             if (event.target === event.currentTarget) setSelected(null);
           }}
         >
+          {isCustomWallpaper && (
+            <>
+              {showWallpaperImage && (
+                <img
+                  src={decoded.url}
+                  alt=""
+                  aria-hidden="true"
+                  className={cn(
+                    'pointer-events-none absolute inset-0 h-full w-full',
+                    wallpaper.presentation.fit === 'contain' ? 'object-contain' : 'object-cover',
+                  )}
+                />
+              )}
+              {showWallpaperImage && wallpaper.presentation.dim > 0 && (
+                <div
+                  className="pointer-events-none absolute inset-0 bg-black"
+                  style={{ opacity: wallpaper.presentation.dim / 100 }}
+                  aria-hidden="true"
+                />
+              )}
+            </>
+          )}
+
           <div className="absolute inset-0" aria-label="Desktop app grid">
             {apps.map((app) => {
               const slot = slots.find((item) => item.id === app.id);
@@ -174,6 +220,28 @@ export function Desktop() {
       <ContextMenuContent className="w-52">
         <ContextMenuItem onSelect={() => openApp('feed')}>Open Feed</ContextMenuItem>
         <ContextMenuItem onSelect={() => openApp('settings')}>Open Settings</ContextMenuItem>
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>Change wallpaper</ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-48">
+            <ContextMenuRadioGroup
+              value={wallpaper.source === 'curated' ? wallpaper.id : ''}
+              onValueChange={(id) => setCuratedWallpaper(id)}
+            >
+              {CURATED_WALLPAPERS.map((option) => (
+                <ContextMenuRadioItem key={option.id} value={option.id}>
+                  {option.name}
+                </ContextMenuRadioItem>
+              ))}
+            </ContextMenuRadioGroup>
+            <ContextMenuSeparator />
+            <ContextMenuItem onSelect={() => setCuratedWallpaper(DEFAULT_CURATED_ID)}>
+              Reset to default
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={() => openApp('settings')}>
+              More wallpaper options…
+            </ContextMenuItem>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
         <ContextMenuItem onSelect={() => { reset('desktop'); setAnnouncement('Desktop icon layout reset.'); }}>
           Reset desktop icon layout
         </ContextMenuItem>

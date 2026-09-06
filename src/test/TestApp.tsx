@@ -5,6 +5,7 @@ import { NostrLoginProvider } from '@nostrify/react/login';
 import NostrProvider from '@/components/NostrProvider';
 import { AppProvider } from '@/components/AppProvider';
 import { AppConfig } from '@/contexts/AppContext';
+import { DEFAULT_WALLPAPER } from '@/lib/wallpaper';
 
 interface TestAppProps {
   children: React.ReactNode;
@@ -33,6 +34,7 @@ export function TestApp({ children }: TestAppProps) {
       updatedAt: 0,
     },
     useAppBlossomServers: true,
+    wallpaper: DEFAULT_WALLPAPER,
   };
 
   return (

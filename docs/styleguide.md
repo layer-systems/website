@@ -111,16 +111,23 @@ would leave slivers of desktop showing.
 saturate(180%)` over a 72% opaque ground. Keeping it to one place makes it feel
 deliberate rather than decorative.
 
-**Wallpaper.** A dot grid drawn with a single `radial-gradient`, 22px spacing, at very low
-contrast. No image, so it re-colours with the theme and costs nothing to load:
+**Wallpaper.** The default is a dot grid drawn with a single `radial-gradient`, 22px
+spacing, at very low contrast. No image, so it re-colours with the theme and costs nothing
+to load:
 
 ```css
-.os-desktop-surface {
-  background-color: var(--os-desktop);
+.os-wallpaper-dot-grid {
   background-image: radial-gradient(var(--os-desktop-dot) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 ```
+
+Settings → Wallpaper offers this alongside two other curated, theme-aware CSS patterns
+(`os-wallpaper-aurora`, `os-wallpaper-contour`, both in `src/index.css`) plus a custom
+HTTPS image. A custom wallpaper is always rendered through a plain `<img>` — never
+interpolated into `background-image` CSS — with an optional dimming overlay so icon labels
+and window chrome stay legible. See `src/lib/wallpaper.ts` for the validated preference
+model and `src/components/os/Desktop.tsx` for how it is applied.
 
 **Radius.** `--radius: 0.75rem`. Windows and desktop icon tiles `rounded-xl`, buttons and
 inputs `rounded-md`, avatars and dots fully round.

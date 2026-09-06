@@ -12,6 +12,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { NostrLoginProvider } from '@nostrify/react/login';
 import { AppProvider } from '@/components/AppProvider';
 import { AppConfig } from '@/contexts/AppContext';
+import { DEFAULT_WALLPAPER } from '@/lib/wallpaper';
 import { WindowManagerProvider } from '@/os/WindowManagerProvider';
 import { APP_RELAYS } from '@/lib/appRelays';
 import AppRouter from './AppRouter';
@@ -44,6 +45,7 @@ const defaultConfig: AppConfig = {
     updatedAt: 0,
   },
   useAppBlossomServers: true,
+  wallpaper: DEFAULT_WALLPAPER,
 };
 
 export function App() {
