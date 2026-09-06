@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, Bookmark, BookOpen, FileText, Info, Link2, Radio, Rss, Settings, Sparkles, User } from 'lucide-react';
+import { Activity, Bookmark, BookOpen, CalendarDays, FileText, Info, Link2, Radio, Rss, Settings, Sparkles, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -78,6 +78,16 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/live')),
     defaultSize: { width: 780, height: 720 },
     minSize: { width: 360, height: 320 },
+  },
+  {
+    id: 'calendar',
+    title: 'Calendar',
+    description: 'Nostr calendar events, browsed by month',
+    icon: CalendarDays,
+    category: 'social',
+    component: lazy(() => import('@/apps/calendar')),
+    defaultSize: { width: 900, height: 700 },
+    minSize: { width: 420, height: 420 },
   },
   {
     id: 'spells',
