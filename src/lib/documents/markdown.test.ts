@@ -124,6 +124,27 @@ describe('docToMarkdown', () => {
     );
   });
 
+  it('keeps pipes and newlines in table cells from breaking the table', () => {
+    const input = doc({
+      type: 'table',
+      content: [
+        {
+          type: 'tableRow',
+          content: [
+            { type: 'tableHeader', content: [para(text('a|b'))] },
+            { type: 'tableHeader', content: [para(text('c'))] },
+          ],
+        },
+      ],
+    });
+    // The pipe is rewritten to the full-width form so the row still parses as
+    // exactly two cells.
+    expect(docToMarkdown(input)).toBe('| a¦b | c |\n| --- | --- |');
+    // And it round-trips back to a two-cell table.
+    const parsed = markdownToDoc('| a¦b | c |\n| --- | --- |');
+    expect(docToMarkdown(parsed)).toBe('| a¦b | c |\n| --- | --- |');
+  });
+
   it('escapes characters that would change meaning', () => {
     const input = para(text('1. not a list # not a heading *not italic*'));
     expect(docToMarkdown(doc(input))).toBe('1\\. not a list \\# not a heading \\*not italic\\*');

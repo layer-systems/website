@@ -21,9 +21,9 @@ const MENTION_PATTERN = /^nostr:((npub|nprofile|note|nevent|naddr)1[02-9ac-hj-np
 // ---------------------------------------------------------------------------
 
 function escapeText(text: string): string {
-  // Escape every ASCII punctuation character. CommonMark defines a backslash
-  // before ASCII punctuation as the literal character, so this is uniform,
-  // always round-trips, and needs no positional special cases.
+  // Escape every CommonMark-significant ASCII punctuation character. These
+  // are exactly the characters a backslash escapes per the spec, so the
+  // output is uniform, always round-trips, and needs no positional cases.
   return text.replace(/([!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~])/g, '\\$1');
 }
 
@@ -151,7 +151,12 @@ function serializeTable(node: JSONContent): string[] {
       const text = (cell.content ?? [])
         .map((block) => serializeInline(block.content))
         .join(' ')
-        .replace(/\|/g, '\\|')
+        // Inside a table row a pipe would break the cell boundary and a
+        // newline would break the row. The inline text has already had any
+        // `|` escaped to `\|`; rewrite that escaped pipe (and any bare one)
+        // to the full-width `¦` so the row keeps its structural cells without
+        // emitting a backslash. Newlines become a space.
+        .replace(/\\?\|/g, '¦')
         .replace(/\n/g, ' ')
         .trim();
       cells.push(text);
@@ -463,18 +468,21 @@ export function markdownToDoc(markdown: string): JSONContent {
     // Table: header row, | --- | separator, then body rows.
     if (/^\|.*\|\s*$/.test(line) && i + 1 < lines.length && /^\|[\s:|-]+\|\s*$/.test(lines[i + 1])) {
       flushParagraph();
-      const parseRow = (row: string, header: boolean): JSONContent => ({
+          const parseRow = (row: string, header: boolean): JSONContent => ({
         type: 'tableRow',
         content: row
           .replace(/^\|/, '')
           .replace(/\|$/, '')
+          // Cells split on a bare `|`; a backslash-escaped `\|` stays inline.
           .split(/(?<!\\)\|/)
           .map((cell) => ({
             type: header ? 'tableHeader' : 'tableCell',
             content: [
               {
                 type: 'paragraph',
-                content: parseInline(cell.replace(/\\\|/g, '|').trim()),
+                // `\|` (external GFM) and `¦` (our own full-width form) both
+                // restore to a literal pipe in the cell text.
+                content: parseInline(cell.replace(/\\\|/g, '|').replace(/¦/g, '|').trim()),
               },
             ],
           })),

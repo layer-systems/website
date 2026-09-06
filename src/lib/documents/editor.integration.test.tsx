@@ -31,9 +31,7 @@ function createEditor(): Editor {
 describe('editor schema + sanitizer', () => {
   it('rejects javascript: link hrefs end to end', () => {
     const editor = createEditor();
-    editor.commands.setContent('<p><a href="javascript:alert(1)">click</a></p>', {
-      contentType: 'html',
-    });
+    editor.commands.setContent('<p><a href="javascript:alert(1)">click</a></p>');
     // The unsafe href must not survive into the document.
     expect(editor.getHTML()).not.toContain('javascript:');
     editor.destroy();
@@ -41,9 +39,7 @@ describe('editor schema + sanitizer', () => {
 
   it('keeps safe link hrefs', () => {
     const editor = createEditor();
-    editor.commands.setContent('<p><a href="https://example.com">click</a></p>', {
-      contentType: 'html',
-    });
+    editor.commands.setContent('<p><a href="https://example.com">click</a></p>');
     expect(editor.getHTML()).toContain('https://example.com');
     editor.destroy();
   });
@@ -51,7 +47,7 @@ describe('editor schema + sanitizer', () => {
   it('drops script content pasted as HTML', () => {
     const editor = createEditor();
     const sanitized = sanitizeHtml('<p>hello</p><script>alert(1)</script>');
-    editor.commands.setContent(sanitized, { contentType: 'html' });
+    editor.commands.setContent(sanitized);
     expect(editor.getText()).toContain('hello');
     expect(editor.getHTML()).not.toContain('<script');
     editor.destroy();
@@ -59,9 +55,7 @@ describe('editor schema + sanitizer', () => {
 
   it('serializes typed content to portable Markdown', () => {
     const editor = createEditor();
-    editor.commands.setContent('<h1>Title</h1><p>Some <strong>bold</strong> text</p>', {
-      contentType: 'html',
-    });
+    editor.commands.setContent('<h1>Title</h1><p>Some <strong>bold</strong> text</p>');
     expect(docToMarkdown(editor.getJSON())).toBe('# Title\n\nSome **bold** text');
     editor.destroy();
   });
