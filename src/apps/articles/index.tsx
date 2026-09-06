@@ -13,6 +13,7 @@ import {
   EmptyState,
 } from '@/components/os/AppChrome';
 import { AuthorLine } from '@/components/nostr/AuthorLine';
+import { BookmarkButton } from '@/components/nostr/BookmarkButton';
 import { Markdown } from './Markdown';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -173,7 +174,17 @@ export default function ArticlesApp({ params, setTitle, setParams }: AppProps) {
         <span className="truncate text-[13px] font-medium">
           {title ?? 'Long-form articles'}
         </span>
-        {article.data && <CopyArticleLink event={article.data} />}
+        {article.data && (
+          <div className="ml-auto flex items-center gap-2">
+            <BookmarkButton
+              target={{
+                type: 'a',
+                value: `${article.data.kind}:${article.data.pubkey}:${tagValue(article.data, 'd') ?? ''}`,
+              }}
+            />
+            <CopyArticleLink event={article.data} />
+          </div>
+        )}
       </AppToolbar>
 
       <AppSplit>
@@ -192,7 +203,7 @@ function CopyArticleLink({ event }: { event: NostrEvent }) {
     <Button
       variant="ghost"
       size="sm"
-      className="ml-auto h-7 shrink-0 gap-1.5 px-2 text-xs"
+      className="h-7 shrink-0 gap-1.5 px-2 text-xs"
       onClick={async () => {
         try {
           const naddr = nip19.naddrEncode({
