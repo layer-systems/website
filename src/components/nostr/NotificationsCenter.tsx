@@ -119,7 +119,7 @@ function NotificationButton({
     >
       {unreadCount > 0 ? <BellRing className="size-3.5" aria-hidden /> : <Bell className="size-3.5" aria-hidden />}
       {unreadCount > 0 && (
-        <span className="absolute -right-1.5 -top-1.5 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-4 text-primary-foreground tabular-nums">
+        <span className="absolute -right-1.5 top-0 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-4 text-primary-foreground tabular-nums">
           {unreadCount > 99 ? '99+' : unreadCount}
         </span>
       )}
