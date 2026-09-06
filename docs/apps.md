@@ -89,7 +89,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 }
 ```
 
-## The seven apps
+## The eight apps
 
 | App | `id` | Params | Notes |
 |---|---|---|---|
@@ -97,9 +97,18 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Profile | `profile` | `pubkey`, `relays?` | kind 0 metadata, the author's notes, follow/unfollow |
 | Note | `notes` | `id`, `relays?` | One note and its replies. **Not** a singleton |
 | Reader | `articles` | `pubkey?`, `identifier?`, `kind?`, `relays?` | NIP-23 long-form, `react-markdown` |
+| Live | `live` | `pubkey?`, `identifier?` | NIP-53 kind 30311 live events + kind 1311 chat |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Settings | `settings` | — | Theme, relay list, Blossom servers, account, session |
 | About | `about` | — | What this is, the app list, the shortcuts |
+
+### Live only links out to playback, it doesn't embed a player
+
+NIP-53's `streaming` tag is typically an HLS (`.m3u8`) URL, which no browser plays natively
+without a library like hls.js. Rather than pull that dependency in for a first cut, the Live
+app (`src/apps/live`) shows the stream's metadata and chat and opens `streaming` (or
+`recording`, once `status` is `ended`) in a new tab. Spaces/interactive rooms (kind
+30312/30313) are a separate, larger effort — see the tracking issue.
 
 ### Follow lists are a whole-list replacement
 
