@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useCallback, useMemo, useState } from 'react';
 import { ChevronLeft, LayoutGrid, Zap } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -14,6 +14,7 @@ import {
 import { useWindowManager } from '@/os/useWindowManager';
 import { desktopApps, getApp } from '@/os/registry';
 import { cn } from '@/lib/utils';
+import type { AppParams } from '@/os/types';
 
 /**
  * On a phone the window metaphor only gets in the way, so the same apps and
@@ -30,6 +31,23 @@ export function MobileAppShell() {
     [windows, focusedId],
   );
   const activeApp = active ? getApp(active.appId) : undefined;
+  const activeId = active?.id;
+
+  // Stable per-window callbacks: apps set their title from an effect keyed on
+  // `setTitle`, so a fresh function on every shell render would re-run it.
+  const setTitle = useCallback(
+    (title: string) => {
+      if (activeId) setWindowTitle(activeId, title);
+    },
+    [activeId, setWindowTitle],
+  );
+
+  const setParams = useCallback(
+    (params: AppParams) => {
+      if (activeId) setWindowParams(activeId, params);
+    },
+    [activeId, setWindowParams],
+  );
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -108,8 +126,8 @@ export function MobileAppShell() {
               <activeApp.component
                 windowId={active.id}
                 params={active.params}
-                setTitle={(title) => setWindowTitle(active.id, title)}
-                setParams={(params) => setWindowParams(active.id, params)}
+                setTitle={setTitle}
+                setParams={setParams}
               />
             </Suspense>
           </ErrorBoundary>
