@@ -107,7 +107,11 @@ export function encodeSpellTags(input: SpellInput): string[][] {
 }
 
 export function parseSpell(event: NostrEvent): ParsedSpell {
-  const kinds = tagValues(event, 'k').map(Number).filter((n) => Number.isFinite(n));
+  // Nostr kinds are non-negative integers — a relay-sourced spell claiming
+  // e.g. "1.5" or "-1" would otherwise pass through into a malformed filter.
+  const kinds = tagValues(event, 'k')
+    .map(Number)
+    .filter((n) => Number.isInteger(n) && n >= 0);
   const authorsTag = event.tags.find(([name]) => name === 'authors');
   const tagFilterTag = event.tags.find(([name]) => name === 'tag');
   const limitValue = tagValue(event, 'limit');

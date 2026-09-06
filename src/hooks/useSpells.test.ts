@@ -27,13 +27,22 @@ function parsedSpell(overrides: Partial<ParsedSpell>): ParsedSpell {
 
 describe('resolveTimestamp', () => {
   it('resolves a relative duration against now', () => {
-    const now = Math.floor(Date.now() / 1000);
-    expect(resolveTimestamp('7d')).toBeCloseTo(now - 7 * 86400, -1);
+    const before = Math.floor(Date.now() / 1000) - 7 * 86400;
+    const result = resolveTimestamp('7d');
+    const after = Math.floor(Date.now() / 1000) - 7 * 86400;
+    // A range, not toBeCloseTo against a single captured `now` — a slow test
+    // runner or wall-clock skew between the two Date.now() calls could
+    // otherwise make this flaky.
+    expect(result).toBeGreaterThanOrEqual(before);
+    expect(result).toBeLessThanOrEqual(after);
   });
 
   it('resolves "now"', () => {
-    const now = Math.floor(Date.now() / 1000);
-    expect(resolveTimestamp('now')).toBeCloseTo(now, -1);
+    const before = Math.floor(Date.now() / 1000);
+    const result = resolveTimestamp('now');
+    const after = Math.floor(Date.now() / 1000);
+    expect(result).toBeGreaterThanOrEqual(before);
+    expect(result).toBeLessThanOrEqual(after);
   });
 
   it('resolves an absolute unix timestamp', () => {
@@ -85,6 +94,19 @@ describe('encodeSpellTags / parseSpell round-trip', () => {
     const tags = encodeSpellTags({ kinds: [1], limit: 50, tagFilter: { letter: 't', values: ['x'] } });
     expect(tags).toContainEqual(['limit', '50']);
     expect(tags).toContainEqual(['tag', 't', 'x']);
+  });
+});
+
+describe('parseSpell', () => {
+  it('drops non-integer and negative k tags — kinds are non-negative integers', () => {
+    const event = spellEvent([
+      ['cmd', 'REQ'],
+      ['k', '1'],
+      ['k', '1.5'],
+      ['k', '-1'],
+      ['k', 'not-a-number'],
+    ]);
+    expect(parseSpell(event).kinds).toEqual([1]);
   });
 });
 
