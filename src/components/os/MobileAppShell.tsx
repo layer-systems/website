@@ -21,8 +21,16 @@ import { cn } from '@/lib/utils';
  * app at a time.
  */
 export function MobileAppShell() {
-  const { windows, focusedId, openApp, focusWindow, closeWindow, setWindowTitle, setWindowParams } =
-    useWindowManager();
+  const {
+    windows,
+    focusedId,
+    openApp,
+    focusWindow,
+    restoreWindow,
+    closeWindow,
+    setWindowTitle,
+    setWindowParams,
+  } = useWindowManager();
   const [switcherOpen, setSwitcherOpen] = useState(false);
 
   const active = useMemo(
@@ -74,7 +82,11 @@ export function MobileAppShell() {
                       key={win.id}
                       type="button"
                       onClick={() => {
-                        focusWindow(win.id);
+                        // Focusing alone leaves a minimized window minimized,
+                        // and the shell only renders a window that is focused
+                        // *and* not minimized — the home screen would stay up.
+                        if (win.minimized) restoreWindow(win.id);
+                        else focusWindow(win.id);
                         setSwitcherOpen(false);
                       }}
                       className={cn(
