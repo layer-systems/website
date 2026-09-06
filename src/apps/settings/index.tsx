@@ -11,6 +11,8 @@ import { useAppContext } from '@/hooks/useAppContext';
 import { useTheme } from '@/hooks/useTheme';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useWindowManager } from '@/os/useWindowManager';
+import { desktopApps } from '@/os/registry';
+import { useIconLayout } from '@/os/useIconLayout';
 import { useToast } from '@/hooks/useToast';
 import { npubOf } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
@@ -42,10 +44,38 @@ export default function SettingsApp({ setTitle }: AppProps) {
           <Separator />
           <MediaSection />
           <Separator />
+          <IconLayoutSection />
+          <Separator />
           <SessionSection />
         </div>
       </AppBody>
     </AppLayout>
+  );
+}
+
+function IconLayoutSection() {
+  const { toast } = useToast();
+  const appIds = desktopApps().map((app) => app.id);
+  // Reset uses a deterministic, measurement-free registry order. The desktop
+  // clamps it to its actual surface on render; mobile reflows into its columns.
+  const { reset } = useIconLayout(appIds, { columns: 8, rows: 16 });
+
+  const resetAndToast = (profile: 'desktop' | 'mobile' | 'both') => {
+    reset(profile);
+    toast({ title: profile === 'both' ? 'All icon layouts reset' : `${profile === 'desktop' ? 'Desktop' : 'Mobile'} icon layout reset` });
+  };
+
+  return (
+    <Section
+      title="Home screen layout"
+      description="Arrange icons by dragging them. On a keyboard, press Space to pick up an icon, use the arrow keys to move it, then press Enter to drop."
+    >
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={() => resetAndToast('desktop')}>Reset desktop</Button>
+        <Button variant="outline" onClick={() => resetAndToast('mobile')}>Reset mobile</Button>
+        <Button variant="outline" onClick={() => resetAndToast('both')}>Reset both</Button>
+      </div>
+    </Section>
   );
 }
 
