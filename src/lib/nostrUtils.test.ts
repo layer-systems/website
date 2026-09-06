@@ -63,4 +63,16 @@ describe('rootReference', () => {
   it('is undefined for a root note', () => {
     expect(rootReference(note([]))).toBeUndefined();
   });
+
+  it('is undefined for a note that only mentions another event', () => {
+    expect(rootReference(note([['e', 'mentioned-id', '', 'mention']]))).toBeUndefined();
+  });
+
+  it('ignores a mention when falling back to the positional scheme', () => {
+    const event = note([
+      ['e', 'mentioned-id', '', 'mention'],
+      ['e', 'root-id'],
+    ]);
+    expect(rootReference(event)).toBe('root-id');
+  });
 });

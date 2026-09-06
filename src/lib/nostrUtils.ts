@@ -93,13 +93,16 @@ export function tagValues(event: NostrEvent, name: string): string[] {
 
 /**
  * The event a reply points at, following NIP-10: prefer an explicit `root`
- * marker, fall back to the first positional `e` tag (the deprecated scheme
- * puts the root id first: `["e", <root-id>], ["e", <reply-id>]`).
+ * marker, fall back to the first *unmarked* `e` tag (the deprecated scheme
+ * puts the root id first: `["e", <root-id>], ["e", <reply-id>]`). A `mention`
+ * or `reply`-only marker is never treated as the root — a mention isn't
+ * part of the thread, and a lone `reply` marker without `root` is malformed
+ * per NIP-10 rather than an implicit root.
  */
 export function rootReference(event: NostrEvent): string | undefined {
   const marked = event.tags.find(([name, , , marker]) => name === 'e' && marker === 'root');
   if (marked) return marked[1];
-  const positional = event.tags.filter(([name]) => name === 'e');
+  const positional = event.tags.filter(([name, , , marker]) => name === 'e' && !marker);
   return positional[0]?.[1];
 }
 
