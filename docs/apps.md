@@ -89,7 +89,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 }
 ```
 
-## The seven apps
+## The eight apps
 
 | App | `id` | Params | Notes |
 |---|---|---|---|
@@ -97,9 +97,16 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Profile | `profile` | `pubkey`, `relays?` | kind 0 metadata, the author's notes, follow/unfollow |
 | Note | `notes` | `id?`, `relays?` | One note and its replies, or a blank local draft when `id` is absent. **Not** a singleton |
 | Reader | `articles` | `pubkey?`, `identifier?`, `kind?`, `relays?` | NIP-23 long-form, `react-markdown` |
+| Bookmarks | `bookmarks` | — | NIP-51 kind 10003 list — bookmarked notes and articles |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Settings | `settings` | — | Theme, relay list, Blossom servers, account, session |
 | About | `about` | — | What this is, the app list, the shortcuts |
+
+### Bookmarks are one whole-list replacement, like follow lists
+
+kind 10003 is a replaceable event: publishing it replaces the entire list. `useToggleBookmark`
+(`src/hooks/useBookmarks.ts`) therefore reads the current list back before publishing an
+update, the same trap [follow lists](#follow-lists-are-a-whole-list-replacement) have.
 
 ### Follow lists are a whole-list replacement
 
