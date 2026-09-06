@@ -3,7 +3,12 @@ import { useEffect, useState } from 'react';
 export type DecodedImageStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 export interface DecodedImageState {
-  /** The URL that finished decoding successfully, or undefined if none has yet. */
+  /**
+   * The URL that most recently finished decoding successfully, or undefined
+   * if none has yet. This intentionally lags behind `status` while a newer
+   * request is loading or has failed, so a consumer can keep rendering it
+   * as "the current working wallpaper" until a *new* url succeeds.
+   */
   url: string | undefined;
   status: DecodedImageStatus;
   width: number | undefined;
@@ -27,10 +32,13 @@ export function useDecodedImage(url: string | undefined): DecodedImageState {
 
   // Mirrors the useLocalStorage "key changed" pattern: reset synchronously
   // during render rather than in an effect body, so there is no flash of
-  // stale state before the new decode starts.
+  // stale state before the new decode starts. `url` (the last *successful*
+  // decode) is deliberately preserved here — only `status` moves to
+  // 'loading'/'idle' — so a caller keeps showing the last working image
+  // while a new one loads or if it fails.
   if (trackedUrl !== url) {
     setTrackedUrl(url);
-    setState(url ? { url: undefined, status: 'loading', width: undefined, height: undefined } : { url: undefined, status: 'idle', width: undefined, height: undefined });
+    setState((prev) => (url ? { ...prev, status: 'loading' } : { url: undefined, status: 'idle', width: undefined, height: undefined }));
   }
 
   useEffect(() => {
@@ -47,7 +55,7 @@ export function useDecodedImage(url: string | undefined): DecodedImageState {
       })
       .catch(() => {
         if (cancelled) return;
-        setState((prev) => ({ url: prev.status === 'ready' ? prev.url : undefined, status: 'error', width: undefined, height: undefined }));
+        setState((prev) => ({ ...prev, status: 'error' }));
       });
 
     return () => {

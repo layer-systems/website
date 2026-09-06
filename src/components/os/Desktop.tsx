@@ -21,6 +21,7 @@ import { useIconLayout } from '@/os/useIconLayout';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useDecodedImage } from '@/hooks/useDecodedImage';
 import { CURATED_WALLPAPERS, DEFAULT_CURATED_ID, isSafeWallpaperUrl, resolveCurated } from '@/lib/wallpaper';
+import { sanitizeUrl } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
 
 const CELL_WIDTH = 96;
@@ -57,10 +58,20 @@ export function Desktop() {
   const slots = layout.desktop;
 
   const wallpaper = config.wallpaper.selection;
-  const isCustomWallpaper = wallpaper.source === 'url' && isSafeWallpaperUrl(wallpaper.url);
-  const decoded = useDecodedImage(isCustomWallpaper ? wallpaper.url : undefined);
-  const showWallpaperImage = isCustomWallpaper && decoded.status === 'ready' && decoded.url === wallpaper.url;
-  const wallpaperDataAttr = wallpaper.source === 'curated' ? wallpaper.id : undefined;
+  const customWallpaper = wallpaper.source === 'url' && isSafeWallpaperUrl(wallpaper.url) ? wallpaper : undefined;
+  const decoded = useDecodedImage(customWallpaper?.url);
+  // `decoded.url` holds the last *successfully* decoded image regardless of
+  // whether a newer selection is still loading or has failed, so switching
+  // to a new custom wallpaper (or a failed one) never blanks the desktop.
+  // Re-validated at the render boundary (rather than trusted from state) so
+  // the only place an <img src> is ever set from external data is guarded
+  // right next to the sink, independent of how `decoded.url` got here. Uses
+  // the same protocol-allowlist sanitizer as every other untrusted URL in
+  // the app (see `sanitizeUrl` in `nostrUtils.ts`), tightened to https-only.
+  const sanitizedWallpaperUrl = sanitizeUrl(decoded.url);
+  const safeWallpaperImageUrl =
+    customWallpaper && sanitizedWallpaperUrl && isSafeWallpaperUrl(sanitizedWallpaperUrl) ? sanitizedWallpaperUrl : undefined;
+  const curatedId = wallpaper.source === 'curated' ? wallpaper.id : undefined;
 
   const setCuratedWallpaper = useCallback((id: string) => {
     updateConfig((current) => ({ ...current, wallpaper: { version: 1, selection: { source: 'curated', id } } }));
@@ -155,30 +166,28 @@ export function Desktop() {
         <main
           className={cn(
             'os-desktop-surface absolute inset-x-0 bottom-0 overflow-hidden',
-            wallpaperDataAttr && resolveCurated(wallpaperDataAttr).className,
+            curatedId && resolveCurated(curatedId).className,
           )}
           style={{ top: MENUBAR_HEIGHT }}
           onPointerDown={(event) => {
             if (event.target === event.currentTarget) setSelected(null);
           }}
         >
-          {isCustomWallpaper && (
+          {customWallpaper && safeWallpaperImageUrl && (
             <>
-              {showWallpaperImage && (
-                <img
-                  src={decoded.url}
-                  alt=""
-                  aria-hidden="true"
-                  className={cn(
-                    'pointer-events-none absolute inset-0 h-full w-full',
-                    wallpaper.presentation.fit === 'contain' ? 'object-contain' : 'object-cover',
-                  )}
-                />
-              )}
-              {showWallpaperImage && wallpaper.presentation.dim > 0 && (
+              <img
+                src={safeWallpaperImageUrl}
+                alt=""
+                aria-hidden="true"
+                className={cn(
+                  'pointer-events-none absolute inset-0 h-full w-full',
+                  customWallpaper.presentation.fit === 'contain' ? 'object-contain' : 'object-cover',
+                )}
+              />
+              {customWallpaper.presentation.dim > 0 && (
                 <div
                   className="pointer-events-none absolute inset-0 bg-black"
-                  style={{ opacity: wallpaper.presentation.dim / 100 }}
+                  style={{ opacity: customWallpaper.presentation.dim / 100 }}
                   aria-hidden="true"
                 />
               )}

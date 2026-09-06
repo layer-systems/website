@@ -165,7 +165,7 @@ const MAX_WALLPAPER_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_WALLPAPER_DIMENSION = 6000;
 const ALLOWED_WALLPAPER_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
-function WallpaperSection() {
+export function WallpaperSection() {
   const { config, updateConfig } = useAppContext();
   const { user } = useCurrentUser();
   const { mutateAsync: uploadFile, isPending: uploading } = useUploadFile();
@@ -195,13 +195,14 @@ function WallpaperSection() {
   };
 
   const applyUrl = () => {
-    if (preview.status !== 'ready' || !preview.url || preview.url !== urlDraft.trim()) {
+    const previewedUrl = preview.url;
+    if (preview.status !== 'ready' || !previewedUrl || previewedUrl !== urlDraft.trim()) {
       toast({ title: 'Preview the image before saving it', variant: 'destructive' });
       return;
     }
     updateConfig((current) => ({
       ...current,
-      wallpaper: { version: 1, selection: { source: 'url', url: preview.url as string, presentation: { fit, dim } } },
+      wallpaper: { version: 1, selection: { source: 'url', url: previewedUrl, presentation: { fit, dim } } },
     }));
     toast({ title: 'Wallpaper saved' });
   };
