@@ -112,14 +112,15 @@ function NotificationButton({
       {...props}
       type={props.type ?? 'button'}
       className={cn(
-        'relative flex size-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        'relative flex h-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        unreadCount > 0 ? 'gap-1 px-1.5' : 'w-7',
         className,
       )}
       aria-label={props['aria-label'] ?? label}
     >
       {unreadCount > 0 ? <BellRing className="size-3.5" aria-hidden /> : <Bell className="size-3.5" aria-hidden />}
       {unreadCount > 0 && (
-        <span className="absolute -right-1.5 top-0 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-4 text-primary-foreground tabular-nums">
+        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-4 text-primary-foreground tabular-nums">
           {unreadCount > 99 ? '99+' : unreadCount}
         </span>
       )}
