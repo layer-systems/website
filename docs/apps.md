@@ -89,7 +89,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 }
 ```
 
-## The ten apps
+## The eleven apps
 
 | App | `id` | Params | Notes |
 |---|---|---|---|
@@ -100,9 +100,21 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Bookmarks | `bookmarks` | — | NIP-51 kind 10003 list — bookmarked notes and articles |
 | Web Bookmarks | `web-bookmarks` | — | NIP-B0 kind 39701 — one addressable event per saved URL |
 | Live | `live` | `pubkey?`, `identifier?` | NIP-53 kind 30311 live events + kind 1311 chat |
+| Spells | `spells` | `id?` | Saved/shareable REQ filters — kind 777, a third-party draft NIP |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Settings | `settings` | — | Theme, relay list, Blossom servers, account, session |
 | About | `about` | — | What this is, the app list, the shortcuts |
+
+### Spells are a third-party kind, adopted for interop
+
+Kind `777` ("Spell") isn't in the official nostr-protocol/nips registry — it comes from
+[Grimoire](https://github.com/purrgrammer/grimoire), a third-party Nostr client that also
+happens to be a tiling-window-manager OS like this one. `src/hooks/useSpells.ts` implements
+its draft NIP as-is (same tag names, same `$me`/`$contacts` runtime variables, same relative
+timestamp grammar) rather than inventing an incompatible shape, so a spell saved here is
+readable by Grimoire and vice versa. Only the "Spell" half (kind `777`, a saved query) is
+implemented; "Spellbook" (kind `30777`, a saved window layout) is not — see the app's
+tracking issue for that as a possible follow-up.
 
 ### Live only links out to playback, it doesn't embed a player
 

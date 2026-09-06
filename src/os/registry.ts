@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, Bookmark, BookOpen, FileText, Info, Link2, Radio, Rss, Settings, User } from 'lucide-react';
+import { Activity, Bookmark, BookOpen, FileText, Info, Link2, Radio, Rss, Settings, Sparkles, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -78,6 +78,16 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/live')),
     defaultSize: { width: 780, height: 720 },
     minSize: { width: 360, height: 320 },
+  },
+  {
+    id: 'spells',
+    title: 'Spells',
+    description: 'Saved, shareable Nostr queries you can re-run any time',
+    icon: Sparkles,
+    category: 'tools',
+    component: lazy(() => import('@/apps/spells')),
+    defaultSize: { width: 760, height: 700 },
+    minSize: { width: 380, height: 320 },
   },
   {
     id: 'relays',
