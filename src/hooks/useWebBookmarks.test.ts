@@ -20,4 +20,10 @@ describe('bookmarkDTag / bookmarkUrl', () => {
     const url = 'http://alice.blog/post';
     expect(bookmarkUrl(bookmarkDTag(url))).toBe(url);
   });
+
+  it('strips the https scheme case-insensitively, so casing does not create duplicate bookmarks', () => {
+    expect(bookmarkDTag('HTTPS://alice.blog/post')).toBe('alice.blog/post');
+    expect(bookmarkDTag('HtTpS://alice.blog/post')).toBe('alice.blog/post');
+    expect(bookmarkDTag('HTTPS://alice.blog/post')).toBe(bookmarkDTag('https://alice.blog/post'));
+  });
 });

@@ -20,6 +20,21 @@ import {
 import { relativeTime, sanitizeUrl, tagValue } from '@/lib/nostrUtils';
 import type { AppProps } from '@/os/types';
 
+/**
+ * Same protocol allowlist as sanitizeUrl(), but for an absolute bookmark URL
+ * rather than an href/src that may legitimately be relative to this app's
+ * own origin — sanitizeUrl() would resolve a bare "example.com" against
+ * `window.location.origin` and "validate" it as a link back into this app.
+ */
+const BOOKMARKABLE_SCHEMES = new Set(['https:', 'http:', 'mailto:', 'nostr:']);
+function isBookmarkableUrl(value: string): boolean {
+  try {
+    return BOOKMARKABLE_SCHEMES.has(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}
+
 export default function WebBookmarksApp({ setTitle }: AppProps) {
   const { user } = useCurrentUser();
   const [formOpen, setFormOpen] = useState(false);
@@ -85,7 +100,7 @@ function NewBookmarkForm({ onDone }: { onDone: () => void }) {
   const { toast } = useToast();
 
   const trimmedUrl = url.trim();
-  const isValid = /^https?:\/\/.+/i.test(trimmedUrl);
+  const isValid = isBookmarkableUrl(trimmedUrl);
 
   const submit = async () => {
     if (!isValid) return;
@@ -147,7 +162,11 @@ function WebBookmarkRow({ event }: { event: NostrEvent }) {
   const { toast } = useToast();
 
   const dTag = tagValue(event, 'd') ?? '';
-  const url = sanitizeUrl(bookmarkUrl(dTag)) ?? bookmarkUrl(dTag);
+  // sanitizeUrl() returning undefined means the reconstructed URL uses a
+  // protocol that could execute script (e.g. a malicious "d" tag) — in that
+  // case there is no safe href to link out to, full stop, not a fallback to
+  // the very value that just failed sanitization.
+  const url = sanitizeUrl(bookmarkUrl(dTag));
   const title = tagValue(event, 'title') ?? dTag;
   const topics = webBookmarkTopics(event);
 
@@ -167,15 +186,21 @@ function WebBookmarkRow({ event }: { event: NostrEvent }) {
   return (
     <article className="group border-b border-border px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/40">
       <div className="flex items-start justify-between gap-3">
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex min-w-0 items-center gap-1.5 text-[14px] font-medium hover:underline"
-        >
-          <span className="truncate">{title}</span>
-          <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-        </a>
+        {url ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-w-0 items-center gap-1.5 text-[14px] font-medium hover:underline"
+          >
+            <span className="truncate">{title}</span>
+            <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          </a>
+        ) : (
+          <span className="truncate text-[14px] font-medium text-muted-foreground" title="Not a safe URL to open">
+            {title}
+          </span>
+        )}
         <span className="shrink-0 text-xs text-muted-foreground">{relativeTime(event.created_at)}</span>
       </div>
 

@@ -12,12 +12,16 @@ function queryKey(pubkey: string | undefined) {
   return ['nostr', 'web-bookmarks', pubkey ?? ''] as const;
 }
 
+const HTTPS_SCHEME_RE = /^https:\/\//i;
+
 /**
  * The `d` tag per NIP-B0: the URI with the `https://` scheme stripped (every
  * other scheme keeps its full form, so it round-trips through `bookmarkUrl`).
+ * The scheme match is case-insensitive so "HTTPS://" and "https://" collapse
+ * to the same `d` tag instead of creating duplicate bookmarks.
  */
 export function bookmarkDTag(url: string): string {
-  return url.startsWith('https://') ? url.slice('https://'.length) : url;
+  return HTTPS_SCHEME_RE.test(url) ? url.slice('https://'.length) : url;
 }
 
 /** Reconstructs a clickable URL from a `d` tag written by `bookmarkDTag`. */
