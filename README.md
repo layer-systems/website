@@ -229,7 +229,11 @@ MKStack is open source and welcomes contributions. The framework is designed to 
 
 ## 📄 License
 
-Open source - build amazing Nostr applications and help grow the decentralized web!
+MKStack is dedicated to the **public domain**.
+
+To the extent possible under law, the authors have waived all copyright and related or neighboring rights to MKStack. You are free to copy, modify, distribute, and use this software for any purpose, commercial or non-commercial, without asking permission and without attribution.
+
+Build amazing Nostr applications and help grow the decentralized web!
 
 ---
 
