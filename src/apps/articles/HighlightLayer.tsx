@@ -37,7 +37,15 @@ export function HighlightLayer({
     function handleSelectionChange() {
       const sel = window.getSelection();
       const container = containerRef.current;
-      if (!sel || sel.isCollapsed || !container || !container.contains(sel.anchorNode)) {
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0 || !container) {
+        setSelection(null);
+        return;
+      }
+      const range = sel.getRangeAt(0);
+      // commonAncestorContainer, not anchorNode: anchorNode is only where the
+      // selection *started*, so a selection that starts inside the article
+      // and is dragged out past its boundary would otherwise still pass.
+      if (!container.contains(range.commonAncestorContainer)) {
         setSelection(null);
         return;
       }
@@ -46,7 +54,7 @@ export function HighlightLayer({
         setSelection(null);
         return;
       }
-      const rect = sel.getRangeAt(0).getBoundingClientRect();
+      const rect = range.getBoundingClientRect();
       setSelection({ text, top: rect.top, left: rect.left + rect.width / 2 });
     }
 
@@ -84,7 +92,14 @@ export function HighlightLayer({
             // the instant it's pressed.
             onMouseDown={(event) => event.preventDefault()}
             onClick={handleHighlight}
-            style={{ position: 'fixed', top: selection.top - 40, left: selection.left, transform: 'translateX(-50%)' }}
+            style={{
+              position: 'fixed',
+              // Clamped so a selection near the top of the viewport doesn't
+              // push the button off-screen and out of reach.
+              top: Math.max(8, selection.top - 40),
+              left: selection.left,
+              transform: 'translateX(-50%)',
+            }}
             className="z-50 flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-xs font-medium text-background shadow-lg"
           >
             <Highlighter className="size-3.5" aria-hidden />
