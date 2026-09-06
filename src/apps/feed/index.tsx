@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
-import { Globe, Loader2, Users } from 'lucide-react';
+import { FileText, Globe, Loader2, Users } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { AppBody, AppLayout, AppToolbar, EmptyState } from '@/components/os/AppChrome';
 import { NoteCard } from '@/components/nostr/NoteCard';
@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useMyFollows } from '@/hooks/useFollows';
 import { cn } from '@/lib/utils';
+import { useWindowManager } from '@/os/useWindowManager';
 import type { AppProps } from '@/os/types';
 
 type Scope = 'following' | 'global';
@@ -51,6 +52,7 @@ function useFeed(scope: Scope, authors: string[] | undefined) {
 
 export default function FeedApp({ setTitle }: AppProps) {
   const { user } = useCurrentUser();
+  const { openApp } = useWindowManager();
   const { data: follows } = useMyFollows();
   const [requestedScope, setScope] = useState<Scope>('following');
 
@@ -85,6 +87,15 @@ export default function FeedApp({ setTitle }: AppProps) {
         />
         <div className="ml-auto flex items-center gap-2">
           {query.isFetching && <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-hidden />}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 px-2 text-xs"
+            onClick={() => openApp('notes', {})}
+          >
+            <FileText className="size-3.5" aria-hidden />
+            New note
+          </Button>
           <Button
             variant="ghost"
             size="sm"

@@ -8,6 +8,7 @@ import { AuthorLine } from '@/components/nostr/AuthorLine';
 import { NoteContent } from '@/components/nostr/NoteContent';
 import { NoteCard } from '@/components/nostr/NoteCard';
 import { Composer } from '@/apps/feed/Composer';
+import { DraftNote } from './Draft';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -51,7 +52,7 @@ function useReplies(id: string | undefined, relays: string[] | undefined) {
   });
 }
 
-export default function NotesApp({ params, setTitle }: AppProps) {
+export default function NotesApp({ params, setTitle, setParams }: AppProps) {
   const { user } = useCurrentUser();
   const id = params.id;
   const relays = decodeRelayHints(params.relays);
@@ -62,11 +63,11 @@ export default function NotesApp({ params, setTitle }: AppProps) {
   const name = note.data ? displayName(note.data.pubkey, author.data?.metadata) : undefined;
 
   useEffect(() => {
-    setTitle(name ? `Note by ${name}` : 'Note');
-  }, [name, setTitle]);
+    setTitle(id ? (name ? `Note by ${name}` : 'Note') : 'New Note');
+  }, [id, name, setTitle]);
 
   if (!id) {
-    return <EmptyState title="No note selected" hint="Open a note from the feed to read its thread." />;
+    return <DraftNote onPublished={(publishedId) => setParams({ id: publishedId })} />;
   }
 
   if (note.isLoading) {

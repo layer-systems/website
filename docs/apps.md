@@ -95,7 +95,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 |---|---|---|---|
 | Feed | `feed` | — | kind 1 timeline, Following/Global, composer (⌘↵ publishes) |
 | Profile | `profile` | `pubkey`, `relays?` | kind 0 metadata, the author's notes, follow/unfollow |
-| Note | `notes` | `id`, `relays?` | One note and its replies. **Not** a singleton |
+| Note | `notes` | `id`, `relays?` | One note and its replies, or a blank local draft when `id` is absent. **Not** a singleton |
 | Reader | `articles` | `pubkey?`, `identifier?`, `kind?`, `relays?` | NIP-23 long-form, `react-markdown` |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Settings | `settings` | — | Theme, relay list, Blossom servers, account, session |
