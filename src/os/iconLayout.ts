@@ -38,8 +38,8 @@ function firstFree(occupied: Set<string>, geometry: GridGeometry): Omit<DesktopS
     }
   }
   // A very small viewport can temporarily have fewer cells than apps. Keep
-  // the remaining icons in the next stable row; rendering clamps on resize.
-  return { col: 0, row: geometry.rows };
+  // the remaining icons in the last stable row so they stay on-screen.
+  return { col: 0, row: Math.max(0, geometry.rows - 1) };
 }
 
 export function defaultDesktopLayout(ids: string[], geometry: GridGeometry): DesktopSlot[] {

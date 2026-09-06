@@ -152,7 +152,7 @@ export function Desktop() {
                   selected={selected === app.id}
                   dragging={dragging === app.id}
                   pickedUp={picked === app.id}
-                  tabIndex={selected === null || selected === app.id ? 0 : -1}
+                  tabIndex={0}
                   style={{ position: 'absolute', left: SURFACE_PADDING + displaySlot.col * CELL_WIDTH, top: SURFACE_PADDING + displaySlot.row * CELL_HEIGHT, zIndex: dragging === app.id ? 2 : 1 }}
                   onPointerDown={(event) => {
                     if (event.button !== 0) return;

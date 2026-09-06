@@ -27,10 +27,15 @@ export function useIconLayout(ids: string[], geometry: GridGeometry) {
     mobile: reconcileMobileLayout(layout.mobile, stableIds),
   }), [layout, stableGeometry, stableIds]);
 
+  const dirty = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
+    if (!dirty.current) return;
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => saveIconLayout(normalized), SAVE_DELAY);
+    saveTimer.current = setTimeout(() => {
+      dirty.current = false;
+      saveIconLayout(normalized);
+    }, SAVE_DELAY);
     return () => clearTimeout(saveTimer.current);
   }, [normalized]);
 
@@ -49,12 +54,14 @@ export function useIconLayout(ids: string[], geometry: GridGeometry) {
   }, [stableGeometry, stableIds]);
 
   const setDesktop = useCallback((updater: (slots: DesktopSlot[]) => DesktopSlot[]) => {
+    dirty.current = true;
     setLayout((current) => ({
       ...current,
       desktop: updater(reconcileDesktopLayout(current.desktop, stableIds, stableGeometry)),
     }));
   }, [stableGeometry, stableIds]);
   const setMobile = useCallback((updater: (order: string[]) => string[]) => {
+    dirty.current = true;
     setLayout((current) => ({ ...current, mobile: updater(reconcileMobileLayout(current.mobile, stableIds)) }));
   }, [stableIds]);
   const reset = useCallback((profile: 'desktop' | 'mobile' | 'both') => {
@@ -63,6 +70,8 @@ export function useIconLayout(ids: string[], geometry: GridGeometry) {
       desktop: profile === 'mobile' ? normalized.desktop : defaultDesktopLayout(stableIds, stableGeometry),
       mobile: profile === 'desktop' ? normalized.mobile : [...stableIds],
     };
+    dirty.current = false;
+    clearTimeout(saveTimer.current);
     saveIconLayout(next);
     setLayout(next);
     window.dispatchEvent(new Event('icon-layout-reset'));

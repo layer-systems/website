@@ -164,6 +164,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
   const [announcement, setAnnouncement] = useState('');
   const dragStart = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
   const suppressClick = useRef(false);
+  const targetRef = useRef<string | null>(null);
   const { layout, setMobile } = useIconLayout(apps.map((app) => app.id), { columns, rows: Math.max(8, Math.ceil(apps.length / columns) + 4) });
   const byId = useMemo(() => new Map(apps.map((app) => [app.id, app])), [apps]);
   const orderedApps = layout.mobile.map((id) => byId.get(id)).filter((app): app is NonNullable<typeof app> => Boolean(app));
@@ -194,16 +195,20 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
       active.moved = true;
       setDragging(active.id);
       const hit = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-home-icon-id]');
-      setTarget(hit?.dataset.homeIconId ?? null);
+      const nextTarget = hit?.dataset.homeIconId ?? null;
+      targetRef.current = nextTarget;
+      setTarget(nextTarget);
     };
     const onEnd = () => {
       const active = dragStart.current;
       if (active?.moved) {
         suppressClick.current = true;
+        const target = targetRef.current;
         reorder(active.id, target && target !== active.id ? target : null);
       }
       dragStart.current = null;
       setDragging(null);
+      targetRef.current = null;
       setTarget(null);
     };
     window.addEventListener('pointermove', onMove);
@@ -214,7 +219,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
       window.removeEventListener('pointerup', onEnd);
       window.removeEventListener('pointercancel', onEnd);
     };
-  }, [reorder, target]);
+  }, [reorder]);
 
   const onKeyDown = (id: string, event: React.KeyboardEvent<HTMLButtonElement>) => {
     const index = layout.mobile.indexOf(id);
