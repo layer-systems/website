@@ -7,7 +7,15 @@ export function pictureUrl(event: NostrEvent): string | undefined {
 
   const metadata = event.tags.find(([name]) => name === 'imeta');
   const url = metadata?.find((value) => value.startsWith('url '))?.slice(4);
-  return sanitizeUrl(url);
+  if (!url) return undefined;
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return undefined;
+    return sanitizeUrl(parsed.href);
+  } catch {
+    return undefined;
+  }
 }
 
 /** Picture posts are Kind 20 events with an image the client can safely render. */

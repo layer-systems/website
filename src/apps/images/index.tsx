@@ -163,8 +163,13 @@ function PictureComposer({ onPublished }: { onPublished: () => void }) {
   const publishPicture = async () => {
     if (!file) return;
     try {
-      const tags = await upload.mutateAsync(file);
-      await publish.mutateAsync({ kind: 20, content: description.trim(), tags });
+      const uploadTags = await upload.mutateAsync(file);
+      const url = uploadTags.find(([name, value]) => name === 'url' && value)?.[1];
+      if (!url) throw new Error('Upload did not return a URL.');
+      const imeta = ['imeta', `url ${url}`, ...uploadTags
+        .filter(([name, value]) => name !== 'url' && value)
+        .map(([name, value]) => `${name} ${value}`)];
+      await publish.mutateAsync({ kind: 20, content: description.trim(), tags: [imeta] });
       setFile(null); setDescription(''); toast({ title: 'Picture published' }); onPublished();
     } catch (error) { toast({ title: 'Could not publish picture', description: error instanceof Error ? error.message : 'Upload failed.', variant: 'destructive' }); }
   };

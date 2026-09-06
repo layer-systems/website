@@ -17,5 +17,7 @@ describe('picture posts', () => {
   it('rejects non-picture kinds and unsafe image URLs', () => {
     expect(isPicturePost(event(1, [['imeta', 'url https://images.example/picture.jpg']]))).toBe(false);
     expect(isPicturePost(event(20, [['imeta', 'url javascript:alert(1)']]))).toBe(false);
+    expect(isPicturePost(event(20, [['imeta', 'url mailto:image@example.com']]))).toBe(false);
+    expect(isPicturePost(event(20, [['imeta', 'url /picture.jpg']]))).toBe(false);
   });
 });
