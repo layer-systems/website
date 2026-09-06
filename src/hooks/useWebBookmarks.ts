@@ -24,9 +24,17 @@ export function bookmarkDTag(url: string): string {
   return HTTPS_SCHEME_RE.test(url) ? url.slice('https://'.length) : url;
 }
 
+/** Hierarchical URIs, e.g. `http://…` or `gemini://…` — the `//` is what rules out a false match on a stripped https URL that happens to contain a port, e.g. `alice.blog:8080/post`. */
+const HIERARCHICAL_SCHEME_RE = /^[a-z][a-z0-9+.-]*:\/\//i;
+/** Non-hierarchical URIs with no `//`, e.g. `mailto:` and `nostr:` — not matched by the pattern above. */
+const OPAQUE_SCHEMES = ['mailto:', 'nostr:'];
+
 /** Reconstructs a clickable URL from a `d` tag written by `bookmarkDTag`. */
 export function bookmarkUrl(dTag: string): string {
-  return /^[a-z][a-z0-9+.-]*:\/\//i.test(dTag) ? dTag : `https://${dTag}`;
+  const lower = dTag.toLowerCase();
+  const alreadyHasScheme =
+    HIERARCHICAL_SCHEME_RE.test(dTag) || OPAQUE_SCHEMES.some((scheme) => lower.startsWith(scheme));
+  return alreadyHasScheme ? dTag : `https://${dTag}`;
 }
 
 export interface WebBookmarkInput {
@@ -57,6 +65,7 @@ export function useMyWebBookmarks() {
 }
 
 export function useCreateWebBookmark() {
+  const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const publish = useNostrPublish();
   const queryClient = useQueryClient();
@@ -65,12 +74,25 @@ export function useCreateWebBookmark() {
     mutationFn: async ({ url, title, description, tags }: WebBookmarkInput) => {
       if (!user) throw new Error('Sign in to bookmark a page');
 
-      const eventTags: string[][] = [['d', bookmarkDTag(url)]];
+      const dTag = bookmarkDTag(url);
+      // Re-bookmarking an already-saved URL is an edit of the same
+      // addressable event, not a new bookmark — published_at per NIP-B0 is
+      // "the first time the bookmark was published", so it must carry over
+      // rather than being reset to now on every edit.
+      const [existing] = await nostr.query(
+        [{ kinds: [WEB_BOOKMARK_KIND], authors: [user.pubkey], '#d': [dTag], limit: 1 }],
+        { signal: AbortSignal.timeout(6000) },
+      );
+      const publishedAt = existing
+        ? (tagValue(existing, 'published_at') ?? String(existing.created_at))
+        : String(Math.floor(Date.now() / 1000));
+
+      const eventTags: string[][] = [['d', dTag]];
       if (title?.trim()) eventTags.push(['title', title.trim()]);
       for (const tag of tags ?? []) {
         if (tag.trim()) eventTags.push(['t', tag.trim().toLowerCase()]);
       }
-      eventTags.push(['published_at', String(Math.floor(Date.now() / 1000))]);
+      eventTags.push(['published_at', publishedAt]);
 
       return publish.mutateAsync({
         kind: WEB_BOOKMARK_KIND,
