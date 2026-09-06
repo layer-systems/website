@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, Bookmark, BookOpen, CalendarDays, FileText, Info, Link2, Radio, Rss, Settings, Sparkles, User } from 'lucide-react';
+import { Activity, Bookmark, BookOpen, CalendarDays, FileText, Info, Link2, Radio, Rss, Search, Settings, Sparkles, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -26,6 +26,16 @@ export const APPS: AppDefinition[] = [
     category: 'social',
     component: lazy(() => import('@/apps/profile')),
     defaultSize: { width: 620, height: 700 },
+    minSize: { width: 360, height: 320 },
+  },
+  {
+    id: 'search',
+    title: 'Search',
+    description: 'Find notes, replies, hashtags and people across Nostr',
+    icon: Search,
+    category: 'social',
+    component: lazy(() => import('@/apps/search')),
+    defaultSize: { width: 680, height: 700 },
     minSize: { width: 360, height: 320 },
   },
   {
