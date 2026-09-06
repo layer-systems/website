@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ type AuthorsMode = 'anyone' | 'me' | 'contacts' | 'custom';
 
 export function NewSpellForm({ onDone }: { onDone: () => void }) {
   const { user } = useCurrentUser();
+  const formId = useId();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [kinds, setKinds] = useState('1');
@@ -102,12 +103,18 @@ export function NewSpellForm({ onDone }: { onDone: () => void }) {
         </p>
       </div>
 
-      <Field label="Name (optional)">
-        <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Bitcoin from contacts" />
+      <Field id={`${formId}-name`} label="Name (optional)">
+        <Input
+          id={`${formId}-name`}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Bitcoin from contacts"
+        />
       </Field>
 
-      <Field label="Description (optional)">
+      <Field id={`${formId}-description`} label="Description (optional)">
         <Textarea
+          id={`${formId}-description`}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           rows={2}
@@ -115,11 +122,17 @@ export function NewSpellForm({ onDone }: { onDone: () => void }) {
         />
       </Field>
 
-      <Field label="Kinds (comma separated)">
-        <Input value={kinds} onChange={(event) => setKinds(event.target.value)} placeholder="1, 30023" />
+      <Field id={`${formId}-kinds`} label="Kinds (comma separated)">
+        <Input
+          id={`${formId}-kinds`}
+          value={kinds}
+          onChange={(event) => setKinds(event.target.value)}
+          placeholder="1, 30023"
+        />
       </Field>
 
-      <Field label="Authors">
+      <fieldset className="space-y-1.5">
+        <legend className="text-xs font-medium text-muted-foreground">Authors</legend>
         <div className="flex flex-wrap gap-1.5">
           {(
             [
@@ -148,31 +161,53 @@ export function NewSpellForm({ onDone }: { onDone: () => void }) {
             value={customAuthors}
             onChange={(event) => setCustomAuthors(event.target.value)}
             placeholder="hex pubkeys, comma separated"
+            aria-label="Custom author pubkeys, comma separated"
             className="mt-2"
           />
         )}
-      </Field>
+      </fieldset>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Tag filter letter">
-          <Input value={tagLetter} onChange={(event) => setTagLetter(event.target.value)} placeholder="t" maxLength={1} />
+        <Field id={`${formId}-tag-letter`} label="Tag filter letter">
+          <Input
+            id={`${formId}-tag-letter`}
+            value={tagLetter}
+            onChange={(event) => setTagLetter(event.target.value)}
+            placeholder="t"
+            maxLength={1}
+          />
         </Field>
-        <Field label="Tag values">
-          <Input value={tagValues} onChange={(event) => setTagValues(event.target.value)} placeholder="bitcoin, nostr" />
+        <Field id={`${formId}-tag-values`} label="Tag values">
+          <Input
+            id={`${formId}-tag-values`}
+            value={tagValues}
+            onChange={(event) => setTagValues(event.target.value)}
+            placeholder="bitcoin, nostr"
+          />
         </Field>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Since (e.g. 7d, now, or blank)">
-          <Input value={since} onChange={(event) => setSince(event.target.value)} placeholder="7d" />
+        <Field id={`${formId}-since`} label="Since (e.g. 7d, now, or blank)">
+          <Input id={`${formId}-since`} value={since} onChange={(event) => setSince(event.target.value)} placeholder="7d" />
         </Field>
-        <Field label="Limit">
-          <Input value={limit} onChange={(event) => setLimit(event.target.value)} inputMode="numeric" />
+        <Field id={`${formId}-limit`} label="Limit">
+          <Input
+            id={`${formId}-limit`}
+            value={limit}
+            onChange={(event) => setLimit(event.target.value)}
+            inputMode="numeric"
+          />
         </Field>
       </div>
 
-      <Field label="Topics (comma separated, for discovery)">
-        <Input value={topics} onChange={(event) => setTopics(event.target.value)} placeholder="bitcoin, social" />
+      <Field id={`${formId}-topics`} label="Topics (comma separated, for discovery)">
+        <Input
+          id={`${formId}-topics`}
+          value={topics}
+          onChange={(event) => setTopics(event.target.value)}
+          placeholder="bitcoin, social"
+        />
       </Field>
 
       <div className="flex justify-end gap-2 pt-2">
@@ -188,10 +223,12 @@ export function NewSpellForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <span className="block text-xs font-medium text-muted-foreground">{label}</span>
+      <label htmlFor={id} className="block text-xs font-medium text-muted-foreground">
+        {label}
+      </label>
       {children}
     </div>
   );

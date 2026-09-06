@@ -35,8 +35,12 @@ type Scope = 'mine' | 'discover';
 export default function SpellsApp({ params, setTitle, setParams }: AppProps) {
   const { user } = useCurrentUser();
   const isMobile = useIsMobile();
-  const [scope, setScope] = useState<Scope>(user ? 'mine' : 'discover');
+  const [requestedScope, setRequestedScope] = useState<Scope>('mine');
   const [formOpen, setFormOpen] = useState(false);
+
+  // Signing out mid-session must not leave "My Spells" showing the previous
+  // user's (still-cached) spells — same reasoning as the Feed app's scope.
+  const scope: Scope = user ? requestedScope : 'discover';
 
   const mine = useMySpells();
   const discover = useDiscoverSpells();
@@ -80,13 +84,13 @@ export default function SpellsApp({ params, setTitle, setParams }: AppProps) {
       <ScopeTab
         active={scope === 'mine'}
         disabled={!user}
-        onClick={() => setScope('mine')}
+        onClick={() => setRequestedScope('mine')}
         icon={<UserIcon className="size-3.5" aria-hidden />}
         label="My Spells"
       />
       <ScopeTab
         active={scope === 'discover'}
-        onClick={() => setScope('discover')}
+        onClick={() => setRequestedScope('discover')}
         icon={<Globe className="size-3.5" aria-hidden />}
         label="Discover"
       />

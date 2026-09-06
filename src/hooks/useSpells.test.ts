@@ -1,9 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import type { NostrEvent } from '@nostrify/nostrify';
-import { encodeSpellTags, parseSpell, resolveSpellFilter, resolveTimestamp } from './useSpells';
+import { encodeSpellTags, parseSpell, resolveSpellFilter, resolveTimestamp, type ParsedSpell } from './useSpells';
 
 function spellEvent(tags: string[][], content = ''): NostrEvent {
   return { id: 'x', pubkey: 'author', created_at: 0, kind: 777, tags, content, sig: '' };
+}
+
+/** A ParsedSpell as if it came straight off a relay — encodeSpellTags always produces well-formed data, so malformed cases are built by hand. */
+function parsedSpell(overrides: Partial<ParsedSpell>): ParsedSpell {
+  return {
+    description: '',
+    kinds: [1],
+    authors: [],
+    topics: [],
+    event: spellEvent([]),
+    ...overrides,
+  };
 }
 
 describe('resolveTimestamp', () => {
@@ -77,5 +89,28 @@ describe('resolveSpellFilter', () => {
     );
     const filter = resolveSpellFilter(parseSpell(event), { me: undefined, contacts: [] });
     expect(filter?.['#t']).toEqual(['bitcoin', 'nostr']);
+  });
+
+  it('ignores a malformed (non-single-letter) tag filter instead of producing "#undefined"', () => {
+    const spell = parsedSpell({ tagFilter: { letter: '', values: ['x'] } });
+    const filter = resolveSpellFilter(spell, { me: undefined, contacts: [] });
+    expect(Object.keys(filter ?? {}).some((key) => key.startsWith('#'))).toBe(false);
+  });
+
+  it('clamps an excessive limit to the maximum', () => {
+    const spell = parsedSpell({ limit: 1_000_000 });
+    const filter = resolveSpellFilter(spell, { me: undefined, contacts: [] });
+    expect(filter?.limit).toBe(500);
+  });
+
+  it('drops a zero or NaN limit rather than sending a degenerate query', () => {
+    expect(resolveSpellFilter(parsedSpell({ limit: 0 }), { me: undefined, contacts: [] })?.limit).toBeUndefined();
+    expect(resolveSpellFilter(parsedSpell({ limit: NaN }), { me: undefined, contacts: [] })?.limit).toBeUndefined();
+  });
+
+  it('keeps a normal, in-range limit as-is', () => {
+    const spell = parsedSpell({ limit: 50 });
+    const filter = resolveSpellFilter(spell, { me: undefined, contacts: [] });
+    expect(filter?.limit).toBe(50);
   });
 });

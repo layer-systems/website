@@ -26,6 +26,11 @@ const UNIT_SECONDS: Record<string, number> = {
   y: 31_536_000,
 };
 
+/** A single NIP-01 tag-filter letter, e.g. the `t` in `#t`. */
+const TAG_LETTER_RE = /^[a-zA-Z]$/;
+/** Caps a relay-sourced spell's `limit` so Run can't be tricked into a huge query. */
+const MAX_SPELL_LIMIT = 500;
+
 /** Resolves `now`, `<n><unit>` (e.g. `7d`) or a literal unix timestamp string. */
 export function resolveTimestamp(value: string): number | undefined {
   const trimmed = value.trim();
@@ -125,11 +130,16 @@ export function resolveSpellFilter(
     filter.authors = resolved;
   }
 
-  if (spell.tagFilter) {
+  // Relay-provided events are untrusted: a malformed spell must not produce
+  // a filter key like "#undefined", or a limit that is 0/NaN/huge enough to
+  // lock up the UI on Run.
+  if (spell.tagFilter && TAG_LETTER_RE.test(spell.tagFilter.letter) && spell.tagFilter.values.length > 0) {
     filter[`#${spell.tagFilter.letter}`] = spell.tagFilter.values;
   }
 
-  if (spell.limit) filter.limit = spell.limit;
+  if (spell.limit !== undefined && Number.isFinite(spell.limit) && spell.limit > 0) {
+    filter.limit = Math.min(spell.limit, MAX_SPELL_LIMIT);
+  }
   if (spell.since) {
     const since = resolveTimestamp(spell.since);
     if (since !== undefined) filter.since = since;
