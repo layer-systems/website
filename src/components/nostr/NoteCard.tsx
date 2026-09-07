@@ -51,7 +51,7 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
         <NoteContent content={event.content} />
 
         {!compact && (
-          <div className="mt-2 flex items-center gap-1">
+          <div className="mt-2 flex flex-wrap items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
