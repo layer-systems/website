@@ -81,10 +81,11 @@ describe('parseRecipient', () => {
   });
 
   it('rejects note/nevent/naddr identifiers — they are not people', () => {
-    const note = nip19.noteEncode('a'.repeat(64));
-    expect(parseRecipient(note).type).toBe('invalid');
-    const nevent = nip19.neventEncode({ id: 'a'.repeat(64) });
-    expect(parseRecipient(nevent.type ? nevent : '').type).toBe('invalid');
+    expect(parseRecipient(nip19.noteEncode('a'.repeat(64))).type).toBe('invalid');
+    expect(parseRecipient(nip19.neventEncode({ id: 'a'.repeat(64) })).type).toBe('invalid');
+    expect(
+      parseRecipient(nip19.naddrEncode({ pubkey: alice, kind: 30023, identifier: 'x' })).type,
+    ).toBe('invalid');
   });
 
   it('rejects an nsec — a secret must never be typed into a recipient field', () => {

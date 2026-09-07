@@ -5,9 +5,9 @@ import { NSecSigner, type NostrEvent } from '@nostrify/nostrify';
 import { useNostr } from '@nostrify/react';
 
 import { TestApp } from '@/test/TestApp';
-import { buildGiftWraps, DM_GIFT_WRAP_KIND, LEGACY_DM_KIND } from '@/lib/dm';
+import { buildGiftWraps, DM_GIFT_WRAP_KIND, LEGACY_DM_KIND, type DmMessage } from '@/lib/dm';
 import { useLoginActions } from './useLoginActions';
-import { groupIntoConversations, useDmConversations, type DmMessage } from './useDirectMessages';
+import { groupIntoConversations, useDmConversations } from './useDirectMessages';
 
 const aliceSecret = generateSecretKey();
 const alice = getPublicKey(aliceSecret);
