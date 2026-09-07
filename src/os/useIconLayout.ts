@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   defaultDesktopLayout,
+  entryIds,
   iconLayoutStorageKey,
   loadIconLayout,
   reconcileDesktopLayout,
@@ -11,12 +12,21 @@ import {
   type GridGeometry,
   type IconLayout,
 } from './iconLayout';
+import type { FolderState } from './folders';
 
 const SAVE_DELAY = 250;
 
-export function useIconLayout(ids: string[], geometry: GridGeometry) {
-  const idsKey = ids.join('|');
-  const [layout, setLayout] = useState<IconLayout>(() => loadIconLayout(ids, geometry));
+/**
+ * Tracks the position of every desktop grid entry (apps and, when `folders`
+ * is given, folder icons). Apps assigned to a folder leave the grid — the
+ * folder's entry takes their place.
+ */
+export function useIconLayout(ids: string[], geometry: GridGeometry, folders?: FolderState) {
+  // Only the derived entry ids feed the hook's state, so a fresh `folders`
+  // object each render does not reset anything.
+  const entries = entryIds(ids, folders);
+  const idsKey = entries.join('|');
+  const [layout, setLayout] = useState<IconLayout>(() => loadIconLayout(entries, geometry));
   const stableIds = useMemo(() => (idsKey ? idsKey.split('|') : []), [idsKey]);
   const stableGeometry = useMemo(
     () => ({ columns: geometry.columns, rows: geometry.rows }),

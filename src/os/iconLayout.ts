@@ -1,7 +1,11 @@
 import { z } from 'zod';
+import { reconcileFolderState, type FolderState } from './folders';
 
 const STORAGE_KEY = 'nostr:icon-layout';
 const VERSION = 1;
+
+/** Grid entries are app ids or folder entries (`folder:<id>`). */
+export type GridEntryId = string;
 
 export interface DesktopSlot {
   id: string;
@@ -27,8 +31,8 @@ const SlotSchema = z.object({
 
 const LayoutSchema = z.object({
   version: z.literal(VERSION),
-  desktop: z.array(SlotSchema).max(200),
-  mobile: z.array(z.string().min(1)).max(200),
+  desktop: z.array(SlotSchema).max(250),
+  mobile: z.array(z.string().min(1)).max(250),
 });
 
 function firstFree(occupied: Set<string>, geometry: GridGeometry): Omit<DesktopSlot, 'id'> {
@@ -89,18 +93,31 @@ export function reconcileMobileLayout(saved: string[], ids: string[]): string[] 
   return [...ordered, ...ids.filter((id) => !seen.has(id))];
 }
 
-export function loadIconLayout(ids: string[], geometry: GridGeometry): IconLayout {
+export function loadIconLayout(ids: string[], geometry: GridGeometry, folders?: FolderState): IconLayout {
+  const entries = entryIds(ids, folders);
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { desktop: defaultDesktopLayout(ids, geometry), mobile: [...ids] };
+    if (!raw) return { desktop: defaultDesktopLayout(entries, geometry), mobile: [...entries] };
     const parsed = LayoutSchema.parse(JSON.parse(raw));
     return {
-      desktop: reconcileDesktopLayout(parsed.desktop, ids, geometry),
-      mobile: reconcileMobileLayout(parsed.mobile, ids),
+      desktop: reconcileDesktopLayout(parsed.desktop, entries, geometry),
+      mobile: reconcileMobileLayout(parsed.mobile, entries),
     };
   } catch {
-    return { desktop: defaultDesktopLayout(ids, geometry), mobile: [...ids] };
+    return { desktop: defaultDesktopLayout(entries, geometry), mobile: [...entries] };
   }
+}
+
+/** Reconciles persisted folder state against the current app catalogue. */
+export function reconcileFolders(folders: FolderState | undefined, ids: string[]): FolderState {
+  return reconcileFolderState(folders ?? { folders: [], membership: {} }, ids);
+}
+
+/** The grid entry ids: top-level apps plus one entry per folder. */
+export function entryIds(ids: string[], folders?: FolderState): string[] {
+  if (!folders) return ids;
+  const clean = reconcileFolderState(folders, ids);
+  return [...ids.filter((id) => !clean.membership[id]), ...clean.folders.map((folder) => `folder:${folder.id}`)];
 }
 
 export function saveIconLayout(layout: IconLayout): void {

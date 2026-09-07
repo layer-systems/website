@@ -17,6 +17,7 @@ import { useNwcConnection } from '@/hooks/useNwc';
 import { useWindowManager } from '@/os/useWindowManager';
 import { desktopApps } from '@/os/registry';
 import { useIconLayout } from '@/os/useIconLayout';
+import { useFolders } from '@/os/useFolders';
 import { useToast } from '@/hooks/useToast';
 import { displayName, npubOf } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
@@ -67,6 +68,7 @@ function IconLayoutSection() {
   // Reset uses a deterministic, measurement-free registry order. The desktop
   // clamps it to its actual surface on render; mobile reflows into its columns.
   const { reset } = useIconLayout(appIds, { columns: 8, rows: 16 });
+  const { resetFolders } = useFolders(appIds);
 
   const resetAndToast = (profile: 'desktop' | 'mobile' | 'both') => {
     reset(profile);
@@ -76,12 +78,21 @@ function IconLayoutSection() {
   return (
     <Section
       title="Home screen layout"
-      description="Arrange icons by dragging them. On a keyboard, press Space to pick up an icon, use the arrow keys to move it, then press Enter to drop."
+      description="Arrange icons by dragging them. On a keyboard, press Space to pick up an icon, use the arrow keys to move it, then press Enter to drop. Folders group apps together; deleting a folder returns its apps here."
     >
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={() => resetAndToast('desktop')}>Reset desktop</Button>
         <Button variant="outline" onClick={() => resetAndToast('mobile')}>Reset mobile</Button>
         <Button variant="outline" onClick={() => resetAndToast('both')}>Reset both</Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            resetFolders();
+            toast({ title: 'Folders deleted' });
+          }}
+        >
+          Delete all folders
+        </Button>
       </div>
     </Section>
   );
