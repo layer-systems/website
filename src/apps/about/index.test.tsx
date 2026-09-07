@@ -8,7 +8,14 @@ vi.mock('@/os/useWindowManager', () => ({
 
 describe('About app', () => {
   test('displays the package version', () => {
-    render(<AboutApp setTitle={vi.fn()} />);
+    render(
+      <AboutApp
+        windowId="about"
+        params={{}}
+        setTitle={vi.fn()}
+        setParams={vi.fn()}
+      />,
+    );
 
     expect(screen.getByText('Version 1.0.0')).toBeInTheDocument();
   });
