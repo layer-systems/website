@@ -191,6 +191,12 @@ export function useNip86Connection(): Nip86Connection {
         }
 
         const { core, extensions } = partitionMethods(methodsResult);
+        // A different relay must never show the previous relay's policy lists
+        // — but query keys are already scoped by URL, so only this session's
+        // own prior relay (not every open Relay Admin window) needs clearing.
+        if (session && session.url !== url) {
+          queryClient.removeQueries({ queryKey: ['nip86', session.url] });
+        }
         setSession({
           url,
           info,
@@ -198,8 +204,6 @@ export function useNip86Connection(): Nip86Connection {
           extensions,
           canListRoles: methodsResult.includes('listroles'),
         });
-        // A different relay must never show the previous relay's policy lists.
-        queryClient.removeQueries({ queryKey: ['nip86'] });
         record({
           method: 'supportedmethods',
           target: 'discovery',
@@ -223,7 +227,7 @@ export function useNip86Connection(): Nip86Connection {
         setIsConnecting(false);
       }
     },
-    [user, queryClient, record],
+    [user, queryClient, record, session],
   );
 
   return {

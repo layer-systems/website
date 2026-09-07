@@ -18,6 +18,7 @@ import {
   parsePubkeyInput,
   validateIpInput,
   validateReason,
+  type AllowedPubkey,
   type BannedPubkey,
   type BlockedIp,
   type Nip86CoreMethod,
@@ -400,7 +401,7 @@ export function AllowedPubkeysSection({
         />
       ) : (
         <ul className="divide-y divide-border border-t border-border">
-          {filtered.map((entry: BannedPubkey) => (
+          {filtered.map((entry: AllowedPubkey) => (
             <PolicyRow
               key={entry.pubkey}
               id={entry.pubkey}

@@ -182,6 +182,12 @@ describe('input validation', () => {
     expect(sanitizeIconUrl('not a url')).toHaveProperty('error');
   });
 
+  it('only allows http:// for local relays', () => {
+    expect(sanitizeIconUrl('http://localhost:4869/icon.png')).toBe('http://localhost:4869/icon.png');
+    expect(sanitizeIconUrl('http://127.0.0.1/icon.png')).toBe('http://127.0.0.1/icon.png');
+    expect(sanitizeIconUrl('http://relay.example.com/icon.png')).toHaveProperty('error');
+  });
+
   it('caps reason length', () => {
     expect(validateReason('spam')).toBeUndefined();
     expect(validateReason('x'.repeat(501))).toBeTruthy();

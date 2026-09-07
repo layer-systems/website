@@ -549,6 +549,12 @@ export function validateRoleColor(input: string): string | undefined {
     : 'Use a hex color like #8b5cf6, or leave it empty.';
 }
 
+/** Loopback/`.local` hostnames — the only ones http:// is trusted for below. */
+function isLocalHostname(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local');
+}
+
 /**
  * Validate and sanitize a relay icon URL before it is shown or submitted.
  * Only https (and http for local relays) URLs survive — anything else could
@@ -559,8 +565,8 @@ export function sanitizeIconUrl(input: string): string | { error: string } {
   if (!value) return { error: 'Enter an icon URL.' };
   try {
     const parsed = new URL(value);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-      return { error: 'Only https:// icon URLs are allowed.' };
+    if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && isLocalHostname(parsed.hostname))) {
+      return { error: 'Only https:// icon URLs are allowed (http:// only for local relays).' };
     }
     return parsed.href;
   } catch {
