@@ -102,6 +102,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Live | `live` | `pubkey?`, `identifier?` | NIP-53 kind 30311 live events + kind 1311 chat |
 | Spells | `spells` | `id?` | Saved/shareable REQ filters — kind 777, a third-party draft NIP |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
+| Relay Admin | `relay-admin` | `relay?` | NIP-86 management console for relays you operate |
 | Settings | `settings` | — | Theme, relay list, Blossom servers, account, session |
 | About | `about` | — | What this is, the app list, the shortcuts |
 
@@ -149,6 +150,23 @@ update, the same trap [follow lists](#follow-lists-are-a-whole-list-replacement)
 
 kind 3 replaces the entire contact list. The follow button therefore reads the current
 list back before writing, or the edit would silently drop everyone else.
+
+### Relay Admin is capability-driven, not method-driven
+
+The Relay Admin app (`src/apps/relay-admin/`) implements [NIP-86](../NIP.md) — the draft,
+optional relay-management API. Because implementations vary and the NIP is still a draft,
+the console never assumes a method exists: it connects, authorizes with a NIP-98 event
+(kind 27235, `u` + `payload` tags), calls `supportedmethods`, and renders only the
+sections the relay advertised. Advertised names outside the standard list (e.g. a
+relay-specific `purgeallevents` or `listroles`) land in a separate, clearly-labelled
+extensions area that requires typed confirmation — they are never blended into the
+standard surface, and the standard defines no generic event-purge/delete method.
+
+Destructive-but-reversible operations (bans, unbans, removing allowlist access, role
+deletion) go through a confirmation dialog that states the target, the likely effect and
+whether the relay offers a reverse operation. Every operation is written to a per-session
+audit log (method, target, result, operator-safe error) that never contains the
+authorization header or any key material; signing secrets stay inside the user's signer.
 
 ### Relay latency is a real round trip
 

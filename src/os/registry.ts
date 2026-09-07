@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, Bookmark, BookOpen, CalendarDays, FileText, Image, Info, Link2, Radio, Rss, Search, Settings, Sparkles, User } from 'lucide-react';
+import { Activity, Bookmark, BookOpen, CalendarDays, FileText, Image, Info, Link2, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -128,6 +128,17 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/relays')),
     defaultSize: { width: 720, height: 480 },
     minSize: { width: 380, height: 280 },
+  },
+  {
+    id: 'relay-admin',
+    title: 'Relay Admin',
+    description: 'NIP-86 management console for relays you operate',
+    icon: ShieldCheck,
+    category: 'system',
+    component: lazy(() => import('@/apps/relay-admin')),
+    defaultSize: { width: 720, height: 680 },
+    minSize: { width: 360, height: 320 },
+    requiresAuth: true,
   },
   {
     id: 'settings',
