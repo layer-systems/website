@@ -89,7 +89,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 }
 ```
 
-## The eleven apps
+## The twelve apps
 
 | App | `id` | Params | Notes |
 |---|---|---|---|
@@ -100,6 +100,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Bookmarks | `bookmarks` | — | NIP-51 kind 10003 list — bookmarked notes and articles |
 | Web Bookmarks | `web-bookmarks` | — | NIP-B0 kind 39701 — one addressable event per saved URL |
 | Live | `live` | `pubkey?`, `identifier?` | NIP-53 kind 30311 live events + kind 1311 chat |
+| Messages | `messages` | `peer?` | NIP-17 gift-wrapped DMs (kinds 14/13/1059), legacy NIP-04 fallback |
 | Spells | `spells` | `id?` | Saved/shareable REQ filters — kind 777, a third-party draft NIP |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Relay Admin | `relay-admin` | `relay?` | NIP-86 management console for relays you operate |
@@ -167,6 +168,35 @@ deletion) go through a confirmation dialog that states the target, the likely ef
 whether the relay offers a reverse operation. Every operation is written to a per-session
 audit log (method, target, result, operator-safe error) that never contains the
 authorization header or any key material; signing secrets stay inside the user's signer.
+
+### Messages keep plaintext and metadata off the wire — and out of storage
+
+The Messages app implements NIP-17 (`src/lib/dm.ts` + `src/hooks/useDirectMessages.ts`):
+plaintext only ever exists inside an unsigned kind 14 rumor, which is NIP-44-sealed by
+the sender and gift-wrapped with a throwaway key. One wrap goes to the recipient's kind
+10050 inbox relays, one sender copy to the sender's own relays — the sender copy is what
+makes history recoverable on another device, so it is always written. Decryption happens
+on demand and plaintexts live in memory only; nothing message-shaped is persisted to
+localStorage. The conversation list shows no received plaintext either ("New message",
+not a snippet), because a lock-screen-glance at the window title bar or an over-the-shoulder
+view should not leak content.
+
+Two compatibility decisions are deliberately visible rather than silent:
+
+- **Legacy NIP-04 (kind 4)** is read for old messages and used for sending only when the
+  signer has no NIP-44 (some extensions). A banner and a "legacy" label on the affected
+  bubbles say exactly what that costs: sender/recipient metadata is public. A
+  NIP-44-capable signer is never downgraded.
+- **No kind 10050 inbox list** means NIP-17 cannot say where the recipient receives DMs.
+  The message is still stored (on the sender's relays, so the sender keeps their
+  history) but the send reports a `DmRecipientUnreachableError` with recovery guidance
+  instead of claiming delivery. Bubble states are honest for the same reason:
+  pending → sent means "a relay accepted the gift wrap", never "the recipient read it".
+
+Hiding a conversation publishes a NIP-09 kind 5 deletion request for the sender's own
+copies (relays may refuse; nothing recalls a message the recipient already fetched) and
+hides the peer locally. Received gift wraps are signed by throwaway keys and cannot be
+deletion-requested by design.
 
 ### Relay latency is a real round trip
 

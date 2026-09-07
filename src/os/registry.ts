@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, Bookmark, BookOpen, CalendarDays, FileText, Image, Info, Link2, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, User } from 'lucide-react';
+import { Activity, Bookmark, BookOpen, CalendarDays, FileText, Image, Info, Link2, MessagesSquare, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -88,6 +88,17 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/web-bookmarks')),
     defaultSize: { width: 600, height: 660 },
     minSize: { width: 340, height: 300 },
+  },
+  {
+    id: 'messages',
+    title: 'Messages',
+    description: 'Private, encrypted direct messages (NIP-17)',
+    icon: MessagesSquare,
+    category: 'social',
+    component: lazy(() => import('@/apps/messages')),
+    defaultSize: { width: 760, height: 700 },
+    minSize: { width: 360, height: 320 },
+    requiresAuth: true,
   },
   {
     id: 'live',
