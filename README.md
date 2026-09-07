@@ -1,8 +1,8 @@
-# MKStack
+# LAYER.systems
 
 **The Complete Framework for Building Nostr Clients with AI**
 
-MKStack is an AI-powered framework for building Nostr applications with React 18.x, TailwindCSS 3.x, Vite, shadcn/ui, and Nostrify. Build powerful Nostr applications with AI-first development - from social feeds to private messaging, MKStack provides everything you need to create decentralized apps on the Nostr protocol.
+LAYER.systems is an AI-powered framework for building Nostr applications with React 18.x, TailwindCSS 3.x, Vite, shadcn/ui, and Nostrify. Build powerful Nostr applications with AI-first development - from social feeds to private messaging, LAYER.systems provides everything you need to create decentralized apps on the Nostr protocol.
 
 ## 🚀 Quick Start
 
@@ -11,7 +11,7 @@ Build your Nostr app in 3 simple steps:
 ### 1. Install & Create
 ```bash
 npm install -g @getstacks/stacks
-stacks mkstack
+stacks layer-systems
 ```
 
 ### 2. Build with AI
@@ -26,7 +26,7 @@ npm run deploy
 # ✅ App deployed to NostrDeploy.com!
 ```
 
-## ✨ What Makes MKStack Special
+## ✨ What Makes LAYER.systems Special
 
 - **🤖 AI-First Development**: Build complete Nostr apps with just one prompt using Dork AI agent
 - **⚡ 8 Minutes Average**: From idea to deployed application in minutes, not months
@@ -64,13 +64,13 @@ Each of these applications was created with just a single prompt to Dork AI:
 
 ### Production Apps
 
-Real Nostr applications built using MKStack:
+Real Nostr applications built using LAYER.systems:
 
 - **[Chorus](https://chorus.community/)**: Facebook-style groups on Nostr with built-in eCash wallet
 - **[Blobbi](https://www.blobbi.pet/)**: Digital pet companions that live forever on the decentralized web
 - **[Treasures](https://treasures.to/)**: Decentralized geocaching adventure powered by Nostr
 
-[Browse more apps made with MKStack →](https://nostrhub.io/apps/t/mkstack/)
+[Browse more apps made with LAYER.systems →](https://nostrhub.io/apps/t/layer-systems/)
 
 ## 🔧 Core Features
 
@@ -117,7 +117,7 @@ Real Nostr applications built using MKStack:
 
 ## 🤖 AI Development with Dork
 
-MKStack includes Dork, a built-in AI agent that understands your codebase and Nostr protocols:
+LAYER.systems includes Dork, a built-in AI agent that understands your codebase and Nostr protocols:
 
 ### Supported AI Providers
 
@@ -164,7 +164,7 @@ src/
 
 ## 🎨 UI Components
 
-MKStack includes 48+ shadcn/ui components:
+LAYER.systems includes 48+ shadcn/ui components:
 
 **Layout**: Card, Separator, Sheet, Sidebar, ScrollArea, Resizable
 **Navigation**: Breadcrumb, NavigationMenu, Menubar, Tabs, Pagination
@@ -212,15 +212,15 @@ Your app goes live instantly with:
 
 ## 📚 Documentation
 
-For detailed documentation on building Nostr applications with MKStack:
+For detailed documentation on building Nostr applications with LAYER.systems:
 
-- [Tutorial](https://soapbox.pub/blog/mkstack-tutorial)
+- [Tutorial](https://soapbox.pub/blog/layer-systems-tutorial)
 - [Nostr Protocol Documentation](https://nostr.com)
 - [shadcn/ui Components](https://ui.shadcn.com)
 
 ## 🤝 Contributing
 
-MKStack is open source and welcomes contributions. The framework is designed to be:
+LAYER.systems is open source and welcomes contributions. The framework is designed to be:
 
 - **Extensible**: Easy to add new NIPs and features
 - **Maintainable**: Clean architecture with TypeScript
@@ -229,14 +229,14 @@ MKStack is open source and welcomes contributions. The framework is designed to 
 
 ## 📄 License
 
-MKStack is dedicated to the **public domain**.
+LAYER.systems is dedicated to the **public domain**.
 
-To the extent possible under law, the authors have waived all copyright and related or neighboring rights to MKStack. You are free to copy, modify, distribute, and use this software for any purpose, commercial or non-commercial, without asking permission and without attribution.
+To the extent possible under law, the authors have waived all copyright and related or neighboring rights to LAYER.systems. You are free to copy, modify, distribute, and use this software for any purpose, commercial or non-commercial, without asking permission and without attribution.
 
 Build amazing Nostr applications and help grow the decentralized web!
 
 ---
 
-**"Vibed with MKStack"** - [Learn more about MKStack](https://soapbox.pub/mkstack)
+**"Vibed with LAYER.systems"** - [Learn more about LAYER.systems](https://soapbox.pub/layer-systems)
 
 *Build your Nostr app in minutes, not months. Start with AI, deploy instantly.*

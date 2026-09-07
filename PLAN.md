@@ -22,7 +22,7 @@ keine Emulator-Spielerei. Das OS ist eine Metapher für Multitasking, nicht Selb
 
 ## 2. Ausgangslage (Stand heute)
 
-Das Repo ist der unveränderte mkstack-Startpunkt:
+Das Repo ist der Startpunkt für LAYER.systems:
 
 - `src/AppRouter.tsx` — drei Routen: `/`, `/:nip19`, `*`
 - `src/pages/` — `Index.tsx` (Platzhalter), `NIP19Page.tsx`, `NotFound.tsx`
