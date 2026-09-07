@@ -115,3 +115,127 @@ export function rootReference(event: NostrEvent): string | undefined {
 export function isReply(event: NostrEvent): boolean {
   return event.tags.some(([name, , , marker]) => name === 'e' && marker !== 'mention');
 }
+
+/**
+ * The event a reply is directly responding to, following NIP-10: prefer an
+ * explicit `reply` marker, fall back to the last *unmarked* `e` tag (the
+ * deprecated positional scheme puts the direct parent last), then to the
+ * marked `root` (a top-level reply carries only that tag). Mentions are never
+ * a parent, and an event never parents itself.
+ */
+export function replyReference(event: NostrEvent): string | undefined {
+  const marked = event.tags.find(([name, , , marker]) => name === 'e' && marker === 'reply');
+  if (marked?.[1] && marked[1] !== event.id) return marked[1];
+
+  const positional = event.tags.filter(([name, , , marker]) => name === 'e' && !marker);
+  for (let index = positional.length - 1; index >= 0; index -= 1) {
+    const value = positional[index][1];
+    if (value && value !== event.id) return value;
+  }
+
+  const root = rootReference(event);
+  return root && root !== event.id ? root : undefined;
+}
+
+export interface ReplyNode {
+  event: NostrEvent;
+  /** Pubkey of the direct parent's author, for "Replying to …" attribution. */
+  parentPubkey?: string;
+  children: ReplyNode[];
+  /** True when the event landed here as a fallback, not via its NIP-10 tags. */
+  misplaced: boolean;
+  /** Depth of the cycle this event is part of, when its chain loops. */
+  cycle?: boolean;
+}
+
+/**
+ * Groups replies beneath their NIP-10 parent, defensively:
+ *
+ * - Parents missing from `events` (delayed or never fetched) promote their
+ *   children to the root list, marked `misplaced` — nothing disappears.
+ * - Cyclic chains (a replies to b, b replies to a) are broken by detaching
+ *   the edge that closes the loop, so rendering always terminates.
+ * - Conflicting markers resolve in `replyReference`'s fixed order, so every
+ *   event lands under exactly one parent; duplicate event ids collapse.
+ */
+export function buildReplyTree(rootId: string, events: NostrEvent[]): ReplyNode[] {
+  const unique = new Map<string, NostrEvent>();
+  for (const event of events) {
+    if (event.id !== rootId && !unique.has(event.id)) unique.set(event.id, event);
+  }
+
+  const nodes = new Map<string, ReplyNode>();
+  const roots: ReplyNode[] = [];
+
+  const nodeFor = (event: NostrEvent): ReplyNode => {
+    let node = nodes.get(event.id);
+    if (!node) {
+      node = { event, children: [], misplaced: false };
+      nodes.set(event.id, node);
+    }
+    return node;
+  };
+
+  const attach = (parentId: string, child: ReplyNode, misplaced: boolean) => {
+    if (parentId === rootId) {
+      child.misplaced = misplaced;
+      roots.push(child);
+      return;
+    }
+    const parentEvent = unique.get(parentId);
+    if (!parentEvent) {
+      // The parent was never fetched — surface the reply at the root instead
+      // of dropping a whole branch of the conversation.
+      child.misplaced = true;
+      roots.push(child);
+      return;
+    }
+    child.parentPubkey = parentEvent.pubkey;
+    child.misplaced = misplaced;
+    nodeFor(parentEvent).children.push(child);
+  };
+
+  const sorted = [...unique.values()].sort((a, b) => a.created_at - b.created_at);
+
+  for (const event of sorted) {
+    const node = nodeFor(event);
+    const parentId = replyReference(event);
+
+    if (!parentId || parentId === event.id) {
+      attach(rootId, node, Boolean(parentId));
+      continue;
+    }
+
+    // Walking the chain towards the root; hitting this event's own
+    // descendants means its `reply` tag closes a cycle.
+    let cycle = false;
+    const seen = new Set<string>([event.id]);
+    let cursor: string | undefined = parentId;
+    while (cursor && cursor !== rootId) {
+      if (seen.has(cursor)) {
+        cycle = true;
+        break;
+      }
+      seen.add(cursor);
+      const parent: NostrEvent | undefined = unique.get(cursor);
+      if (!parent) break;
+      cursor = replyReference(parent);
+    }
+
+    if (cycle) {
+      node.cycle = true;
+      attach(rootId, node, true);
+    } else {
+      attach(parentId, node, false);
+    }
+  }
+
+  // Children arrived in created_at order; only cycles can attach late.
+  const sortChildren = (list: ReplyNode[]) => {
+    list.sort((a, b) => a.event.created_at - b.event.created_at);
+    for (const child of list) sortChildren(child.children);
+  };
+  sortChildren(roots);
+
+  return roots;
+}
