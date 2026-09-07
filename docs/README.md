@@ -11,6 +11,7 @@ decisions were taken; these documents describe how it actually works.
 | [`apps.md`](./apps.md) | The app registry, the contract every app implements, and how to add one |
 | [`nostr.md`](./nostr.md) | Data access, relay hints, and the rules for rendering untrusted content |
 | [`styleguide.md`](./styleguide.md) | Design tokens, materials, typography, motion, and the layout rules for app content |
+| [`versioning.md`](./versioning.md) | The package version source and release workflow |
 
 ## Layout of the custom code
 

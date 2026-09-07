@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useWindowManager } from '@/os/useWindowManager';
 import { APPS } from '@/os/registry';
 import type { AppProps } from '@/os/types';
+import { APP_NAME, APP_VERSION } from '@/lib/appMetadata';
 
 const SHORTCUTS: [keys: string, action: string][] = [
   ['⌘K', 'Search apps and windows'],
@@ -27,7 +28,8 @@ export default function AboutApp({ setTitle }: AppProps) {
             <span className="inline-flex size-11 items-center justify-center rounded-xl border border-border bg-background shadow-sm">
               <Zap className="size-5 text-primary" aria-hidden />
             </span>
-            <h1 className="text-xl font-semibold tracking-tight">LAYER.systems</h1>
+            <h1 className="text-xl font-semibold tracking-tight">{APP_NAME}</h1>
+            <p className="text-xs text-muted-foreground">Version {APP_VERSION}</p>
             <p className="text-sm leading-relaxed text-muted-foreground">
               A Nostr client shaped like a desktop. Every part of it is an app in a window you
               can move, resize, stack and keep open side by side — reading a thread does not

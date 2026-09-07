@@ -102,6 +102,7 @@ require changing the router. Read [the app guide](./docs/apps.md) before adding 
 - [Nostr data access and safety](./docs/nostr.md)
 - [Style guide](./docs/styleguide.md)
 - [Project architecture and design decisions](./PLAN.md)
+- [Versioning and release workflow](./docs/versioning.md)
 
 For protocol reference, see the [Nostr protocol documentation](https://nostr.com/).
 
