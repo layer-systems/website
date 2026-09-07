@@ -51,7 +51,7 @@ export function NoteCard({ event, compact, className, depth = 0 }: NoteCardProps
   // until this note is actually looked at instead of firing on every mount.
   const [revealed, setRevealed] = useState(false);
 
-  if ((event.kind === REPOST_KIND || event.kind === GENERIC_REPOST_KIND) && depth < MAX_REPOST_DEPTH) {
+  if (event.kind === REPOST_KIND || event.kind === GENERIC_REPOST_KIND) {
     return <RepostedNote event={event} compact={compact} className={className} depth={depth} />;
   }
 
@@ -130,12 +130,15 @@ function RepostedNote({ event, compact, className, depth }: RepostedNoteProps) {
   const { data: author } = useAuthor(event.pubkey);
   const name = displayName(event.pubkey, author?.metadata);
 
-  const embedded = useMemo(() => parseEmbeddedRepost(event), [event]);
+  const tooDeep = depth >= MAX_REPOST_DEPTH;
+  const embedded = useMemo(() => (tooDeep ? null : parseEmbeddedRepost(event)), [event, tooDeep]);
   const reference = repostReference(event);
   // A malformed, self-referential repost (its `e` tag points at itself) must
   // not be followed, or fetching "the original" would just re-render this
-  // same repost forever.
-  const fetchId = !embedded && reference && reference.id !== event.id ? reference.id : undefined;
+  // same repost forever. Once MAX_REPOST_DEPTH is hit, stop following
+  // reposts altogether rather than falling through to rendering the repost
+  // event's own (JSON) content as if it were a note.
+  const fetchId = !tooDeep && !embedded && reference && reference.id !== event.id ? reference.id : undefined;
   const fetched = useNote(fetchId, reference?.relay ? [reference.relay] : undefined);
   const original = embedded ?? fetched.data;
 
@@ -153,7 +156,11 @@ function RepostedNote({ event, compact, className, depth }: RepostedNoteProps) {
         <span>reposted</span>
       </div>
 
-      {original ? (
+      {tooDeep ? (
+        <p className="px-4 pb-3 pl-11 text-xs text-muted-foreground">
+          Repost chain is too deep to display.
+        </p>
+      ) : original ? (
         <NoteCard event={original} compact={compact} className="border-b-0" depth={depth + 1} />
       ) : fetched.isLoading ? (
         <div className="space-y-2 px-4 py-3 pl-11">

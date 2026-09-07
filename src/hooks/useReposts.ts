@@ -73,7 +73,8 @@ export function parseEmbeddedRepost(event: NostrEvent): NostrEvent | null {
       typeof parsed.content === 'string' &&
       typeof parsed.created_at === 'number' &&
       typeof parsed.kind === 'number' &&
-      Array.isArray(parsed.tags)
+      Array.isArray(parsed.tags) &&
+      parsed.tags.every((tag) => Array.isArray(tag) && tag.every((value) => typeof value === 'string'))
     ) {
       return parsed as NostrEvent;
     }
@@ -176,11 +177,13 @@ interface CreateQuotePostInput {
  * embedded `nostr:` reference in the content for wider compatibility.
  */
 export function useCreateQuotePost() {
+  const { user } = useCurrentUser();
   const publish = useNostrPublish();
   const hints = useRelayHints();
 
   return useMutation({
     mutationFn: async ({ target, content }: CreateQuotePostInput) => {
+      if (!user) throw new Error('Sign in to quote this note');
       const trimmed = content.trim();
       const reference = buildQuoteReference(target, hints);
       return publish.mutateAsync({

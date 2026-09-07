@@ -3,6 +3,7 @@ import { NoteContent } from './NoteContent';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNote } from '@/hooks/useNote';
 import { useWindowManager } from '@/os/useWindowManager';
+import { encodeRelayHints } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
 
 interface QuotedNotePreviewProps {
@@ -24,7 +25,8 @@ export function QuotedNotePreview({ id, relays, className }: QuotedNotePreviewPr
   const { openApp } = useWindowManager();
   const note = useNote(id, relays);
 
-  const open = () => openApp('notes', { id });
+  const relayHints = encodeRelayHints(relays);
+  const open = () => openApp('notes', relayHints ? { id, relays: relayHints } : { id });
 
   return (
     <div className={cn('mt-2 rounded-lg border border-border p-3', className)}>
