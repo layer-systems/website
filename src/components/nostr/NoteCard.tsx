@@ -6,6 +6,7 @@ import { AuthorLine } from './AuthorLine';
 import { NoteContent } from './NoteContent';
 import { BookmarkButton } from './BookmarkButton';
 import { ZapButton } from './ZapButton';
+import { ReactionButton } from './ReactionButton';
 import { Button } from '@/components/ui/button';
 import { useWindowManager } from '@/os/useWindowManager';
 import { useToast } from '@/hooks/useToast';
@@ -59,7 +60,7 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
         <NoteContent content={event.content} />
 
         {!compact && (
-          <div className="mt-2 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+          <div className="mt-2 flex flex-wrap items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
@@ -79,6 +80,7 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
               Copy link
             </Button>
             <ZapButton target={event} revealed={revealed} />
+            <ReactionButton target={event} />
             <BookmarkButton target={{ type: 'e', value: event.id }} />
           </div>
         )}
