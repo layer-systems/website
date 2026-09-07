@@ -4,6 +4,7 @@ import { nip19 } from 'nostr-tools';
 import { AuthorLine } from './AuthorLine';
 import { NoteContent } from './NoteContent';
 import { BookmarkButton } from './BookmarkButton';
+import { ModerationMenu } from './ModerationMenu';
 import { Button } from '@/components/ui/button';
 import { useWindowManager } from '@/os/useWindowManager';
 import { useToast } from '@/hooks/useToast';
@@ -71,6 +72,7 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
               Copy link
             </Button>
             <BookmarkButton target={{ type: 'e', value: event.id }} />
+            <ModerationMenu pubkey={event.pubkey} event={event} className="ml-auto" />
           </div>
         )}
       </div>

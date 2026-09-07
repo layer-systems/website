@@ -20,6 +20,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useMutedPubkeys } from '@/hooks/useMuteList';
 import { useNotificationReadState, useNotifications, type Notification, type NotificationKind } from '@/hooks/useNotifications';
 import { useWindowManager } from '@/os/useWindowManager';
 import { displayName, relativeTime, rootReference } from '@/lib/nostrUtils';
@@ -88,7 +89,8 @@ export function NotificationsSheet() {
 function useNotificationState() {
   const query = useNotifications();
   const { lastReadAt, markAllRead } = useNotificationReadState();
-  const notifications = query.data ?? [];
+  const mutedPubkeys = useMutedPubkeys();
+  const notifications = (query.data ?? []).filter(({ event }) => !mutedPubkeys.includes(event.pubkey));
   const unreadCount = notifications.filter(({ event }) => event.created_at > lastReadAt).length;
 
   return query.isFetching || query.isError || notifications.length > 0 || query.isSuccess
