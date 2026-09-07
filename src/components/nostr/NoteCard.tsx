@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MessageSquare, Repeat2 } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
@@ -5,6 +6,8 @@ import { AuthorLine } from './AuthorLine';
 import { NoteContent } from './NoteContent';
 import { BookmarkButton } from './BookmarkButton';
 import { ModerationMenu } from './ModerationMenu';
+import { ZapButton } from './ZapButton';
+import { ReactionButton } from './ReactionButton';
 import { Button } from '@/components/ui/button';
 import { useWindowManager } from '@/os/useWindowManager';
 import { useToast } from '@/hooks/useToast';
@@ -26,6 +29,10 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
   const { openApp } = useWindowManager();
   const { toast } = useToast();
   const hints = useRelayHints();
+  // Tracks the same interaction that reveals the action row via CSS
+  // (`group-hover`/`focus-within`), so `ZapButton` can defer its relay query
+  // until this note is actually looked at instead of firing on every mount.
+  const [revealed, setRevealed] = useState(false);
 
   const copyLink = async () => {
     try {
@@ -45,6 +52,8 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
         'group border-b border-border px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/40',
         className,
       )}
+      onMouseEnter={() => setRevealed(true)}
+      onFocus={() => setRevealed(true)}
     >
       <AuthorLine pubkey={event.pubkey} createdAt={event.created_at} />
 
@@ -52,7 +61,7 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
         <NoteContent content={event.content} />
 
         {!compact && (
-          <div className="mt-2 flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+          <div className="mt-2 flex flex-wrap items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
@@ -71,6 +80,8 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
               <Repeat2 className="size-3.5" aria-hidden />
               Copy link
             </Button>
+            <ZapButton target={event} revealed={revealed} />
+            <ReactionButton target={event} />
             <BookmarkButton target={{ type: 'e', value: event.id }} />
             <ModerationMenu pubkey={event.pubkey} event={event} className="ml-auto" />
           </div>
