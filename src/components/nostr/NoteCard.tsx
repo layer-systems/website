@@ -4,6 +4,7 @@ import { nip19 } from 'nostr-tools';
 import { AuthorLine } from './AuthorLine';
 import { NoteContent } from './NoteContent';
 import { BookmarkButton } from './BookmarkButton';
+import { ReactionButton } from './ReactionButton';
 import { Button } from '@/components/ui/button';
 import { useWindowManager } from '@/os/useWindowManager';
 import { useToast } from '@/hooks/useToast';
@@ -70,6 +71,7 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
               <Repeat2 className="size-3.5" aria-hidden />
               Copy link
             </Button>
+            <ReactionButton target={event} />
             <BookmarkButton target={{ type: 'e', value: event.id }} />
           </div>
         )}
