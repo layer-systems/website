@@ -221,6 +221,10 @@ export function WallpaperSection() {
       toast({ title: 'Preview the image before saving it', variant: 'destructive' });
       return;
     }
+    if (previewedUrl.length > MAX_WALLPAPER_URL_LENGTH) {
+      toast({ title: 'That URL is too long', description: `URLs must be ${MAX_WALLPAPER_URL_LENGTH} characters or fewer.`, variant: 'destructive' });
+      return;
+    }
     updateConfig((current) => ({
       ...current,
       wallpaper: { version: 1, selection: { source: 'url', url: previewedUrl, presentation: { fit, dim } } },
@@ -271,6 +275,7 @@ export function WallpaperSection() {
       const tags = await uploadFile(sanitizedFile);
       const uploadedUrl = tags.find(([name, value]) => name === 'url' && value)?.[1];
       if (!uploadedUrl || !isSafeWallpaperUrl(uploadedUrl)) throw new Error('Upload did not return a safe image URL.');
+      if (uploadedUrl.length > MAX_WALLPAPER_URL_LENGTH) throw new Error(`Upload returned a URL longer than ${MAX_WALLPAPER_URL_LENGTH} characters.`);
 
       setUrlDraft(uploadedUrl);
       setPendingPreviewUrl(uploadedUrl);

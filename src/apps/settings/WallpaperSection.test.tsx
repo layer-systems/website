@@ -42,8 +42,10 @@ let instances: FakeImage[] = [];
 
 describe('WallpaperSection', () => {
   let originalImage: typeof Image;
+  let originalResizeObserver: typeof ResizeObserver;
 
   beforeEach(() => {
+    originalResizeObserver = global.ResizeObserver;
     global.ResizeObserver = StubResizeObserver as unknown as typeof ResizeObserver;
     instances = [];
     originalImage = globalThis.Image;
@@ -52,6 +54,7 @@ describe('WallpaperSection', () => {
 
   afterEach(() => {
     globalThis.Image = originalImage;
+    global.ResizeObserver = originalResizeObserver;
   });
 
   it('shows the dot-grid curated wallpaper selected by default', async () => {
