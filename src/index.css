@@ -249,9 +249,37 @@
  */
 .os-desktop-surface {
   background-color: var(--os-desktop);
+}
+
+/* Curated wallpaper patterns. Each is drawn with CSS gradients rather than
+ * an image, so every one recolors with the active theme and costs nothing
+ * to load. When a custom image wallpaper is active, none of these classes
+ * are applied and the surface falls back to the plain --os-desktop color
+ * behind the <img>. */
+.os-wallpaper-dot-grid {
   background-image: radial-gradient(var(--os-desktop-dot) 1px, transparent 1px);
   background-size: 22px 22px;
   background-position: -1px -1px;
+}
+
+.os-wallpaper-aurora {
+  background-image: repeating-linear-gradient(
+    120deg,
+    var(--os-desktop) 0px,
+    var(--os-desktop) 34px,
+    color-mix(in srgb, var(--primary) 10%, var(--os-desktop)) 34px,
+    color-mix(in srgb, var(--primary) 10%, var(--os-desktop)) 36px
+  );
+}
+
+.os-wallpaper-contour {
+  background-image: repeating-radial-gradient(
+    circle at 100% 0%,
+    var(--os-desktop) 0px,
+    var(--os-desktop) 28px,
+    var(--os-desktop-dot) 28px,
+    var(--os-desktop-dot) 30px
+  );
 }
 
 /* While a window is being dragged or resized, nothing else should react. */

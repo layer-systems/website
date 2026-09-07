@@ -3,7 +3,12 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuRadioGroup,
+  ContextMenuRadioItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { DesktopIcon } from './DesktopIcon';
@@ -13,6 +18,11 @@ import { desktopApps } from '@/os/registry';
 import { MENUBAR_HEIGHT } from '@/os/layout';
 import { swapDesktopSlots, type DesktopSlot, type GridGeometry } from '@/os/iconLayout';
 import { useIconLayout } from '@/os/useIconLayout';
+import { useAppContext } from '@/hooks/useAppContext';
+import { useDecodedImage } from '@/hooks/useDecodedImage';
+import { CURATED_WALLPAPERS, DEFAULT_CURATED_ID, DEFAULT_PRESENTATION, isSafeWallpaperUrl, resolveCurated } from '@/lib/wallpaper';
+import { sanitizeUrl } from '@/lib/nostrUtils';
+import { cn } from '@/lib/utils';
 
 const CELL_WIDTH = 96;
 const CELL_HEIGHT = 92;
@@ -33,6 +43,7 @@ function geometryFor(width: number, height: number): GridGeometry {
  */
 export function Desktop() {
   const { openApp, windows, minimizeAll, closeAll } = useWindowManager();
+  const { config, updateConfig } = useAppContext();
   const [selected, setSelected] = useState<string | null>(null);
   const [surfaceSize, setSurfaceSize] = useState(() => ({ width: window.innerWidth, height: window.innerHeight - MENUBAR_HEIGHT }));
   const [dragging, setDragging] = useState<string | null>(null);
@@ -45,6 +56,51 @@ export function Desktop() {
   const geometry = useMemo(() => geometryFor(surfaceSize.width, surfaceSize.height), [surfaceSize]);
   const { layout, setDesktop, reset } = useIconLayout(apps.map((app) => app.id), geometry);
   const slots = layout.desktop;
+
+  const wallpaper = config.wallpaper.selection;
+  const customWallpaper = wallpaper.source === 'url' && isSafeWallpaperUrl(wallpaper.url) ? wallpaper : undefined;
+  const decoded = useDecodedImage(customWallpaper?.url);
+  // `decoded.url` holds the last *successfully* decoded image regardless of
+  // whether a newer selection is still loading or has failed, so switching
+  // to a new custom wallpaper (or a failed one) never blanks the desktop.
+  // Re-validated at the render boundary (rather than trusted from state) so
+  // the only place an <img src> is ever set from external data is guarded
+  // right next to the sink, independent of how `decoded.url` got here. Uses
+  // the same protocol-allowlist sanitizer as every other untrusted URL in
+  // the app (see `sanitizeUrl` in `nostrUtils.ts`), tightened to https-only.
+  const sanitizedWallpaperUrl = sanitizeUrl(decoded.url);
+  const safeWallpaperImageUrl =
+    customWallpaper && sanitizedWallpaperUrl && isSafeWallpaperUrl(sanitizedWallpaperUrl) ? sanitizedWallpaperUrl : undefined;
+  const curatedId = wallpaper.source === 'curated' ? wallpaper.id : undefined;
+
+  // `decoded.url` can lag behind `customWallpaper` (a newer selection is
+  // still decoding, or failed) while the previous image keeps rendering. If
+  // we read `customWallpaper.presentation` directly in that window, a fit/dim
+  // change meant for the *new* (not-yet-visible) image would briefly apply to
+  // the still-displayed old one. This tracks (by reference, mirroring the
+  // `trackedSelection` pattern in the Settings wallpaper form) the
+  // presentation that belongs to whichever url is actually decoded, adjusted
+  // during render rather than in a useEffect body.
+  //
+  // This intentionally follows React's "adjusting state during render"
+  // pattern and relies on reference equality: `activePresentation` must keep
+  // returning the *same* `customWallpaper.presentation` object across
+  // re-renders until the selection actually changes (it does today, because
+  // it's read straight from `config` rather than freshly constructed here).
+  // Don't refactor it into a `useMemo`/derived value that produces a new
+  // object identity every render — that would break the `!==` check below
+  // and re-run `setRenderedPresentation` on every render.
+  const activePresentation = customWallpaper && decoded.url === customWallpaper.url ? customWallpaper.presentation : undefined;
+  const [trackedPresentation, setTrackedPresentation] = useState(activePresentation);
+  const [renderedPresentation, setRenderedPresentation] = useState(activePresentation ?? DEFAULT_PRESENTATION);
+  if (activePresentation !== trackedPresentation) {
+    setTrackedPresentation(activePresentation);
+    if (activePresentation) setRenderedPresentation(activePresentation);
+  }
+
+  const setCuratedWallpaper = useCallback((id: string) => {
+    updateConfig((current) => ({ ...current, wallpaper: { version: 1, selection: { source: 'curated', id } } }));
+  }, [updateConfig]);
 
   useEffect(() => {
     const onResize = () => setSurfaceSize({ width: window.innerWidth, height: window.innerHeight - MENUBAR_HEIGHT });
@@ -133,12 +189,37 @@ export function Desktop() {
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <main
-          className="os-desktop-surface absolute inset-x-0 bottom-0 overflow-hidden"
+          className={cn(
+            'os-desktop-surface absolute inset-x-0 bottom-0 overflow-hidden',
+            curatedId && resolveCurated(curatedId).className,
+          )}
           style={{ top: MENUBAR_HEIGHT }}
           onPointerDown={(event) => {
             if (event.target === event.currentTarget) setSelected(null);
           }}
         >
+          {customWallpaper && safeWallpaperImageUrl && (
+            <>
+              <img
+                src={safeWallpaperImageUrl}
+                alt=""
+                aria-hidden="true"
+                referrerPolicy="no-referrer"
+                className={cn(
+                  'pointer-events-none absolute inset-0 h-full w-full',
+                  renderedPresentation.fit === 'contain' ? 'object-contain' : 'object-cover',
+                )}
+              />
+              {renderedPresentation.dim > 0 && (
+                <div
+                  className="pointer-events-none absolute inset-0 bg-black"
+                  style={{ opacity: renderedPresentation.dim / 100 }}
+                  aria-hidden="true"
+                />
+              )}
+            </>
+          )}
+
           <div className="absolute inset-0" aria-label="Desktop app grid">
             {apps.map((app) => {
               const slot = slots.find((item) => item.id === app.id);
@@ -174,6 +255,28 @@ export function Desktop() {
       <ContextMenuContent className="w-52">
         <ContextMenuItem onSelect={() => openApp('feed')}>Open Feed</ContextMenuItem>
         <ContextMenuItem onSelect={() => openApp('settings')}>Open Settings</ContextMenuItem>
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>Change wallpaper</ContextMenuSubTrigger>
+          <ContextMenuSubContent className="w-48">
+            <ContextMenuRadioGroup
+              value={wallpaper.source === 'curated' ? wallpaper.id : ''}
+              onValueChange={(id) => setCuratedWallpaper(id)}
+            >
+              {CURATED_WALLPAPERS.map((option) => (
+                <ContextMenuRadioItem key={option.id} value={option.id}>
+                  {option.name}
+                </ContextMenuRadioItem>
+              ))}
+            </ContextMenuRadioGroup>
+            <ContextMenuSeparator />
+            <ContextMenuItem onSelect={() => setCuratedWallpaper(DEFAULT_CURATED_ID)}>
+              Reset to default
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={() => openApp('settings')}>
+              More wallpaper options…
+            </ContextMenuItem>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
         <ContextMenuItem onSelect={() => { reset('desktop'); setAnnouncement('Desktop icon layout reset.'); }}>
           Reset desktop icon layout
         </ContextMenuItem>

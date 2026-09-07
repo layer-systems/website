@@ -1,4 +1,5 @@
 import { createContext } from "react";
+import type { WallpaperPreference } from "@/lib/wallpaper";
 
 export type Theme = "dark" | "light" | "system";
 
@@ -30,6 +31,8 @@ export interface AppConfig {
    * are used.
    */
   useAppBlossomServers: boolean;
+  /** The desktop wallpaper preference (curated pattern or custom HTTPS URL). */
+  wallpaper: WallpaperPreference;
 }
 
 export interface AppContextType {

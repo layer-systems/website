@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Plus, Trash2 } from 'lucide-react';
 import { AppBody, AppLayout, AppToolbar } from '@/components/os/AppChrome';
 import { Button } from '@/components/ui/button';
@@ -6,16 +6,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Slider } from '@/components/ui/slider';
 import { LoginArea } from '@/components/auth/LoginArea';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useTheme } from '@/hooks/useTheme';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useUploadFile } from '@/hooks/useUploadFile';
+import { useDecodedImage } from '@/hooks/useDecodedImage';
 import { useWindowManager } from '@/os/useWindowManager';
 import { desktopApps } from '@/os/registry';
 import { useIconLayout } from '@/os/useIconLayout';
 import { useToast } from '@/hooks/useToast';
 import { npubOf } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
+import {
+  CURATED_WALLPAPERS,
+  DEFAULT_CURATED_ID,
+  isSafeWallpaperUrl,
+  MAX_WALLPAPER_URL_LENGTH,
+  resolveCurated,
+  type WallpaperFit,
+} from '@/lib/wallpaper';
 import type { Theme } from '@/contexts/AppContext';
 import type { AppProps } from '@/os/types';
 
@@ -39,6 +51,8 @@ export default function SettingsApp({ setTitle }: AppProps) {
           <AccountSection />
           <Separator />
           <AppearanceSection />
+          <Separator />
+          <WallpaperSection />
           <Separator />
           <RelaySection />
           <Separator />
@@ -143,6 +157,290 @@ function AppearanceSection() {
             {option.label}
           </button>
         ))}
+      </div>
+    </Section>
+  );
+}
+
+const MAX_WALLPAPER_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_WALLPAPER_DIMENSION = 6000;
+// GIFs are excluded: the upload path always re-encodes to JPEG, which would
+// silently drop animation/transparency, so we don't advertise GIF support.
+const ALLOWED_WALLPAPER_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+export function WallpaperSection() {
+  const { config, updateConfig } = useAppContext();
+  const { user } = useCurrentUser();
+  const { mutateAsync: uploadFile, isPending: uploading } = useUploadFile();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const selection = config.wallpaper.selection;
+  const [urlDraft, setUrlDraft] = useState(selection.source === 'url' ? selection.url : '');
+  const [fit, setFit] = useState<WallpaperFit>(selection.source === 'url' ? selection.presentation.fit : 'cover');
+  const [dim, setDim] = useState(selection.source === 'url' ? selection.presentation.dim : 0);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | undefined>(undefined);
+  const preview = useDecodedImage(pendingPreviewUrl);
+
+  // Keep the draft/presentation fields in sync if the saved selection changes
+  // from elsewhere (e.g. the desktop context menu's curated shortcut, or
+  // another open Settings window), so this form never shows a stale value.
+  // Adjusted during render (mirroring useLocalStorage's "key changed" reset
+  // pattern) rather than in a useEffect, since setState synchronously at the
+  // top of an effect body is flagged by react-hooks/set-state-in-effect.
+  const [trackedSelection, setTrackedSelection] = useState(selection);
+  if (trackedSelection !== selection) {
+    setTrackedSelection(selection);
+    setUrlDraft(selection.source === 'url' ? selection.url : '');
+    setFit(selection.source === 'url' ? selection.presentation.fit : 'cover');
+    setDim(selection.source === 'url' ? selection.presentation.dim : 0);
+    setPendingPreviewUrl(undefined);
+  }
+
+
+  const applyCurated = (id: string) => {
+    updateConfig((current) => ({ ...current, wallpaper: { version: 1, selection: { source: 'curated', id } } }));
+    setPendingPreviewUrl(undefined);
+    toast({ title: `Wallpaper set to ${resolveCurated(id).name}` });
+  };
+
+  const requestPreview = () => {
+    const trimmed = urlDraft.trim();
+    if (!isSafeWallpaperUrl(trimmed)) {
+      toast({ title: 'Enter a valid https:// image URL', variant: 'destructive' });
+      return;
+    }
+    if (trimmed.length > MAX_WALLPAPER_URL_LENGTH) {
+      toast({ title: 'That URL is too long', description: `URLs must be ${MAX_WALLPAPER_URL_LENGTH} characters or fewer.`, variant: 'destructive' });
+      return;
+    }
+    setPendingPreviewUrl(trimmed);
+  };
+
+  const applyUrl = () => {
+    const previewedUrl = preview.url;
+    if (preview.status !== 'ready' || !previewedUrl || previewedUrl !== urlDraft.trim()) {
+      toast({ title: 'Preview the image before saving it', variant: 'destructive' });
+      return;
+    }
+    if (previewedUrl.length > MAX_WALLPAPER_URL_LENGTH) {
+      toast({ title: 'That URL is too long', description: `URLs must be ${MAX_WALLPAPER_URL_LENGTH} characters or fewer.`, variant: 'destructive' });
+      return;
+    }
+    updateConfig((current) => ({
+      ...current,
+      wallpaper: { version: 1, selection: { source: 'url', url: previewedUrl, presentation: { fit, dim } } },
+    }));
+    toast({ title: 'Wallpaper saved' });
+  };
+
+  const onFileSelected = async (file: File | undefined) => {
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (!file) return;
+
+    if (!ALLOWED_WALLPAPER_TYPES.has(file.type)) {
+      toast({ title: 'Unsupported image type', description: 'Use JPEG, PNG, or WebP.', variant: 'destructive' });
+      return;
+    }
+    if (file.size > MAX_WALLPAPER_FILE_BYTES) {
+      toast({ title: 'Image is too large', description: 'The wallpaper image must be 5 MB or smaller.', variant: 'destructive' });
+      return;
+    }
+    if (!user) {
+      toast({ title: 'Sign in required', description: 'Sign in to upload your own image as a wallpaper.', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      const bitmap = await createImageBitmap(file);
+      const tooLarge = bitmap.width > MAX_WALLPAPER_DIMENSION || bitmap.height > MAX_WALLPAPER_DIMENSION;
+      if (tooLarge) {
+        bitmap.close();
+        toast({ title: 'Image dimensions too large', description: `Each side must be ${MAX_WALLPAPER_DIMENSION}px or smaller.`, variant: 'destructive' });
+        return;
+      }
+
+      // Re-encoding through a canvas drops EXIF and any other embedded
+      // metadata from the original file before it ever leaves the device.
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        bitmap.close();
+        throw new Error('This browser cannot process images.');
+      }
+      ctx.drawImage(bitmap, 0, 0);
+      bitmap.close();
+
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      if (!blob) throw new Error('Could not process that image.');
+
+      const sanitizedFile = new File([blob], 'wallpaper.jpg', { type: 'image/jpeg' });
+      const tags = await uploadFile(sanitizedFile);
+      const uploadedUrl = tags.find(([name, value]) => name === 'url' && value)?.[1];
+      if (!uploadedUrl || !isSafeWallpaperUrl(uploadedUrl)) throw new Error('Upload did not return a safe image URL.');
+      if (uploadedUrl.length > MAX_WALLPAPER_URL_LENGTH) throw new Error(`Upload returned a URL longer than ${MAX_WALLPAPER_URL_LENGTH} characters.`);
+
+      setUrlDraft(uploadedUrl);
+      setPendingPreviewUrl(uploadedUrl);
+      toast({ title: 'Uploaded', description: 'Preview it below, then save it as your wallpaper.' });
+    } catch (error) {
+      toast({
+        title: 'Could not upload that image',
+        description: error instanceof Error ? error.message : 'Please try a different file.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  return (
+    <Section
+      title="Wallpaper"
+      description="Personalize the desktop background. Curated patterns recolor with your theme and never leave the device; a custom image is saved only in this browser."
+    >
+      <RadioGroup
+        value={selection.source === 'curated' ? selection.id : ''}
+        onValueChange={applyCurated}
+        aria-label="Curated wallpapers"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+      >
+        {CURATED_WALLPAPERS.map((option) => {
+          const active = selection.source === 'curated' && selection.id === option.id;
+          return (
+            <label
+              key={option.id}
+              htmlFor={`wallpaper-${option.id}`}
+              className={cn(
+                'flex cursor-pointer flex-col gap-2 rounded-lg border p-2 text-left transition-colors',
+                'focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring',
+                active ? 'border-primary bg-accent' : 'border-border hover:bg-muted',
+              )}
+            >
+              <div
+                className={cn('h-16 w-full rounded-md border border-border/60', option.className)}
+                aria-hidden="true"
+              />
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value={option.id} id={`wallpaper-${option.id}`} />
+                <p className="min-w-0 truncate text-xs font-medium">{option.name}</p>
+                {active && <Check className="ml-auto size-3.5 shrink-0 text-primary" aria-hidden />}
+              </div>
+            </label>
+          );
+        })}
+      </RadioGroup>
+
+      <div className="space-y-3 rounded-lg border border-border p-3">
+        <div className="space-y-0.5">
+          <Label htmlFor="wallpaper-url" className="text-sm">Custom image</Label>
+          <p className="text-xs text-muted-foreground">
+            Must be an https:// URL. Loading a remote image reveals your IP address and the
+            time you viewed it to whoever hosts it — it is not previewed until you ask.
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          <Input
+            id="wallpaper-url"
+            value={urlDraft}
+            onChange={(event) => { setUrlDraft(event.target.value); setPendingPreviewUrl(undefined); }}
+            placeholder="https://example.com/wallpaper.jpg"
+            className="font-mono text-xs"
+          />
+          <Button variant="outline" onClick={requestPreview} disabled={!urlDraft.trim()}>
+            Preview
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+            {uploading ? 'Uploading…' : 'Upload an image'}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="sr-only"
+            aria-label="Upload a local image to use as wallpaper"
+            onChange={(event) => { void onFileSelected(event.target.files?.[0]); }}
+          />
+          {!user && (
+            <span className="text-xs text-muted-foreground">
+              Sign in to upload your own image (stored on your Blossom server, which may make it publicly accessible).
+            </span>
+          )}
+        </div>
+
+        <div aria-live="polite">
+          {preview.status === 'loading' && (
+            <div className="flex h-24 items-center justify-center rounded-md border border-dashed border-border text-xs text-muted-foreground">
+              Loading preview…
+            </div>
+          )}
+          {preview.status === 'error' && (
+            <p className="text-xs text-destructive">
+              Couldn’t load that image. Your current wallpaper has not changed.
+            </p>
+          )}
+          {preview.status === 'ready' && preview.url && (
+            <img
+              src={preview.url}
+              alt="Wallpaper preview"
+              referrerPolicy="no-referrer"
+              className={cn(
+                'h-24 w-full rounded-md border border-border bg-muted',
+                fit === 'contain' ? 'object-contain' : 'object-cover',
+              )}
+            />
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <fieldset className="flex items-center gap-2">
+            <legend className="text-xs text-muted-foreground">Fit</legend>
+            <div className="flex overflow-hidden rounded-md border border-border">
+              {(['cover', 'contain'] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setFit(option)}
+                  aria-pressed={fit === option}
+                  className={cn(
+                    'px-2 py-1 text-xs capitalize transition-colors',
+                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                    fit === option ? 'bg-accent text-accent-foreground' : 'hover:bg-muted',
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <div className="flex min-w-40 flex-1 items-center gap-2">
+            <Label htmlFor="wallpaper-dim" className="shrink-0 text-xs text-muted-foreground">
+              Dim {dim}%
+            </Label>
+            <Slider
+              id="wallpaper-dim"
+              value={[dim]}
+              min={0}
+              max={80}
+              step={5}
+              onValueChange={([value]) => setDim(value)}
+              aria-label="Overlay darkness"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <Button onClick={applyUrl} disabled={preview.status !== 'ready'}>
+            Save wallpaper
+          </Button>
+          <Button variant="outline" onClick={() => applyCurated(DEFAULT_CURATED_ID)}>
+            Reset to default
+          </Button>
+        </div>
       </div>
     </Section>
   );
