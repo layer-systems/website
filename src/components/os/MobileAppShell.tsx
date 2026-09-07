@@ -227,14 +227,20 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
     [folders],
   );
 
+  // Screen-reader announcements name entries the way the user sees them.
+  const entryLabel = useCallback(
+    (id: string) => (id.startsWith(FOLDER_ID_PREFIX) ? folderTitle(id.slice(FOLDER_ID_PREFIX.length)) : getApp(id)?.title) ?? id,
+    [folderTitle],
+  );
+
   const moveToFolder = (appId: string, folderId: string) => {
     setAppFolder(appId, folderId);
-    setAnnouncement(`${appId} moved into folder ${folderTitle(folderId) ?? folderId}.`);
+    setAnnouncement(`${entryLabel(appId)} moved into folder ${folderTitle(folderId) ?? folderId}.`);
   };
 
   const removeFromFolder = (appId: string) => {
     setAppFolder(appId, null);
-    setAnnouncement(`${appId} moved out of ${folderTitle(membership[appId]) ?? 'its folder'} to the home screen.`);
+    setAnnouncement(`${entryLabel(appId)} moved out of ${folderTitle(membership[appId]) ?? 'its folder'} to the home screen.`);
   };
 
   const deleteFolder = (folder: Folder) => {
@@ -264,8 +270,8 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
       return next;
     });
     const position = beforeId ? Math.max(1, layout.mobile.indexOf(beforeId) + 1) : layout.mobile.length;
-    setAnnouncement(`${id} moved to position ${position}.`);
-  }, [layout.mobile, setAnnouncement, setMobile]);
+    setAnnouncement(`${entryLabel(id)} moved to position ${position}.`);
+  }, [layout.mobile, setAnnouncement, setMobile, entryLabel]);
 
   useEffect(() => {
     const onMove = (event: PointerEvent) => {
@@ -321,11 +327,11 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
       if (picked === id) {
         setPicked(null);
         setPickedOrder(null);
-        setAnnouncement(`${id} dropped at position ${index + 1}.`);
+        setAnnouncement(`${entryLabel(id)} dropped at position ${index + 1}.`);
       } else {
         setPicked(id);
         setPickedOrder(layout.mobile);
-        setAnnouncement(`${id} picked up. Use arrow keys to reorder, F to move into a folder, Enter to drop, Escape to cancel.`);
+        setAnnouncement(`${entryLabel(id)} picked up. Use arrow keys to reorder, F to move into a folder, Enter to drop, Escape to cancel.`);
       }
       return;
     }
@@ -340,7 +346,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
         setAnnouncement('No folders yet. Create one with the button below the grid.');
         return;
       }
-      setAnnouncement(`Move ${id} into which folder? Press 1 to ${Math.min(9, folders.length)}: ${folders.slice(0, 9).map((folder, folderIndex) => `${folderIndex + 1} for ${folder.name}`).join(', ')}.`);
+      setAnnouncement(`Move ${entryLabel(id)} into which folder? Press 1 to ${Math.min(9, folders.length)}: ${folders.slice(0, 9).map((folder, folderIndex) => `${folderIndex + 1} for ${folder.name}`).join(', ')}.`);
       return;
     }
     if (/^[1-9]$/.test(event.key) && !id.startsWith(FOLDER_ID_PREFIX)) {
@@ -364,7 +370,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
       next.splice(targetIndex, 0, id);
       return next;
     });
-    setAnnouncement(`${id} moved to position ${nextIndex + 1}.`);
+    setAnnouncement(`${entryLabel(id)} moved to position ${nextIndex + 1}.`);
   };
 
   const appContextMenu = (appId: string, title: string, currentFolderId: string | null) => (
@@ -599,7 +605,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
             const id = createFolder(name);
             if (folderDialog.appId) {
               setAppFolder(folderDialog.appId, id);
-              setAnnouncement(`Folder ${name} created with ${folderDialog.appId} inside.`);
+              setAnnouncement(`Folder ${name} created with ${getApp(folderDialog.appId)?.title ?? folderDialog.appId} inside.`);
             } else {
               setAnnouncement(`Folder ${name} created.`);
             }

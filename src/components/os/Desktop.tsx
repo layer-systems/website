@@ -25,7 +25,7 @@ import { FolderDialog } from './FolderDialog';
 import { FolderWindow } from './FolderWindow';
 import { WindowLayer } from './WindowLayer';
 import { useWindowManager } from '@/os/useWindowManager';
-import { desktopApps } from '@/os/registry';
+import { desktopApps, getApp } from '@/os/registry';
 import { MENUBAR_HEIGHT } from '@/os/layout';
 import { swapDesktopSlots, type DesktopSlot, type GridGeometry } from '@/os/iconLayout';
 import { useIconLayout } from '@/os/useIconLayout';
@@ -108,15 +108,21 @@ export function Desktop() {
     [folders],
   );
 
+  // Screen-reader announcements name entries the way the user sees them.
+  const entryLabel = useCallback(
+    (id: string) => (id.startsWith(FOLDER_ID_PREFIX) ? folderTitle(id.slice(FOLDER_ID_PREFIX.length)) : getApp(id)?.title) ?? id,
+    [folderTitle],
+  );
+
   const moveToFolder = useCallback((appId: string, folderId: string) => {
     setAppFolder(appId, folderId);
-    setAnnouncement(`${appId} moved into folder ${folderTitle(folderId) ?? folderId}.`);
-  }, [setAppFolder, folderTitle]);
+    setAnnouncement(`${entryLabel(appId)} moved into folder ${folderTitle(folderId) ?? folderId}.`);
+  }, [setAppFolder, folderTitle, entryLabel]);
 
   const removeFromFolder = useCallback((appId: string) => {
     setAppFolder(appId, null);
-    setAnnouncement(`${appId} moved out of ${folderTitle(membership[appId]) ?? 'its folder'} to the desktop.`);
-  }, [setAppFolder, folderTitle, membership]);
+    setAnnouncement(`${entryLabel(appId)} moved out of ${folderTitle(membership[appId]) ?? 'its folder'} to the desktop.`);
+  }, [setAppFolder, folderTitle, membership, entryLabel]);
 
   const deleteFolder = useCallback((folder: Folder) => {
     removeFolder(folder.id);
@@ -133,7 +139,7 @@ export function Desktop() {
       const id = createFolder(name);
       if (folderDialog.appId) {
         setAppFolder(folderDialog.appId, id);
-        setAnnouncement(`Folder ${name} created with ${folderDialog.appId} inside.`);
+        setAnnouncement(`Folder ${name} created with ${getApp(folderDialog.appId)?.title ?? folderDialog.appId} inside.`);
       } else {
         setAnnouncement(`Folder ${name} created.`);
       }
@@ -159,8 +165,8 @@ export function Desktop() {
   const move = useCallback((id: string, target: { col: number; row: number }) => {
     setDesktop((current) => swapDesktopSlots(current, id, target));
     const occupied = slots.find((slot) => slot.col === target.col && slot.row === target.row && slot.id !== id);
-    setAnnouncement(occupied ? `${id} swapped positions with ${occupied.id}.` : `${id} moved to column ${target.col + 1}, row ${target.row + 1}.`);
-  }, [setDesktop, slots]);
+    setAnnouncement(occupied ? `${entryLabel(id)} swapped positions with ${entryLabel(occupied.id)}.` : `${entryLabel(id)} moved to column ${target.col + 1}, row ${target.row + 1}.`);
+  }, [setDesktop, slots, entryLabel]);
 
   const onPointerMove = useCallback((event: PointerEvent) => {
     const active = pointerStart.current;
@@ -221,11 +227,11 @@ export function Desktop() {
       if (picked === id) {
         setPicked(null);
         setPickedLayout(null);
-        setAnnouncement(`${id} dropped at column ${slot.col + 1}, row ${slot.row + 1}.`);
+        setAnnouncement(`${entryLabel(id)} dropped at column ${slot.col + 1}, row ${slot.row + 1}.`);
       } else {
         setPicked(id);
         setPickedLayout(slots);
-        setAnnouncement(`${id} picked up. Use arrow keys to move, F to move into a folder, Enter to drop, Escape to cancel.`);
+        setAnnouncement(`${entryLabel(id)} picked up. Use arrow keys to move, F to move into a folder, Enter to drop, Escape to cancel.`);
       }
       return;
     }
@@ -240,7 +246,7 @@ export function Desktop() {
         setAnnouncement('No folders yet. Right-click an app and choose “New folder with it” to create one.');
         return;
       }
-      setAnnouncement(`Move ${id} into which folder? Press 1 to ${Math.min(9, folders.length)}: ${folders.slice(0, 9).map((folder, index) => `${index + 1} for ${folder.name}`).join(', ')}.`);
+      setAnnouncement(`Move ${entryLabel(id)} into which folder? Press 1 to ${Math.min(9, folders.length)}: ${folders.slice(0, 9).map((folder, index) => `${index + 1} for ${folder.name}`).join(', ')}.`);
       return;
     }
     if (/^[1-9]$/.test(event.key) && !id.startsWith(FOLDER_ID_PREFIX)) {
