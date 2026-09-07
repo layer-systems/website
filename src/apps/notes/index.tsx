@@ -334,7 +334,6 @@ function ThreadNode({
     <div
       role="treeitem"
       aria-level={depth}
-      aria-setsize={-1}
       aria-expanded={node.children.length > 0 ? true : undefined}
       className={cn(
         !isRootReply &&

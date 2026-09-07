@@ -74,8 +74,8 @@ export function NoteCard({ event, compact, onReply, replyOpen, className }: Note
                 size="sm"
                 className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
                 onClick={() => onReply(event)}
-                aria-expanded={replyOpen}
-                aria-controls={replyOpen ? 'reply-composer' : undefined}
+                aria-expanded={!!replyOpen}
+                aria-controls="reply-composer"
               >
                 <MessageSquareReply className="size-3.5" aria-hidden />
                 Reply

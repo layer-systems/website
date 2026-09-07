@@ -144,7 +144,7 @@ export interface ReplyNode {
   children: ReplyNode[];
   /** True when the event landed here as a fallback, not via its NIP-10 tags. */
   misplaced: boolean;
-  /** Depth of the cycle this event is part of, when its chain loops. */
+  /** Whether this event's chain loops back on itself. */
   cycle?: boolean;
 }
 
