@@ -468,7 +468,7 @@ export function markdownToDoc(markdown: string): JSONContent {
     // Table: header row, | --- | separator, then body rows.
     if (/^\|.*\|\s*$/.test(line) && i + 1 < lines.length && /^\|[\s:|-]+\|\s*$/.test(lines[i + 1])) {
       flushParagraph();
-          const parseRow = (row: string, header: boolean): JSONContent => ({
+      const parseRow = (row: string, header: boolean): JSONContent => ({
         type: 'tableRow',
         content: row
           .replace(/^\|/, '')

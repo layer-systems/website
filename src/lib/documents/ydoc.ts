@@ -29,6 +29,21 @@ function indexedDbAvailable(): boolean {
 }
 
 /**
+ * Constructing `IndexeddbPersistence` can throw even when IndexedDB exists
+ * (e.g. blocked/denied storage in private browsing or locked-down
+ * environments). Treat persistence as best-effort and degrade to `null`
+ * (in-memory) rather than crashing the caller.
+ */
+function createPersistence(documentId: string, doc: Y.Doc): IndexeddbPersistence | null {
+  if (!indexedDbAvailable()) return null;
+  try {
+    return new IndexeddbPersistence(`${DB_PREFIX}${documentId}`, doc);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Opens the Yjs document for `documentId` with offline persistence behind it.
  *
  * The session is created and torn down in a `useEffect`, so React Strict
@@ -49,9 +64,7 @@ export function openDocumentSession(
   events: DocumentSessionEvents,
 ): DocumentSession {
   const doc = new Y.Doc();
-  const persistence = indexedDbAvailable()
-    ? new IndexeddbPersistence(`${DB_PREFIX}${documentId}`, doc)
-    : null;
+  const persistence = createPersistence(documentId, doc);
 
   const onUpdate = () => events.onUpdate();
   doc.on('update', onUpdate);
@@ -91,13 +104,16 @@ export function openDocumentSession(
 
 /** Removes the persisted body of a document that was deleted from the index. */
 export async function deletePersistedDocument(documentId: string): Promise<void> {
-  if (!indexedDbAvailable()) return;
   const doc = new Y.Doc();
-  const persistence = new IndexeddbPersistence(`${DB_PREFIX}${documentId}`, doc);
   try {
-    await persistence.clearData();
+    const persistence = createPersistence(documentId, doc);
+    if (!persistence) return;
+    try {
+      await persistence.clearData();
+    } finally {
+      persistence.destroy();
+    }
   } finally {
-    persistence.destroy();
     doc.destroy();
   }
 }

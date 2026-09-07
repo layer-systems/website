@@ -42,6 +42,13 @@ const ALLOWED_ELEMENTS = new Set([
 /** class="task-list" / "task-item" and data-checked carry checklist state. */
 const ALLOWED_CLASSES = new Set(['task-list', 'task-item']);
 
+/**
+ * Elements whose entire subtree must be dropped rather than unwrapped: their
+ * text content is not safe to surface (e.g. `<script>alert(1)</script>` would
+ * otherwise become a literal "alert(1)" text node).
+ */
+const REMOVE_ENTIRELY = new Set(['script', 'style']);
+
 const SAFE_PROTOCOLS = new Set(['https:', 'http:', 'mailto:', 'nostr:']);
 
 function sanitizeHref(value: string | null): string | null {
@@ -94,12 +101,19 @@ function sanitizeAttributes(element: Element): void {
 }
 
 function sanitizeElement(element: Element): void {
+  const tag = element.tagName.toLowerCase();
+  if (REMOVE_ENTIRELY.has(tag)) {
+    // Drop the element and all of its content — unwrapping would surface
+    // script/style text as a literal text node.
+    element.remove();
+    return;
+  }
+
   // Children first: a disallowed child is unwrapped before we look up again.
   for (const child of [...element.children]) {
     sanitizeElement(child);
   }
 
-  const tag = element.tagName.toLowerCase();
   if (!ALLOWED_ELEMENTS.has(tag)) {
     // Unwrap: keep the (already sanitized) children, drop the wrapper. This
     // keeps the text of a <div> or <span> instead of deleting it.
