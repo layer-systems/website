@@ -5,6 +5,7 @@ import { nip19 } from 'nostr-tools';
 import { AuthorLine } from './AuthorLine';
 import { NoteContent } from './NoteContent';
 import { BookmarkButton } from './BookmarkButton';
+import { ModerationMenu } from './ModerationMenu';
 import { ZapButton } from './ZapButton';
 import { ReactionButton } from './ReactionButton';
 import { Button } from '@/components/ui/button';
@@ -82,6 +83,7 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
             <ZapButton target={event} revealed={revealed} />
             <ReactionButton target={event} />
             <BookmarkButton target={{ type: 'e', value: event.id }} />
+            <ModerationMenu pubkey={event.pubkey} event={event} className="ml-auto" />
           </div>
         )}
       </div>

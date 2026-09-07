@@ -4,18 +4,21 @@ import { AppBody, AppLayout, AppToolbar } from '@/components/os/AppChrome';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { LoginArea } from '@/components/auth/LoginArea';
 import { useAppContext } from '@/hooks/useAppContext';
+import { useAuthor } from '@/hooks/useAuthor';
 import { useTheme } from '@/hooks/useTheme';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useMuteList, useSetPubkeyMuted } from '@/hooks/useMuteList';
 import { useNwcConnection } from '@/hooks/useNwc';
 import { useWindowManager } from '@/os/useWindowManager';
 import { desktopApps } from '@/os/registry';
 import { useIconLayout } from '@/os/useIconLayout';
 import { useToast } from '@/hooks/useToast';
-import { npubOf } from '@/lib/nostrUtils';
+import { displayName, npubOf } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
 import type { Theme } from '@/contexts/AppContext';
 import type { AppProps } from '@/os/types';
@@ -38,6 +41,8 @@ export default function SettingsApp({ setTitle }: AppProps) {
       <AppBody className="px-6 py-5">
         <div className="mx-auto max-w-xl space-y-8">
           <AccountSection />
+          <Separator />
+          <ModerationSection />
           <Separator />
           <AppearanceSection />
           <Separator />
@@ -119,6 +124,89 @@ function AccountSection() {
         </div>
       )}
     </Section>
+  );
+}
+
+function ModerationSection() {
+  const { user } = useCurrentUser();
+  const muteList = useMuteList();
+  const setMuted = useSetPubkeyMuted();
+  const { toast } = useToast();
+
+  if (!user) {
+    return (
+      <Section title="Muted & blocked accounts" description="Review and reverse accounts you've muted or blocked.">
+        <div className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">
+          Sign in to manage muted and blocked accounts.
+        </div>
+      </Section>
+    );
+  }
+
+  const pubkeys = [...new Set([...(muteList.data?.publicPubkeys ?? []), ...(muteList.data?.privatePubkeys ?? [])])];
+
+  const unmute = async (pubkey: string) => {
+    try {
+      await setMuted.mutateAsync({ pubkey, muted: false });
+      toast({ title: 'Unmuted' });
+    } catch (error) {
+      toast({
+        title: 'Could not unmute this account',
+        description: error instanceof Error ? error.message : 'No relay accepted the update.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  return (
+    <Section
+      title="Muted & blocked accounts"
+      description="Blocking also removes them from your follows; unmuting here reverses either action."
+    >
+      {muteList.isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      ) : muteList.isError ? (
+        <p className="text-sm text-muted-foreground">Could not load your mute list. Try again later.</p>
+      ) : pubkeys.length === 0 ? (
+        <p className="text-sm text-muted-foreground">You haven't muted or blocked anyone.</p>
+      ) : (
+        <ul className="divide-y divide-border rounded-lg border border-border">
+          {pubkeys.map((pubkey) => (
+            <MutedAccountRow key={pubkey} pubkey={pubkey} onUnmute={() => unmute(pubkey)} pending={setMuted.isPending} />
+          ))}
+        </ul>
+      )}
+      {muteList.data && !muteList.data.privateEntriesReadable && (
+        <p className="text-xs text-muted-foreground">
+          Some entries are private and couldn't be decrypted with this signer, so they aren't shown above.
+        </p>
+      )}
+    </Section>
+  );
+}
+
+function MutedAccountRow({
+  pubkey,
+  onUnmute,
+  pending,
+}: {
+  pubkey: string;
+  onUnmute: () => void;
+  pending: boolean;
+}) {
+  const author = useAuthor(pubkey);
+  const name = displayName(pubkey, author.data?.metadata);
+
+  return (
+    <li className="flex items-center justify-between gap-3 px-3 py-2">
+      <span className="min-w-0 truncate text-sm">{name}</span>
+      <Button variant="outline" size="sm" onClick={onUnmute} disabled={pending}>
+        Unmute
+      </Button>
+    </li>
   );
 }
 

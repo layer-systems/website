@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useMyFollows } from '@/hooks/useFollows';
+import { useMutedPubkeys } from '@/hooks/useMuteList';
 import { cn } from '@/lib/utils';
 import { useWindowManager } from '@/os/useWindowManager';
 import { isReply } from '@/lib/nostrUtils';
@@ -75,8 +76,14 @@ export default function FeedApp({ setTitle }: AppProps) {
 
   const authors = useMemo(() => follows ?? [], [follows]);
   const query = useFeed(scope, user ? authors : undefined);
+  const mutedPubkeys = useMutedPubkeys();
+  const visibleNotes = useMemo(
+    () => (query.data ?? []).filter((event) => !mutedPubkeys.includes(event.pubkey)),
+    [query.data, mutedPubkeys],
+  );
 
   const hasNoFollows = scope === 'following' && authors.length === 0 && !query.isLoading;
+  const allMuted = (query.data?.length ?? 0) > 0 && visibleNotes.length === 0;
 
   return (
     <AppLayout>
@@ -132,8 +139,13 @@ export default function FeedApp({ setTitle }: AppProps) {
               </Button>
             }
           />
-        ) : query.data && query.data.length > 0 ? (
-          query.data.map((event) => <NoteCard key={event.id} event={event} />)
+        ) : allMuted ? (
+          <EmptyState
+            title="Nothing to show"
+            hint="Every note on this page is from an account you muted or blocked."
+          />
+        ) : visibleNotes.length > 0 ? (
+          visibleNotes.map((event) => <NoteCard key={event.id} event={event} />)
         ) : (
           <EmptyState
             title="Nothing came back"

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Copy, Globe, Loader2, UserMinus, UserPlus } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { AppBody, AppLayout, AppToolbar, EmptyState } from '@/components/os/AppChrome';
+import { ModerationMenu } from '@/components/nostr/ModerationMenu';
 import { NoteCard } from '@/components/nostr/NoteCard';
 import { NoteContent } from '@/components/nostr/NoteContent';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -74,6 +75,7 @@ export default function ProfileApp({ params, setTitle }: AppProps) {
         <div className="ml-auto flex items-center gap-1.5">
           <CopyNpubButton pubkey={pubkey} />
           <FollowButton pubkey={pubkey} />
+          <ModerationMenu pubkey={pubkey} />
         </div>
       </AppToolbar>
 
