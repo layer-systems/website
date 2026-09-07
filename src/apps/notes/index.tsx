@@ -7,6 +7,7 @@ import { AppBody, AppLayout, AppToolbar, EmptyState } from '@/components/os/AppC
 import { AuthorLine } from '@/components/nostr/AuthorLine';
 import { NoteContent } from '@/components/nostr/NoteContent';
 import { NoteCard } from '@/components/nostr/NoteCard';
+import { ZapButton } from '@/components/nostr/ZapButton';
 import { Composer } from '@/apps/feed/Composer';
 import { DraftNote } from './Draft';
 import { Button } from '@/components/ui/button';
@@ -121,7 +122,10 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
           <div className="mt-3">
             <NoteContent content={event.content} className="text-base" />
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">{absoluteTime(event.created_at)}</p>
+          <div className="mt-3 flex items-center gap-3">
+            <p className="text-xs text-muted-foreground">{absoluteTime(event.created_at)}</p>
+            <ZapButton target={event} className="h-6" />
+          </div>
         </div>
 
         {user && (
