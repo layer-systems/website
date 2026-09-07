@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MessageSquare, Repeat2 } from 'lucide-react';
+import { MessageSquare, MessageSquareReply, Repeat2 } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
 import { AuthorLine } from './AuthorLine';
@@ -12,12 +12,17 @@ import { Button } from '@/components/ui/button';
 import { useWindowManager } from '@/os/useWindowManager';
 import { useToast } from '@/hooks/useToast';
 import { useRelayHints } from '@/hooks/useRelayHints';
+import { genUserName } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
 
 interface NoteCardProps {
   event: NostrEvent;
-  /** Hides the reply affordance when the note is already the open thread root. */
+  /** Hides the action row (used where actions would be redundant). */
   compact?: boolean;
+  /** Turns the thread button into an inline reply affordance for this note. */
+  onReply?: (event: NostrEvent) => void;
+  /** True while this note is the one being answered in the inline composer. */
+  replyOpen?: boolean;
   className?: string;
 }
 
@@ -25,7 +30,7 @@ interface NoteCardProps {
  * One note in a list. Dense by design: a 44px-ish header, the content, and a
  * thin action row — no oversized card padding.
  */
-export function NoteCard({ event, compact, className }: NoteCardProps) {
+export function NoteCard({ event, compact, onReply, replyOpen, className }: NoteCardProps) {
   const { openApp } = useWindowManager();
   const { toast } = useToast();
   const hints = useRelayHints();
@@ -48,6 +53,7 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
 
   return (
     <article
+      aria-label={`Note by ${genUserName(event.pubkey)}`}
       className={cn(
         'group border-b border-border px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/40',
         className,
@@ -62,15 +68,29 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
 
         {!compact && (
           <div className="mt-2 flex flex-wrap items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
-              onClick={() => openApp('notes', { id: event.id })}
-            >
-              <MessageSquare className="size-3.5" aria-hidden />
-              Open thread
-            </Button>
+            {onReply ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+                onClick={() => onReply(event)}
+                aria-expanded={!!replyOpen}
+                aria-controls="reply-composer"
+              >
+                <MessageSquareReply className="size-3.5" aria-hidden />
+                Reply
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground"
+                onClick={() => openApp('notes', { id: event.id })}
+              >
+                <MessageSquare className="size-3.5" aria-hidden />
+                Open thread
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
