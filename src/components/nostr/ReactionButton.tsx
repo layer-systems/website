@@ -19,6 +19,10 @@ export function ReactionButton({ target, className }: { target: NostrEvent; clas
   const { count, byAuthor } = summarizeReactions(reactions.data);
   const own = user ? byAuthor.get(user.pubkey) : undefined;
   const reacted = Boolean(own && own.content !== '-');
+  // Kind 7 isn't replaceable, so the viewer may have more than one reaction
+  // event on this note; un-reacting needs to clear all of them, not just the
+  // one `summarizeReactions` picked as "latest".
+  const ownReactions = user ? (reactions.data ?? []).filter((event) => event.pubkey === user.pubkey) : [];
 
   const handleClick = () => {
     if (!user) {
@@ -26,7 +30,7 @@ export function ReactionButton({ target, className }: { target: NostrEvent; clas
       return;
     }
     toggle.mutate(
-      { target, existing: reacted ? own : undefined },
+      { target, ownReactions: reacted ? ownReactions : undefined },
       {
         onError: (error) => {
           toast({

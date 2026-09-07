@@ -60,15 +60,23 @@ export function summarizeReactions(events: NostrEvent[] | undefined): ReactionSu
 interface ToggleReactionInput {
   /** The note or reply being reacted to. */
   target: NostrEvent;
-  /** The signed-in user's current like on `target`, if any — pass to un-react. */
-  existing?: NostrEvent;
+  /**
+   * All of the signed-in user's own reaction events on `target`, if any —
+   * pass to un-react. Kind 7 is a regular (non-replaceable) event, so a user
+   * can end up with more than one over time (races, retries, multiple
+   * devices); every one of them needs deleting, not just the newest.
+   */
+  ownReactions?: NostrEvent[];
 }
 
 /**
- * Likes or un-likes a note. Un-reacting publishes a NIP-09 deletion of the
- * previous reaction rather than a new negative one — most relays and clients
- * honor deletions, whereas a `-` reaction would just add a second, conflicting
- * event without necessarily retracting the first from anyone's count.
+ * Likes or un-likes a note. Un-reacting publishes a single NIP-09 deletion
+ * covering *all* of the viewer's own reaction events on the target, rather
+ * than just the most recently seen one — most relays and clients honor
+ * deletions, whereas a `-` reaction would just add another, conflicting
+ * event without necessarily retracting the others. Deleting only the latest
+ * would leave any older `+` in place to resurface as "the" reaction (and
+ * re-inflate the count) once relays stop returning the deleted one.
  */
 export function useToggleReaction() {
   const { user } = useCurrentUser();
@@ -76,10 +84,14 @@ export function useToggleReaction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ target, existing }: ToggleReactionInput) => {
+    mutationFn: async ({ target, ownReactions }: ToggleReactionInput) => {
       if (!user) throw new Error('Sign in to react');
-      if (existing) {
-        return publish.mutateAsync({ kind: DELETION_KIND, content: '', tags: [['e', existing.id]] });
+      if (ownReactions && ownReactions.length > 0) {
+        return publish.mutateAsync({
+          kind: DELETION_KIND,
+          content: '',
+          tags: [...ownReactions.map((event): [string, string] => ['e', event.id]), ['k', String(REACTION_KIND)]],
+        });
       }
       return publish.mutateAsync({
         kind: REACTION_KIND,
@@ -91,7 +103,7 @@ export function useToggleReaction() {
         ],
       });
     },
-    onMutate: async ({ target, existing }) => {
+    onMutate: async ({ target, ownReactions }) => {
       if (!user) return undefined;
       const key = reactionsQueryKey(target.id);
       await queryClient.cancelQueries({ queryKey: key });
@@ -99,7 +111,7 @@ export function useToggleReaction() {
 
       queryClient.setQueryData<NostrEvent[]>(key, (old = []) => {
         const withoutMine = old.filter((event) => event.pubkey !== user.pubkey);
-        if (existing) return withoutMine;
+        if (ownReactions && ownReactions.length > 0) return withoutMine;
         const optimistic: NostrEvent = {
           id: `optimistic:${target.id}:${user.pubkey}`,
           pubkey: user.pubkey,
@@ -119,8 +131,22 @@ export function useToggleReaction() {
         queryClient.setQueryData(context.key, context.previous);
       }
     },
-    onSettled: (_data, _error, { target }) => {
-      queryClient.invalidateQueries({ queryKey: reactionsQueryKey(target.id) });
+    // Deliberately not `invalidateQueries` here: right after a successful
+    // publish, relays are eventually consistent, so an immediate re-query
+    // commonly hits one that hasn't indexed the new event yet — the stale
+    // result would silently overwrite the correct state a moment later
+    // (confirmed live: a like reverted to "unliked" ~1s after publishing).
+    // Swapping in the mutation's own known-correct result is also required,
+    // not just safer: `onMutate`'s optimistic entry uses a fake
+    // `optimistic:...` id, and a like followed immediately by an unlike needs
+    // the *real* signed event id to build a deletion relays will honor —
+    // without this, that later delete would target an id that never existed.
+    onSuccess: (publishedEvent, { target, ownReactions }) => {
+      if (!user) return;
+      queryClient.setQueryData<NostrEvent[]>(reactionsQueryKey(target.id), (old = []) => {
+        const withoutMine = old.filter((event) => event.pubkey !== user.pubkey);
+        return ownReactions && ownReactions.length > 0 ? withoutMine : [publishedEvent, ...withoutMine];
+      });
     },
   });
 }
