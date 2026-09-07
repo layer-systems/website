@@ -1,242 +1,124 @@
 # LAYER.systems
 
-**The Complete Framework for Building Nostr Clients with AI**
+LAYER.systems is a Nostr client designed like a desktop operating system. Instead of
+navigating between pages, you open apps in windows that can be moved, resized, stacked,
+minimized, and kept open side by side. This makes it possible to read a thread, inspect a
+profile, and keep your feed available at the same time.
 
-LAYER.systems is an AI-powered framework for building Nostr applications with React 18.x, TailwindCSS 3.x, Vite, shadcn/ui, and Nostrify. Build powerful Nostr applications with AI-first development - from social feeds to private messaging, LAYER.systems provides everything you need to create decentralized apps on the Nostr protocol.
+The app is for people who use Nostr and want a focused, multitasking-friendly interface,
+as well as contributors interested in building Nostr applications with React and
+TypeScript.
 
-## 🚀 Quick Start
+## What you can do
 
-Build your Nostr app in 3 simple steps:
+- Browse a Following or Global feed, publish notes, and open notes with their replies.
+- View profiles, follow or unfollow people, and search notes, replies, hashtags, and users.
+- Read NIP-23 long-form articles, save notes and articles, and create web bookmarks.
+- Discover picture posts and view live events with their NIP-53 chat.
+- Browse Nostr calendar events by month.
+- Manage relay connections, inspect connection latency, and configure relays and Blossom
+  media servers.
+- Sign in with a Nostr account, switch between accounts, and use NIP-19 identifiers such
+  as `npub`, `note`, `nevent`, `nprofile`, and `naddr` as links.
+- Save and share reusable Nostr queries with Spells.
 
-### 1. Install & Create
-```bash
-npm install -g @getstacks/stacks
-stacks layer-systems
-```
+LAYER.systems reads and writes Nostr events through relays. It does not provide a
+centralized social database; your relays and signer remain the source of your Nostr data.
+Some features require a signed-in account, and availability of content depends on the
+relays you use.
 
-### 2. Build with AI
-```bash
-stacks agent
-# Tell Dork AI what you want: "Build a group chat application"
-```
+## Run locally
 
-### 3. Deploy Instantly
-```bash
-npm run deploy
-# ✅ App deployed to NostrDeploy.com!
-```
+### Requirements
 
-## ✨ What Makes LAYER.systems Special
+- Node.js 22 or newer
+- npm
 
-- **🤖 AI-First Development**: Build complete Nostr apps with just one prompt using Dork AI agent
-- **⚡ 8 Minutes Average**: From idea to deployed application in minutes, not months
-- **🔗 50+ NIPs Supported**: Comprehensive Nostr protocol implementation
-- **🎨 Beautiful UI**: 48+ shadcn/ui components with light/dark theme support
-- **🔐 Built-in Security**: NIP-07 browser signing, NIP-44 encryption, event validation
-- **💰 Payments Ready**: Lightning zaps (NIP-57), Cashu wallets (NIP-60), Wallet Connect (NIP-47)
-- **📱 Production Ready**: TypeScript, testing, deployment, and responsive design included
-
-## 🛠 Technology Stack
-
-- **React 18.x**: Stable version with hooks, concurrent rendering, and improved performance
-- **TailwindCSS 3.x**: Utility-first CSS framework for styling
-- **Vite**: Fast build tool and development server
-- **shadcn/ui**: 48+ unstyled, accessible UI components built with Radix UI
-- **Nostrify**: Nostr protocol framework for Deno and web
-- **React Router**: Client-side routing with BrowserRouter
-- **TanStack Query**: Data fetching, caching, and state management
-- **TypeScript**: Type-safe JavaScript development
-
-## 🎯 Real-World Examples
-
-### Built with One Prompt
-
-Each of these applications was created with just a single prompt to Dork AI:
-
-- **Group Chat Application**: `"Build me a group chat application"`
-  - [Live Demo](https://groupchat-74z9j26wq-mks-projects-1f1254c4.vercel.app/)
-
-- **Decentralized Goodreads**: `"Build a decentralized goodreads alternative. Use OpenLibrary API for book data."`
-  - [Live Demo](https://bookstr123-87phkwjcy-mks-projects-1f1254c4.vercel.app/)
-
-- **Chess Game**: `"Build a chess game with NIP 64"`
-  - [Live Demo](https://chess-l0d7ms7m3-mks-projects-1f1254c4.vercel.app/chess)
-
-### Production Apps
-
-Real Nostr applications built using LAYER.systems:
-
-- **[Chorus](https://chorus.community/)**: Facebook-style groups on Nostr with built-in eCash wallet
-- **[Blobbi](https://www.blobbi.pet/)**: Digital pet companions that live forever on the decentralized web
-- **[Treasures](https://treasures.to/)**: Decentralized geocaching adventure powered by Nostr
-
-[Browse more apps made with LAYER.systems →](https://nostrhub.io/apps/t/layer-systems/)
-
-## 🔧 Core Features
-
-### Authentication & Users
-- `LoginArea` component with account switching
-- `useCurrentUser` hook for authentication state
-- `useAuthor` hook for fetching user profiles
-- NIP-07 browser signing support
-- Multi-account management
-
-### Nostr Protocol Support
-- **Social Features**: User profiles (NIP-01), follow lists (NIP-02), reactions (NIP-25), reposts (NIP-18)
-- **Messaging**: Private DMs (NIP-17), public chat (NIP-28), group chat (NIP-29), encryption (NIP-44)
-- **Payments**: Lightning zaps (NIP-57), Cashu wallets (NIP-60), Nutzaps (NIP-61), Wallet Connect (NIP-47)
-- **Content**: Long-form articles (NIP-23), file metadata (NIP-94), live events (NIP-53), calendars (NIP-52)
-
-### Data Management
-- `useNostr` hook for querying and publishing
-- `useNostrPublish` hook with automatic client tagging
-- Event validation and filtering
-- Infinite scroll with TanStack Query
-- Multi-relay support
-
-### UI Components
-- 48+ shadcn/ui components (buttons, forms, dialogs, etc.)
-- `NoteContent` component for rich text rendering
-- `EditProfileForm` for profile management
-- `RelaySelector` for relay switching
-- `CommentsSection` for threaded discussions
-- Light/dark theme system
-
-### Media & Files
-- `useUploadFile` hook with Blossom server integration
-- NIP-94 compatible file metadata
-- Image and video support
-- File attachment to events
-
-### Advanced Features
-- NIP-19 identifier routing (`npub1`, `note1`, `nevent1`, `naddr1`)
-- Cryptographic operations (encryption/decryption)
-- Lightning payments and zaps
-- Real-time event subscriptions
-- Responsive design with mobile support
-
-## 🤖 AI Development with Dork
-
-LAYER.systems includes Dork, a built-in AI agent that understands your codebase and Nostr protocols:
-
-### Supported AI Providers
-
-Configure your AI provider with `stacks configure`:
-
-- **OpenRouter** ([openrouter.ai](https://openrouter.ai/)): Enter your API key from settings
-- **Routstr** ([routstr.com](https://www.routstr.com/)): Use Cashu tokens for payment
-- **PayPerQ** ([ppq.ai](https://ppq.ai/)): OpenAI-compatible API
-
-### How Dork Works
-
-- **Context-Aware**: Understands your entire codebase and project structure
-- **Nostr Expert**: Built-in knowledge of 50+ NIPs and best practices
-- **Instant Implementation**: Makes changes directly to your code following React/TypeScript best practices
-
-Example prompts:
-```bash
-"Add user profiles with avatars and bio"
-"Implement NIP-17 private messaging"
-"Add a dark mode toggle"
-"Create a marketplace with NIP-15"
-```
-
-## 📁 Project Structure
-
-```
-src/
-├── components/           # UI components
-│   ├── ui/              # shadcn/ui components (48+ available)
-│   ├── auth/            # Authentication components
-│   └── comments/        # Comment system components
-├── hooks/               # Custom React hooks
-│   ├── useNostr         # Core Nostr integration
-│   ├── useAuthor        # User profile data
-│   ├── useCurrentUser   # Authentication state
-│   ├── useNostrPublish  # Event publishing
-│   ├── useUploadFile    # File uploads
-│   └── useZaps          # Lightning payments
-├── pages/               # Page components
-├── lib/                 # Utility functions
-├── contexts/            # React context providers
-└── test/                # Testing utilities
-```
-
-## 🎨 UI Components
-
-LAYER.systems includes 48+ shadcn/ui components:
-
-**Layout**: Card, Separator, Sheet, Sidebar, ScrollArea, Resizable
-**Navigation**: Breadcrumb, NavigationMenu, Menubar, Tabs, Pagination
-**Forms**: Button, Input, Textarea, Select, Checkbox, RadioGroup, Switch, Slider
-**Feedback**: Alert, AlertDialog, Toast, Progress, Skeleton
-**Overlay**: Dialog, Popover, HoverCard, Tooltip, ContextMenu, DropdownMenu
-**Data Display**: Table, Avatar, Badge, Calendar, Chart, Carousel
-**And many more...
-
-## 🔐 Security & Best Practices
-
-- **Never use `any` type**: Always use proper TypeScript types
-- **Event validation**: Filter events through validator functions for custom kinds
-- **Efficient queries**: Minimize separate queries to avoid rate limiting
-- **Proper error handling**: Graceful handling of invalid NIP-19 identifiers
-- **Secure authentication**: Use signer interface, never request private keys directly
-
-## 📱 Responsive Design
-
-- Mobile-first approach with Tailwind breakpoints
-- `useIsMobile` hook for responsive behavior
-- Touch-friendly interactions
-- Optimized for all screen sizes
-
-## 🧪 Testing
-
-- Vitest with jsdom environment
-- React Testing Library with jest-dom matchers
-- `TestApp` component provides all necessary context providers
-- Mocked browser APIs (matchMedia, scrollTo, IntersectionObserver, ResizeObserver)
-
-## 🚀 Deployment
-
-Built-in deployment to NostrDeploy.com:
+Clone the repository, install dependencies, and start the Vite development server:
 
 ```bash
-npm run deploy
+git clone https://github.com/layer-systems/website.git
+cd website
+npm install
+npm run dev
 ```
 
-Your app goes live instantly with:
-- Automatic builds
-- CDN distribution
-- HTTPS support
-- Custom domains available
+The development server listens on <http://localhost:8080>. The app has no required
+environment variables; relay and media-server settings are managed in the app.
 
-## 📚 Documentation
+Useful commands:
 
-For detailed documentation on building Nostr applications with LAYER.systems:
+```bash
+npm run test   # Type-check, lint, run Vitest, and create a production build
+npm run build  # Create the production bundle in dist/
+```
 
-- [Tutorial](https://soapbox.pub/blog/layer-systems-tutorial)
-- [Nostr Protocol Documentation](https://nostr.com)
-- [shadcn/ui Components](https://ui.shadcn.com)
+`npm run build` also creates `dist/404.html`, which supports client-side routes when the
+build is deployed as a static site.
 
-## 🤝 Contributing
+## Production deployment
 
-LAYER.systems is open source and welcomes contributions. The framework is designed to be:
+The repository includes a GitHub Actions workflow in
+[`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml). It runs on pushes to
+`main` (or manually from the Actions tab), builds the app with Node.js 22, and deploys
+`dist/` to GitHub Pages.
 
-- **Extensible**: Easy to add new NIPs and features
-- **Maintainable**: Clean architecture with TypeScript
-- **Testable**: Comprehensive testing setup included
-- **Documented**: Clear patterns and examples
+For another static host, run `npm run build` and publish the generated `dist/` directory.
+Configure the host to serve `dist/404.html` for unknown paths so direct NIP-19 links
+continue to load the client application.
 
-## 📄 License
+## Technology
 
-LAYER.systems is dedicated to the **public domain**.
+- [React 19](https://react.dev/) and [TypeScript](https://www.typescriptlang.org/)
+- [Vite](https://vite.dev/) for development and production builds
+- [Tailwind CSS](https://tailwindcss.com/) and [shadcn/ui](https://ui.shadcn.com/) for UI
+- [Nostrify](https://www.npmjs.com/package/@nostrify/nostrify) and
+  [nostr-tools](https://github.com/nbd-wtf/nostr-tools) for Nostr integration
+- [React Router](https://reactrouter.com/) for the root and NIP-19 routes
+- [TanStack Query](https://tanstack.com/query) for fetching and caching
+- [Vitest](https://vitest.dev/) and
+  [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+  for tests
 
-To the extent possible under law, the authors have waived all copyright and related or neighboring rights to LAYER.systems. You are free to copy, modify, distribute, and use this software for any purpose, commercial or non-commercial, without asking permission and without attribution.
+The application is organized into three main layers:
 
-Build amazing Nostr applications and help grow the decentralized web!
+```text
+src/os/              Window manager, persistence, layout, and keyboard shortcuts
+src/components/os/   Desktop shell, menu bar, windows, and mobile app shell
+src/apps/            Nostr and system apps rendered inside windows
+src/components/      Shared UI, authentication, and Nostr components
+src/hooks/           Data access and application hooks
+```
 
----
+Apps are registered in [`src/os/registry.ts`](./src/os/registry.ts). Each app is lazy
+loaded and receives a small window-oriented contract, so adding an app normally does not
+require changing the router. Read [the app guide](./docs/apps.md) before adding one.
 
-**"Vibed with LAYER.systems"** - [Learn more about LAYER.systems](https://soapbox.pub/layer-systems)
+## Documentation
 
-*Build your Nostr app in minutes, not months. Start with AI, deploy instantly.*
+- [Documentation index](./docs/README.md)
+- [Window manager](./docs/window-manager.md)
+- [App development](./docs/apps.md)
+- [Nostr data access and safety](./docs/nostr.md)
+- [Style guide](./docs/styleguide.md)
+- [Project architecture and design decisions](./PLAN.md)
+- [Versioning and release workflow](./docs/versioning.md)
+
+For protocol reference, see the [Nostr protocol documentation](https://nostr.com/).
+
+## Contributing
+
+1. Create a branch for your change.
+2. Install dependencies with `npm install`.
+3. Make the smallest focused change that fits the existing architecture.
+4. Run `npm run test`.
+5. Open a pull request describing the behavior you changed and how you verified it.
+
+When working with Nostr content, treat events, URLs, and profile metadata as untrusted
+input. Follow the validation and URL-sanitization patterns in
+[`docs/nostr.md`](./docs/nostr.md), and do not use `any` in TypeScript.
+
+## License
+
+LAYER.systems is dedicated to the public domain. You are free to copy, modify,
+distribute, and use it for any purpose, commercial or non-commercial.
