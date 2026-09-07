@@ -1,4 +1,4 @@
-import { Bell, BellRing, Heart, MessageCircle, Repeat2, UserPlus, Zap } from 'lucide-react';
+import { Bell, BellRing, Heart, MessageCircle, Repeat2, Zap } from 'lucide-react';
 import { useState, type ComponentProps } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,7 +30,6 @@ const ICONS: Record<NotificationKind, typeof Bell> = {
   reply: MessageCircle,
   reaction: Heart,
   repost: Repeat2,
-  follow: UserPlus,
   zap: Zap,
 };
 
@@ -39,7 +38,6 @@ const LABELS: Record<NotificationKind, string> = {
   reply: 'replied to you',
   reaction: 'reacted to your note',
   repost: 'reposted your note',
-  follow: 'followed you',
   zap: 'sent you a zap',
 };
 

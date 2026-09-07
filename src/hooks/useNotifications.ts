@@ -5,10 +5,18 @@ import { isReply } from '@/lib/nostrUtils';
 import { useCurrentUser } from './useCurrentUser';
 import { useLocalStorage } from './useLocalStorage';
 
-/** Nostr event kinds that commonly represent activity directed at a person. */
-const NOTIFICATION_KINDS = [1, 3, 6, 7, 16, 9735] as const;
+/**
+ * Nostr event kinds that commonly represent activity directed at a person.
+ *
+ * Kind 3 is deliberately excluded: a contact list is a replaceable whole-list
+ * snapshot, so any later edit that keeps the recipient's `p` tag would resurface
+ * as a false "followed you" notification. Relays usually only retain the latest
+ * version of a replaceable event, so there is no reliable per-author delta to
+ * tell a genuine new follow apart from an unrelated list edit.
+ */
+const NOTIFICATION_KINDS = [1, 6, 7, 16, 9735] as const;
 
-export type NotificationKind = 'mention' | 'reply' | 'reaction' | 'repost' | 'follow' | 'zap';
+export type NotificationKind = 'mention' | 'reply' | 'reaction' | 'repost' | 'zap';
 
 export interface Notification {
   event: NostrEvent;
@@ -17,8 +25,6 @@ export interface Notification {
 
 function notificationKind(event: NostrEvent): NotificationKind {
   switch (event.kind) {
-    case 3:
-      return 'follow';
     case 7:
       return 'reaction';
     case 6:
@@ -60,6 +66,10 @@ export function useNotifications() {
       const seen = new Set<string>();
       return events
         .filter((event) => {
+          // Kind 3 is no longer queried, but guard anyway: a stale cache entry
+          // or a misbehaving relay must not classify a contact-list snapshot
+          // as a notification.
+          if (event.kind === 3) return false;
           if (event.pubkey === user.pubkey || seen.has(event.id)) return false;
           seen.add(event.id);
           return true;
