@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, Bookmark, BookOpen, CalendarDays, FileText, Image, Info, Link2, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, User } from 'lucide-react';
+import { Activity, Bike, Bookmark, BookOpen, CalendarDays, FileText, Image, Info, Link2, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -108,6 +108,16 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/calendar')),
     defaultSize: { width: 900, height: 700 },
     minSize: { width: 420, height: 420 },
+  },
+  {
+    id: 'workouts',
+    title: 'Workouts',
+    description: 'Record and discover open fitness activities on Nostr',
+    icon: Bike,
+    category: 'social',
+    component: lazy(() => import('@/apps/workouts')),
+    defaultSize: { width: 720, height: 720 },
+    minSize: { width: 360, height: 400 },
   },
   {
     id: 'spells',

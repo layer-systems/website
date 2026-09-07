@@ -10,10 +10,16 @@ export function useFollows(pubkey: string | undefined) {
     queryKey: ['nostr', 'follows', pubkey ?? ''],
     enabled: Boolean(pubkey),
     queryFn: async ({ signal }) => {
-      const [event] = await nostr.query(
-        [{ kinds: [3], authors: [pubkey!], limit: 1 }],
+      const events = await nostr.query(
+        [{ kinds: [3], authors: [pubkey!], limit: 20 }],
         { signal: AbortSignal.any([signal, AbortSignal.timeout(3000)]) },
       );
+
+      // The follow list is replaceable: retain only the newest event authored
+      // by this account, rather than trusting relay response ordering.
+      const event = events
+        .filter((candidate) => candidate.pubkey === pubkey && candidate.kind === 3)
+        .sort((a, b) => b.created_at - a.created_at)[0];
 
       if (!event) return [];
 
