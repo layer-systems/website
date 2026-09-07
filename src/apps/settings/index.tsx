@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Plus, Trash2 } from 'lucide-react';
+import { Check, Plus, Trash2, Zap } from 'lucide-react';
 import { AppBody, AppLayout, AppToolbar } from '@/components/os/AppChrome';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { LoginArea } from '@/components/auth/LoginArea';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useTheme } from '@/hooks/useTheme';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useNwcConnection } from '@/hooks/useNwc';
 import { useWindowManager } from '@/os/useWindowManager';
 import { desktopApps } from '@/os/registry';
 import { useIconLayout } from '@/os/useIconLayout';
@@ -43,6 +44,8 @@ export default function SettingsApp({ setTitle }: AppProps) {
           <RelaySection />
           <Separator />
           <MediaSection />
+          <Separator />
+          <WalletSection />
           <Separator />
           <IconLayoutSection />
           <Separator />
@@ -300,6 +303,81 @@ function MediaSection() {
           </li>
         ))}
       </ul>
+    </Section>
+  );
+}
+
+function WalletSection() {
+  const { user } = useCurrentUser();
+  const { connection, connect, disconnect } = useNwcConnection();
+  const { toast } = useToast();
+  const [draft, setDraft] = useState('');
+
+  const handleConnect = () => {
+    try {
+      connect(draft);
+      setDraft('');
+      toast({ title: 'Wallet connected' });
+    } catch (error) {
+      toast({
+        title: 'Could not connect that wallet',
+        description: error instanceof Error ? error.message : undefined,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDisconnect = () => {
+    disconnect();
+    toast({ title: 'Wallet disconnected' });
+  };
+
+  return (
+    <Section
+      title="Lightning wallet"
+      description="Optional. Connect a wallet with Nostr Wallet Connect (NIP-47) to pay zaps in one step, instead of scanning an invoice each time."
+    >
+      {!user ? (
+        <p className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">
+          Sign in to connect a wallet.
+        </p>
+      ) : connection ? (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <Zap className="size-4 shrink-0 text-amber-500" aria-hidden />
+            <div className="min-w-0">
+              <p className="truncate text-sm">Connected</p>
+              <p className="truncate font-mono text-xs text-muted-foreground">
+                {connection.pubkey.slice(0, 12)}… via {connection.relay.replace(/^wss:\/\//, '')}
+              </p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleDisconnect}>
+            Disconnect
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Input
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && handleConnect()}
+              placeholder="nostr+walletconnect://…"
+              className="font-mono text-xs"
+              aria-label="Nostr Wallet Connect link"
+            />
+            <Button onClick={handleConnect} disabled={!draft.trim()}>
+              Connect
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Paste a connection link from your wallet (e.g. Alby, Mutiny). It is stored only in this browser and used
+            solely to sign and send payment requests to your wallet's relay — never published or shared elsewhere.
+            Without a connected wallet, zapping still works: you'll pay each invoice manually.
+          </p>
+        </div>
+      )}
     </Section>
   );
 }
