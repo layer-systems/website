@@ -67,7 +67,11 @@ export const DEFAULT_WALLPAPER: WallpaperPreference = {
 
 /** Looks up a curated wallpaper by id, falling back to the default pattern for unknown/stale ids. */
 export function resolveCurated(id: string): CuratedWallpaper {
-  return CURATED_WALLPAPERS.find((wallpaper) => wallpaper.id === id) ?? CURATED_WALLPAPERS[0];
+  return (
+    CURATED_WALLPAPERS.find((wallpaper) => wallpaper.id === id) ??
+    CURATED_WALLPAPERS.find((wallpaper) => wallpaper.id === DEFAULT_CURATED_ID) ??
+    CURATED_WALLPAPERS[0]
+  );
 }
 
 /**
@@ -98,9 +102,11 @@ const WallpaperPresentationSchema = z.object({
   dim: z.number().min(0).max(80),
 }) satisfies z.ZodType<WallpaperPresentation>;
 
+const curatedIds = CURATED_WALLPAPERS.map((wallpaper) => wallpaper.id) as [string, ...string[]];
+
 const CuratedSelectionSchema = z.object({
   source: z.literal('curated'),
-  id: z.string().min(1).max(64),
+  id: z.enum(curatedIds),
 });
 
 const UrlSelectionSchema = z.object({

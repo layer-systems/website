@@ -164,7 +164,9 @@ function AppearanceSection() {
 
 const MAX_WALLPAPER_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_WALLPAPER_DIMENSION = 6000;
-const ALLOWED_WALLPAPER_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+// GIFs are excluded: the upload path always re-encodes to JPEG, which would
+// silently drop animation/transparency, so we don't advertise GIF support.
+const ALLOWED_WALLPAPER_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 export function WallpaperSection() {
   const { config, updateConfig } = useAppContext();
@@ -237,7 +239,7 @@ export function WallpaperSection() {
     if (!file) return;
 
     if (!ALLOWED_WALLPAPER_TYPES.has(file.type)) {
-      toast({ title: 'Unsupported image type', description: 'Use JPEG, PNG, WebP, or GIF.', variant: 'destructive' });
+      toast({ title: 'Unsupported image type', description: 'Use JPEG, PNG, or WebP.', variant: 'destructive' });
       return;
     }
     if (file.size > MAX_WALLPAPER_FILE_BYTES) {
@@ -264,7 +266,10 @@ export function WallpaperSection() {
       canvas.width = bitmap.width;
       canvas.height = bitmap.height;
       const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('This browser cannot process images.');
+      if (!ctx) {
+        bitmap.close();
+        throw new Error('This browser cannot process images.');
+      }
       ctx.drawImage(bitmap, 0, 0);
       bitmap.close();
 
@@ -355,7 +360,7 @@ export function WallpaperSection() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
+            accept="image/png,image/jpeg,image/webp"
             className="sr-only"
             aria-label="Upload a local image to use as wallpaper"
             onChange={(event) => { void onFileSelected(event.target.files?.[0]); }}
@@ -382,6 +387,7 @@ export function WallpaperSection() {
             <img
               src={preview.url}
               alt="Wallpaper preview"
+              referrerPolicy="no-referrer"
               className={cn(
                 'h-24 w-full rounded-md border border-border bg-muted',
                 fit === 'contain' ? 'object-contain' : 'object-cover',

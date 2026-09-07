@@ -20,7 +20,7 @@ import { swapDesktopSlots, type DesktopSlot, type GridGeometry } from '@/os/icon
 import { useIconLayout } from '@/os/useIconLayout';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useDecodedImage } from '@/hooks/useDecodedImage';
-import { CURATED_WALLPAPERS, DEFAULT_CURATED_ID, isSafeWallpaperUrl, resolveCurated } from '@/lib/wallpaper';
+import { CURATED_WALLPAPERS, DEFAULT_CURATED_ID, DEFAULT_PRESENTATION, isSafeWallpaperUrl, resolveCurated } from '@/lib/wallpaper';
 import { sanitizeUrl } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
 
@@ -72,6 +72,31 @@ export function Desktop() {
   const safeWallpaperImageUrl =
     customWallpaper && sanitizedWallpaperUrl && isSafeWallpaperUrl(sanitizedWallpaperUrl) ? sanitizedWallpaperUrl : undefined;
   const curatedId = wallpaper.source === 'curated' ? wallpaper.id : undefined;
+
+  // `decoded.url` can lag behind `customWallpaper` (a newer selection is
+  // still decoding, or failed) while the previous image keeps rendering. If
+  // we read `customWallpaper.presentation` directly in that window, a fit/dim
+  // change meant for the *new* (not-yet-visible) image would briefly apply to
+  // the still-displayed old one. This tracks (by reference, mirroring the
+  // `trackedSelection` pattern in the Settings wallpaper form) the
+  // presentation that belongs to whichever url is actually decoded, adjusted
+  // during render rather than in a useEffect body.
+  //
+  // This intentionally follows React's "adjusting state during render"
+  // pattern and relies on reference equality: `activePresentation` must keep
+  // returning the *same* `customWallpaper.presentation` object across
+  // re-renders until the selection actually changes (it does today, because
+  // it's read straight from `config` rather than freshly constructed here).
+  // Don't refactor it into a `useMemo`/derived value that produces a new
+  // object identity every render — that would break the `!==` check below
+  // and re-run `setRenderedPresentation` on every render.
+  const activePresentation = customWallpaper && decoded.url === customWallpaper.url ? customWallpaper.presentation : undefined;
+  const [trackedPresentation, setTrackedPresentation] = useState(activePresentation);
+  const [renderedPresentation, setRenderedPresentation] = useState(activePresentation ?? DEFAULT_PRESENTATION);
+  if (activePresentation !== trackedPresentation) {
+    setTrackedPresentation(activePresentation);
+    if (activePresentation) setRenderedPresentation(activePresentation);
+  }
 
   const setCuratedWallpaper = useCallback((id: string) => {
     updateConfig((current) => ({ ...current, wallpaper: { version: 1, selection: { source: 'curated', id } } }));
@@ -179,15 +204,16 @@ export function Desktop() {
                 src={safeWallpaperImageUrl}
                 alt=""
                 aria-hidden="true"
+                referrerPolicy="no-referrer"
                 className={cn(
                   'pointer-events-none absolute inset-0 h-full w-full',
-                  customWallpaper.presentation.fit === 'contain' ? 'object-contain' : 'object-cover',
+                  renderedPresentation.fit === 'contain' ? 'object-contain' : 'object-cover',
                 )}
               />
-              {customWallpaper.presentation.dim > 0 && (
+              {renderedPresentation.dim > 0 && (
                 <div
                   className="pointer-events-none absolute inset-0 bg-black"
-                  style={{ opacity: customWallpaper.presentation.dim / 100 }}
+                  style={{ opacity: renderedPresentation.dim / 100 }}
                   aria-hidden="true"
                 />
               )}

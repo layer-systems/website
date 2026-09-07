@@ -69,6 +69,11 @@ describe('WallpaperPreferenceSchema', () => {
     expect(WallpaperPreferenceSchema.parse('not an object')).toEqual(DEFAULT_WALLPAPER);
   });
 
+  it('falls back to the default wallpaper for an unknown/stale curated id', () => {
+    const value = { version: 1, selection: { source: 'curated', id: 'some-removed-id' } };
+    expect(WallpaperPreferenceSchema.parse(value)).toEqual(DEFAULT_WALLPAPER);
+  });
+
   it('falls back to the default wallpaper for an out-of-range dim value', () => {
     const value = {
       version: 1,
