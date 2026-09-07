@@ -46,7 +46,8 @@ async function decryptPrivateTags(
   try {
     const plaintext = await signer.nip44.decrypt(pubkey, content);
     const parsed = JSON.parse(plaintext);
-    return { tags: Array.isArray(parsed) ? parsed.filter((tag): tag is string[] => Array.isArray(tag)) : [], ok: true };
+    if (!Array.isArray(parsed)) return { tags: [], ok: false };
+    return { tags: parsed.filter((tag): tag is string[] => Array.isArray(tag)), ok: true };
   } catch {
     return { tags: [], ok: false };
   }
@@ -121,7 +122,7 @@ export function useSetPubkeyMuted() {
     }: {
       pubkey: string;
       muted: boolean;
-    }): Promise<{ usedPublicFallback: boolean; publicPubkeys: string[]; privatePubkeys: string[] }> => {
+    }): Promise<{ forPubkey: string; usedPublicFallback: boolean; publicPubkeys: string[]; privatePubkeys: string[] }> => {
       if (!user) throw new Error('Sign in to manage muted accounts');
 
       const current = await fetchMuteList(nostr, user.pubkey);
@@ -156,6 +157,7 @@ export function useSetPubkeyMuted() {
 
       await publish.mutateAsync({ kind: MUTE_LIST_KIND, content, tags: nextPublicTags });
       return {
+        forPubkey: user.pubkey,
         usedPublicFallback,
         publicPubkeys: extractPubkeys(nextPublicTags),
         privatePubkeys: extractPubkeys(nextPrivateTags),
@@ -169,8 +171,15 @@ export function useSetPubkeyMuted() {
     // background refetch that can race back with the stale list and silently
     // clobber this correct value. The cache reconciles with relays normally
     // the next time the query goes stale.
-    onSuccess: ({ publicPubkeys, privatePubkeys }) => {
-      queryClient.setQueryData<MuteListData>(muteListQueryKey(user?.pubkey), (prev) => ({
+    //
+    // `forPubkey` (captured by mutationFn at call time, not read from `user`
+    // here) keys the write: onSuccess runs with this callback's latest
+    // closure, so if the account changed or logged out while the publish was
+    // in flight, `user` here could point at the wrong session — writing into
+    // that query key would leak mutes into another account or a logged-out
+    // view.
+    onSuccess: ({ forPubkey, publicPubkeys, privatePubkeys }) => {
+      queryClient.setQueryData<MuteListData>(muteListQueryKey(forPubkey), (prev) => ({
         event: prev?.event ?? null,
         publicPubkeys,
         privatePubkeys,
