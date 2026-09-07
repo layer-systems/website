@@ -62,10 +62,17 @@ export function useFolders(appIds: string[]) {
   }, [stableIds]);
 
   const createFolder = useCallback((name: string): string => {
-    const id = addFolder(normalized, name).folder.id;
-    update((current) => addFolder(current, name).state);
+    // The updater runs during the setState re-render, so the id has to be
+    // minted inside it — capturing it beforehand could give callers an id
+    // that a concurrent update (or a React strict-mode retry) dropped.
+    let id = '';
+    update((current) => {
+      const added = addFolder(current, name);
+      id = added.folder.id;
+      return added.state;
+    });
     return id;
-  }, [normalized, update]);
+  }, [update]);
 
   const rename = useCallback((folderId: string, name: string) => {
     update((current) => renameFolder(current, folderId, name));

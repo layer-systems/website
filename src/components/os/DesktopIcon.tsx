@@ -7,6 +7,8 @@ interface DesktopIconProps {
   onSelect: () => void;
   onOpen: () => void;
   onPointerDown?: (event: React.PointerEvent<HTMLButtonElement>) => void;
+  /** Stops long-press context menus from bubbling to the desktop surface. */
+  onContextMenu?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
   tabIndex?: number;
   dragging?: boolean;
@@ -20,6 +22,7 @@ export function DesktopIcon({
   onSelect,
   onOpen,
   onPointerDown,
+  onContextMenu,
   onKeyDown,
   tabIndex,
   dragging,
@@ -35,6 +38,7 @@ export function DesktopIcon({
       tabIndex={tabIndex}
       style={style}
       onPointerDown={onPointerDown}
+      onContextMenu={onContextMenu}
       onClick={onSelect}
       onDoubleClick={onOpen}
       onKeyDown={(event) => {

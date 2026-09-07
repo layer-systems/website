@@ -46,6 +46,16 @@ function geometryFor(width: number, height: number): GridGeometry {
   };
 }
 
+/**
+ * Context menus nest (icon menus inside the desktop menu), and Radix opens
+ * the menu of every trigger in the bubble path. Real right-click is handled
+ * by the innermost trigger; only touch long-presses bubble, so the inner
+ * trigger swallows them before the desktop menu would also open.
+ */
+function stopTouchContextMenu(event: React.MouseEvent) {
+  if ((event.nativeEvent as PointerEvent).pointerType === 'touch') event.stopPropagation();
+}
+
 interface FolderDialogState {
   open: boolean;
   /** Set when renaming an existing folder. */
@@ -288,6 +298,7 @@ export function Desktop() {
                         pointerStart.current = { id: app.id, x: event.clientX, y: event.clientY, moved: false };
                         setSelected(app.id);
                       }}
+                      onContextMenu={stopTouchContextMenu}
                       onKeyDown={(event) => iconKeyDown(app.id, event)}
                       onSelect={() => { if (!pointerStart.current?.moved) setSelected(app.id); }}
                       onOpen={() => openApp(app.id)}
@@ -344,6 +355,7 @@ export function Desktop() {
                         pointerStart.current = { id: iconId, x: event.clientX, y: event.clientY, moved: false };
                         setSelected(iconId);
                       }}
+                      onContextMenu={stopTouchContextMenu}
                       onKeyDown={(event) => {
                         iconKeyDown(iconId, event);
                         if (event.defaultPrevented) return;

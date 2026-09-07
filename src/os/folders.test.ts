@@ -125,9 +125,9 @@ describe('persistence', () => {
   });
 
   it('scopes the storage key per user with an anonymous fallback', () => {
-    expect(folderStorageKey(null)).toBe('nostr:icon-layout');
-    expect(folderStorageKey(undefined)).toBe('nostr:icon-layout');
-    expect(folderStorageKey('abc123')).toBe('nostr:icon-layout:abc123');
+    expect(folderStorageKey(null)).toBe('nostr:folders');
+    expect(folderStorageKey(undefined)).toBe('nostr:folders');
+    expect(folderStorageKey('abc123')).toBe('nostr:folders:abc123');
   });
 
   it('round-trips a folder state through localStorage', () => {

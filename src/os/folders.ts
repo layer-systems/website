@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
-const BASE_STORAGE_KEY = 'nostr:icon-layout';
+// Separate from the icon positions key: folders persist per user, while the
+// anonymous positions layout keeps its pre-folders key for compatibility.
+const BASE_STORAGE_KEY = 'nostr:folders';
 const VERSION = 1;
 
 export const MAX_FOLDERS = 32;

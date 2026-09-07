@@ -47,6 +47,14 @@ import { MAX_FOLDERS, type Folder } from '@/os/folders';
 const MOBILE_DRAG_THRESHOLD = 8;
 
 /**
+ * Tile context menus nest inside nothing else on the home screen, but a
+ * long-press contextmenu event must never reach a surrounding menu.
+ */
+function stopTouchContextMenu(event: React.MouseEvent) {
+  if ((event.nativeEvent as PointerEvent).pointerType === 'touch') event.stopPropagation();
+}
+
+/**
  * On a phone the window metaphor only gets in the way, so the same apps and
  * the same window state are presented as a home screen plus one full-screen
  * app at a time.
@@ -424,6 +432,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
                   <button
                     type="button"
                     onClick={() => onOpen(app.id)}
+                    onContextMenu={stopTouchContextMenu}
                     className="flex flex-col items-center gap-2 rounded-xl p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-95"
                   >
                     <span className="flex size-14 items-center justify-center rounded-2xl border border-os-window-border bg-background shadow-sm">
@@ -496,6 +505,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
                     if (event.button !== 0) return;
                     dragStart.current = { id: entry.id, x: event.clientX, y: event.clientY, moved: false };
                   }}
+                  onContextMenu={stopTouchContextMenu}
                   onClick={() => {
                     if (suppressClick.current) {
                       suppressClick.current = false;
@@ -517,33 +527,33 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
           ) : (
             <ContextMenu key={entry.id}>
               <ContextMenuTrigger asChild>
-                <span data-home-icon-id={entry.id} className="contents">
-                  <FolderVisual
-                    label={entry.folder.name}
-                    count={(folderContents.get(entry.folder.id) ?? []).length}
-                    badges={(folderContents.get(entry.folder.id) ?? []).slice(0, 3).map((app) => (
-                      <app.icon key={app.id} className="size-2.5 text-primary" />
-                    ))}
-                    selected={picked === entry.id}
-                    pickedUp={picked === entry.id}
-                    dragging={dragging === entry.id}
-                    dropTarget={target === entry.id && dragging !== entry.id}
-                    onPointerDown={(event) => {
-                      if (event.button !== 0) return;
-                      dragStart.current = { id: entry.id, x: event.clientX, y: event.clientY, moved: false };
-                    }}
-                    onSelect={() => {
-                      if (suppressClick.current) {
-                        suppressClick.current = false;
-                        return;
-                      }
-                      setOpenFolderId(entry.folder.id);
-                    }}
-                    onOpen={() => setOpenFolderId(entry.folder.id)}
-                    onKeyDown={(event) => onKeyDown(entry.id, event)}
-                    className={homeTileClass(entry.id)}
-                  />
-                </span>
+                <FolderVisual
+                  label={entry.folder.name}
+                  count={(folderContents.get(entry.folder.id) ?? []).length}
+                  badges={(folderContents.get(entry.folder.id) ?? []).slice(0, 3).map((app) => (
+                    <app.icon key={app.id} className="size-2.5 text-primary" />
+                  ))}
+                  selected={picked === entry.id}
+                  pickedUp={picked === entry.id}
+                  dragging={dragging === entry.id}
+                  dropTarget={target === entry.id && dragging !== entry.id}
+                  data-home-icon-id={entry.id}
+                  onPointerDown={(event) => {
+                    if (event.button !== 0) return;
+                    dragStart.current = { id: entry.id, x: event.clientX, y: event.clientY, moved: false };
+                  }}
+                  onContextMenu={stopTouchContextMenu}
+                  onSelect={() => {
+                    if (suppressClick.current) {
+                      suppressClick.current = false;
+                      return;
+                    }
+                    setOpenFolderId(entry.folder.id);
+                  }}
+                  onOpen={() => setOpenFolderId(entry.folder.id)}
+                  onKeyDown={(event) => onKeyDown(entry.id, event)}
+                  className={homeTileClass(entry.id)}
+                />
               </ContextMenuTrigger>
               <ContextMenuContent className="w-56">
                 <ContextMenuItem onSelect={() => setOpenFolderId(entry.folder.id)}>Open</ContextMenuItem>

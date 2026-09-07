@@ -33,8 +33,6 @@ const LayoutSchema = z.object({
   version: z.literal(VERSION),
   desktop: z.array(SlotSchema).max(250),
   mobile: z.array(z.string().min(1)).max(250),
-  // Pre-folders saves have no `folders` field; it defaults to empty.
-  folders: z.unknown().optional(),
 });
 
 function firstFree(occupied: Set<string>, geometry: GridGeometry): Omit<DesktopSlot, 'id'> {

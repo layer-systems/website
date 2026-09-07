@@ -13,6 +13,8 @@ export interface FolderVisualProps {
   onSelect: () => void;
   onOpen: () => void;
   onPointerDown?: (event: React.PointerEvent<HTMLButtonElement>) => void;
+  /** Stops long-press context menus from bubbling to the desktop surface. */
+  onContextMenu?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
   tabIndex?: number;
   dragging?: boolean;
@@ -21,6 +23,8 @@ export interface FolderVisualProps {
   dropTarget?: boolean;
   style?: CSSProperties;
   className?: string;
+  /** Hit-target id used by drag-and-drop on the home screen. */
+  'data-home-icon-id'?: string;
 }
 
 /**
@@ -35,6 +39,7 @@ export function FolderVisual({
   onSelect,
   onOpen,
   onPointerDown,
+  onContextMenu,
   onKeyDown,
   tabIndex,
   dragging,
@@ -42,13 +47,16 @@ export function FolderVisual({
   dropTarget,
   style,
   className,
+  'data-home-icon-id': homeIconId,
 }: FolderVisualProps) {
   return (
     <button
       type="button"
       tabIndex={tabIndex}
       style={style}
+      data-home-icon-id={homeIconId}
       onPointerDown={onPointerDown}
+      onContextMenu={onContextMenu}
       onClick={onSelect}
       onDoubleClick={onOpen}
       onKeyDown={onKeyDown}
