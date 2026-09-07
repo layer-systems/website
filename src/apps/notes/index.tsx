@@ -218,12 +218,29 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
               conflict.
             </p>
             {orphaned.map((node) => (
-              <NoteCard
-                key={node.event.id}
-                event={node.event}
-                onReply={user ? setReplyTarget : undefined}
-                replyOpen={node.event.id === replyTarget?.id}
-              />
+              <div key={node.event.id}>
+                <NoteCard
+                  event={node.event}
+                  onReply={user ? setReplyTarget : undefined}
+                  replyOpen={node.event.id === replyTarget?.id}
+                />
+                {node.event.id === replyTarget?.id && composer}
+                {node.children.length > 0 && (
+                  // The orphan's own replies resolved against it fine, so they
+                  // stay nested beneath it even though it sits apart.
+                  <div className="border-l-2 border-border/70 pl-2 ml-8 sm:pl-3">
+                    {node.children.map((child) => (
+                      <OrphanBranch
+                        key={child.event.id}
+                        node={child}
+                        onReply={user ? setReplyTarget : undefined}
+                        composer={composer}
+                        replyTargetId={replyTarget?.id}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </section>
         )}
@@ -257,6 +274,44 @@ function ReplyingToBar({
 function AuthorName({ pubkey }: { pubkey: string }) {
   const author = useAuthor(pubkey);
   return <span className="font-medium text-foreground">{displayName(pubkey, author.data?.metadata)}</span>;
+}
+
+/** A well-placed sub-branch beneath an orphaned note (no tree roles — the orphan sits outside the tree). */
+function OrphanBranch({
+  node,
+  onReply,
+  composer,
+  replyTargetId,
+}: {
+  node: ReplyNode;
+  onReply?: (event: NostrEvent) => void;
+  composer?: React.ReactNode;
+  replyTargetId?: string;
+}) {
+  return (
+    <div>
+      {node.parentPubkey && (
+        <p className="pt-2 pl-11 text-xs text-muted-foreground">
+          Replying to <AuthorName pubkey={node.parentPubkey} />
+        </p>
+      )}
+      <NoteCard event={node.event} onReply={onReply} replyOpen={node.event.id === replyTargetId} />
+      {node.event.id === replyTargetId && composer}
+      {node.children.length > 0 && (
+        <div className="border-l-2 border-border/70 pl-2 ml-8 sm:pl-3">
+          {node.children.map((child) => (
+            <OrphanBranch
+              key={child.event.id}
+              node={child}
+              onReply={onReply}
+              composer={composer}
+              replyTargetId={replyTargetId}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** One reply and its children, nested with a thread line. */
