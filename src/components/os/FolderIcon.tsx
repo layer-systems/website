@@ -25,6 +25,8 @@ export interface FolderVisualProps {
   className?: string;
   /** Hit-target id used by drag-and-drop on the home screen. */
   'data-home-icon-id'?: string;
+  /** id of the live region announcing pick-up/move status; differs between desktop and mobile. */
+  statusId?: string;
 }
 
 /**
@@ -48,6 +50,7 @@ export function FolderVisual({
   style,
   className,
   'data-home-icon-id': homeIconId,
+  statusId = 'icon-layout-status',
 }: FolderVisualProps) {
   return (
     <button
@@ -62,7 +65,7 @@ export function FolderVisual({
       onKeyDown={onKeyDown}
       aria-label={`${label} — folder with ${count} ${count === 1 ? 'app' : 'apps'}`}
       aria-pressed={pickedUp || undefined}
-      aria-describedby={pickedUp ? 'icon-layout-status' : undefined}
+      aria-describedby={pickedUp ? statusId : undefined}
       className={cn(
         'group flex w-20 flex-col items-center gap-1.5 rounded-lg p-2 text-center transition-[background-color,transform,box-shadow] motion-reduce:transition-none',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',

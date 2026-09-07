@@ -51,11 +51,14 @@ export function folderNameTaken(folders: Folder[], name: string, excludeId?: str
   return folders.some((folder) => folder.id !== excludeId && folder.name.toLowerCase() === needle);
 }
 
+const MAX_MEMBERSHIP = 500;
+
 /** Drops assignments to folders/apps that no longer exist and dedupes folder ids. */
 export function reconcileFolderState(state: FolderState, appIds: string[]): FolderState {
   const seen = new Set<string>();
   const folders: Folder[] = [];
   for (const folder of state.folders) {
+    if (folders.length >= MAX_FOLDERS) break;
     if (seen.has(folder.id)) continue;
     const name = normalizeFolderName(folder.name);
     if (!name) continue;
@@ -66,6 +69,7 @@ export function reconcileFolderState(state: FolderState, appIds: string[]): Fold
   const knownApps = new Set(appIds);
   const membership: Record<string, string> = {};
   for (const [appId, folderId] of Object.entries(state.membership)) {
+    if (Object.keys(membership).length >= MAX_MEMBERSHIP) break;
     if (eligible.has(folderId) && knownApps.has(appId)) membership[appId] = folderId;
   }
   return { folders, membership };
@@ -79,7 +83,12 @@ export function createFolderId(): string {
 }
 
 export function addFolder(state: FolderState, name: string): { state: FolderState; folder: Folder } {
-  const folder = { id: createFolderId(), name };
+  return addFolderWithId(state, createFolderId(), name);
+}
+
+/** Pure variant of {@link addFolder} for callers that must mint the id up front. */
+export function addFolderWithId(state: FolderState, id: string, name: string): { state: FolderState; folder: Folder } {
+  const folder = { id, name };
   return { state: { ...state, folders: [...state.folders, folder] }, folder };
 }
 

@@ -177,16 +177,16 @@ export function Desktop() {
     setCandidate(cellAt(event.clientX, event.clientY));
     // Dragging an app over a folder icon highlights it as a drop target.
     if (!active.id.startsWith(FOLDER_ID_PREFIX)) {
-      const hit = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-icon-id]');
-      const over = hit?.dataset.iconId;
+      const hit = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-icon-id], [data-home-icon-id]');
+      const over = hit?.dataset.iconId ?? hit?.dataset.homeIconId;
       setDropFolder(over?.startsWith(FOLDER_ID_PREFIX) && over !== active.id ? over : null);
     }
   }, [cellAt]);
   const finishPointer = useCallback((event: PointerEvent) => {
     const active = pointerStart.current;
     if (active?.moved) {
-      const hit = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-icon-id]');
-      const over = hit?.dataset.iconId;
+      const hit = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-icon-id], [data-home-icon-id]');
+      const over = hit?.dataset.iconId ?? hit?.dataset.homeIconId;
       if (!active.id.startsWith(FOLDER_ID_PREFIX) && over?.startsWith(FOLDER_ID_PREFIX) && over !== active.id) {
         moveToFolder(active.id, over.slice(FOLDER_ID_PREFIX.length));
       } else {
@@ -354,6 +354,7 @@ export function Desktop() {
                       dragging={dragging === iconId}
                       pickedUp={picked === iconId}
                       dropTarget={dropFolder === iconId}
+                      data-home-icon-id={iconId}
                       tabIndex={0}
                       style={{ position: 'absolute', left: SURFACE_PADDING + displaySlot.col * CELL_WIDTH, top: SURFACE_PADDING + displaySlot.row * CELL_HEIGHT, zIndex: dragging === iconId ? 2 : 1 }}
                       onPointerDown={(event) => {

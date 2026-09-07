@@ -237,6 +237,12 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
     setAppFolder(appId, folderId);
     setAnnouncement(`${entryLabel(appId)} moved into folder ${folderTitle(folderId) ?? folderId}.`);
   };
+  // Kept current every render so the pointer-listeners effect below can call
+  // the latest labeling logic without re-arming its global listeners.
+  const moveToFolderRef = useRef(moveToFolder);
+  useEffect(() => {
+    moveToFolderRef.current = moveToFolder;
+  });
 
   const removeFromFolder = (appId: string) => {
     setAppFolder(appId, null);
@@ -291,7 +297,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
         suppressClick.current = true;
         const over = targetRef.current;
         if (!active.id.startsWith(FOLDER_ID_PREFIX) && over?.startsWith(FOLDER_ID_PREFIX)) {
-          moveToFolder(active.id, over.slice(FOLDER_ID_PREFIX.length));
+          moveToFolderRef.current(active.id, over.slice(FOLDER_ID_PREFIX.length));
         } else {
           reorder(active.id, over && over !== active.id ? over : null);
         }
@@ -309,7 +315,6 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
       window.removeEventListener('pointerup', onEnd);
       window.removeEventListener('pointercancel', onEnd);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- moveToFolder is a plain function (the compiler refuses a useCallback here); listing it would re-arm the global listeners every render
   }, [reorder]);
 
   const onKeyDown = (id: string, event: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -544,6 +549,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
                   dragging={dragging === entry.id}
                   dropTarget={target === entry.id && dragging !== entry.id}
                   data-home-icon-id={entry.id}
+                  statusId="mobile-icon-layout-status"
                   onPointerDown={(event) => {
                     if (event.button !== 0) return;
                     dragStart.current = { id: entry.id, x: event.clientX, y: event.clientY, moved: false };

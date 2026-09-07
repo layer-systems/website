@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import {
   EMPTY_FOLDERS,
-  addFolder,
+  addFolderWithId,
   clearFolderState,
+  createFolderId,
   loadFolderState,
   reconcileFolderState,
   removeFolder,
@@ -62,15 +63,10 @@ export function useFolders(appIds: string[]) {
   }, [stableIds]);
 
   const createFolder = useCallback((name: string): string => {
-    // The updater runs during the setState re-render, so the id has to be
-    // minted inside it — capturing it beforehand could give callers an id
-    // that a concurrent update (or a React strict-mode retry) dropped.
-    let id = '';
-    update((current) => {
-      const added = addFolder(current, name);
-      id = added.folder.id;
-      return added.state;
-    });
+    // Mint the id up front so the updater stays pure (no side effects, safe
+    // to call more than once, e.g. under strict-mode double-invocation).
+    const id = createFolderId();
+    update((current) => addFolderWithId(current, id, name).state);
     return id;
   }, [update]);
 
