@@ -29,6 +29,7 @@ export interface PublicationRecord {
   identifier: string;
   /** Addressable coordinate (`30023:<pubkey>:<identifier>`). */
   address: string;
+  /** Unix timestamp in seconds from the Nostr `published_at` or `created_at` tag. */
   publishedAt: number;
   /** Title the snapshot was published under. */
   title: string;

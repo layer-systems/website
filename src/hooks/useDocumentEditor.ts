@@ -3,6 +3,8 @@ import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
 import { TableKit } from '@tiptap/extension-table';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import { Placeholder } from '@tiptap/extensions';
 import type { Editor } from '@tiptap/core';
 import type * as Y from 'yjs';
@@ -133,6 +135,8 @@ export function useDocumentEditor({
         }),
         ...(sessionDoc ? [Collaboration.configure({ document: sessionDoc })] : []),
         TableKit.configure({ table: { resizable: false } }),
+        TaskList,
+        TaskItem,
         Placeholder.configure({ placeholder: 'Start writing…' }),
       ],
       editorProps: {

@@ -21,12 +21,49 @@ function isValidMeta(value: unknown): value is DocumentMeta {
     meta.id.length > 0 &&
     typeof meta.title === 'string' &&
     typeof meta.createdAt === 'number' &&
-    typeof meta.updatedAt === 'number'
+    typeof meta.updatedAt === 'number' &&
+    typeof meta.savedAt === 'number' &&
+    (meta.role === 'owner' ||
+      meta.role === 'editor' ||
+      meta.role === 'commenter' ||
+      meta.role === 'viewer') &&
+    typeof meta.archived === 'boolean' &&
+    Array.isArray(meta.attachments) &&
+    meta.attachments.every(isValidAttachment) &&
+    (meta.publication === undefined || isValidPublication(meta.publication))
+  );
+}
+
+function isValidAttachment(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) return false;
+  const attachment = value as Record<string, unknown>;
+  return (
+    typeof attachment.url === 'string' &&
+    (attachment.mimeType === undefined || typeof attachment.mimeType === 'string') &&
+    (attachment.sha256 === undefined || typeof attachment.sha256 === 'string') &&
+    (attachment.size === undefined || typeof attachment.size === 'number')
+  );
+}
+
+function isValidPublication(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) return false;
+  const publication = value as Record<string, unknown>;
+  return (
+    typeof publication.eventId === 'string' &&
+    typeof publication.identifier === 'string' &&
+    typeof publication.address === 'string' &&
+    typeof publication.publishedAt === 'number' &&
+    typeof publication.title === 'string'
   );
 }
 
 function parseIndex(raw: string): DocumentIndex {
-  const parsed: unknown = JSON.parse(raw);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return emptyIndex();
+  }
   if (typeof parsed !== 'object' || parsed === null) return emptyIndex();
   const documents = (parsed as Record<string, unknown>).documents;
   if (!Array.isArray(documents)) return emptyIndex();
