@@ -14,6 +14,7 @@ import { useMutedPubkeys } from '@/hooks/useMuteList';
 import { cn } from '@/lib/utils';
 import { useWindowManager } from '@/os/useWindowManager';
 import { isReply } from '@/lib/nostrUtils';
+import { GENERIC_REPOST_KIND, REPOST_KIND } from '@/hooks/useReposts';
 import type { AppProps } from '@/os/types';
 
 type Scope = 'following' | 'global';
@@ -25,9 +26,14 @@ const PAGE_SIZE = 50;
  * happily return blanks and oddities, so the feed validates before it draws.
  * Replies (NIP-10 `e` tags) are excluded too: without their parent for
  * context they read as indistinguishable, orphaned root posts — open the
- * thread from the Note app instead.
+ * thread from the Note app instead. Reposts (kind 6/16) only need a valid
+ * `e` tag to point at what they're reposting; their `content` is optional
+ * per NIP-18, so it isn't part of this check.
  */
 function isRenderableNote(event: NostrEvent): boolean {
+  if (event.kind === REPOST_KIND || event.kind === GENERIC_REPOST_KIND) {
+    return event.tags.some(([name, value]) => name === 'e' && Boolean(value));
+  }
   return (
     event.kind === 1 &&
     typeof event.content === 'string' &&
@@ -43,10 +49,11 @@ function useFeed(scope: Scope, authors: string[] | undefined) {
     queryKey: ['nostr', 'feed', scope, scope === 'following' ? (authors ?? []).length : 0],
     enabled: scope === 'global' || Boolean(authors),
     queryFn: async ({ signal }) => {
+      const kinds = [1, REPOST_KIND, GENERIC_REPOST_KIND];
       const filter =
         scope === 'following'
-          ? { kinds: [1], authors: authors!.slice(0, 500), limit: PAGE_SIZE }
-          : { kinds: [1], limit: PAGE_SIZE };
+          ? { kinds, authors: authors!.slice(0, 500), limit: PAGE_SIZE }
+          : { kinds, limit: PAGE_SIZE };
 
       const events = await nostr.query([filter], {
         signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]),
