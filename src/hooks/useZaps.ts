@@ -12,13 +12,19 @@ function zapReceiptsQueryKey(eventId: string) {
   return ['nostr', 'zap-receipts', eventId] as const;
 }
 
-/** NIP-57 zap receipts (kind 9735) referencing `eventId`. */
-export function useZapReceipts(eventId: string | undefined, opts?: { refetchInterval?: number | false }) {
+/**
+ * NIP-57 zap receipts (kind 9735) referencing `eventId`. Pass `enabled: false`
+ * until the caller actually needs the total — a note list mounts one of these
+ * per row, and firing all of them unconditionally turns a page of notes into
+ * a page of relay queries (an N+1 pattern) before anyone's looked at any of
+ * them.
+ */
+export function useZapReceipts(eventId: string | undefined, opts?: { refetchInterval?: number | false; enabled?: boolean }) {
   const { nostr } = useNostr();
 
   return useQuery<NostrEvent[]>({
     queryKey: zapReceiptsQueryKey(eventId ?? ''),
-    enabled: Boolean(eventId),
+    enabled: Boolean(eventId) && (opts?.enabled ?? true),
     queryFn: async ({ signal }) => {
       const events = await nostr.query(
         [{ kinds: [ZAP_RECEIPT_KIND], '#e': [eventId!], limit: 500 }],
@@ -39,9 +45,12 @@ export interface ZapSummary {
 /**
  * Sums zap receipts defensively: a receipt only counts if it carries a
  * `bolt11` invoice and a `description` whose embedded zap request is a
- * well-formed, signature-valid Nostr event. Anything else — a malformed or
- * forged receipt a relay happens to serve back — is dropped rather than
- * inflating the total.
+ * well-formed, signature-valid Nostr event. That rules out garbage a relay
+ * happens to serve back — malformed data, or a request signature that
+ * doesn't check out — but it is not proof any payment actually happened.
+ * NIP-57 receipts are published by the recipient's own LNURL server, so
+ * trusting that a receipt means "paid" is inherent to the protocol; this
+ * validation only keeps structurally-invalid noise out of the total.
  */
 export function summarizeZapReceipts(events: NostrEvent[] | undefined): ZapSummary {
   const seen = new Set<string>();
@@ -65,6 +74,21 @@ export function summarizeZapReceipts(events: NostrEvent[] | undefined): ZapSumma
   }
 
   return { totalSats, count };
+}
+
+/**
+ * True if any signature-valid receipt among `events` pays exactly `invoice`.
+ * Used to confirm a specific manual payment — checking whether the note's
+ * receipt *count* went up is not enough, since anyone else zapping the same
+ * note while the payer is waiting would also bump the count and falsely
+ * confirm a still-unpaid invoice.
+ */
+export function hasValidReceiptForInvoice(events: NostrEvent[] | undefined, invoice: string): boolean {
+  return (events ?? []).some((receipt) => {
+    const bolt11 = tagValue(receipt, 'bolt11');
+    const description = tagValue(receipt, 'description');
+    return bolt11 === invoice && Boolean(description) && nip57.validateZapRequest(description!) === null;
+  });
 }
 
 /** "1.2K" for 1234 — compact, locale-aware, and never wraps a note's action row. */

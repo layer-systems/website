@@ -37,8 +37,12 @@ export function parseNwcUri(uri: string): NwcConnection {
   if (!HEX_64.test(parsed.pubkey) || !HEX_64.test(parsed.secret)) {
     throw new Error('That Wallet Connect link is missing a valid key.');
   }
-  if (!parsed.relay.startsWith('wss://') && !parsed.relay.startsWith('ws://')) {
-    throw new Error('That Wallet Connect link has an invalid relay.');
+  // wss:// only: every request to the wallet is signed by `secret` (a private
+  // key) and, even though the payload is encrypted, an unencrypted `ws://`
+  // transport still leaks metadata about the connection (who you're paying,
+  // when, how often) to anyone on the network path, and admits tampering.
+  if (!parsed.relay.startsWith('wss://')) {
+    throw new Error('That Wallet Connect link must use a wss:// relay.');
   }
 
   return { pubkey: parsed.pubkey.toLowerCase(), relay: parsed.relay, secret: parsed.secret.toLowerCase() };

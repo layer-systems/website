@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MessageSquare, Repeat2 } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
@@ -26,6 +27,10 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
   const { openApp } = useWindowManager();
   const { toast } = useToast();
   const hints = useRelayHints();
+  // Tracks the same interaction that reveals the action row via CSS
+  // (`group-hover`/`focus-within`), so `ZapButton` can defer its relay query
+  // until this note is actually looked at instead of firing on every mount.
+  const [revealed, setRevealed] = useState(false);
 
   const copyLink = async () => {
     try {
@@ -45,6 +50,8 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
         'group border-b border-border px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/40',
         className,
       )}
+      onMouseEnter={() => setRevealed(true)}
+      onFocus={() => setRevealed(true)}
     >
       <AuthorLine pubkey={event.pubkey} createdAt={event.created_at} />
 
@@ -71,7 +78,7 @@ export function NoteCard({ event, compact, className }: NoteCardProps) {
               <Repeat2 className="size-3.5" aria-hidden />
               Copy link
             </Button>
-            <ZapButton target={event} />
+            <ZapButton target={event} revealed={revealed} />
             <BookmarkButton target={{ type: 'e', value: event.id }} />
           </div>
         )}

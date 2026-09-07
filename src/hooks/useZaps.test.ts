@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { finalizeEvent, generateSecretKey, getPublicKey, nip57 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
-import { summarizeZapReceipts, formatSats } from './useZaps';
+import { summarizeZapReceipts, hasValidReceiptForInvoice, formatSats } from './useZaps';
 
 const targetId = 'a'.repeat(64);
 // A syntactically valid-enough bolt11 for getSatoshisAmountFromBolt11: "lnbc"
@@ -85,5 +85,28 @@ describe('summarizeZapReceipts', () => {
     const single = receipt({ id: 'dup' });
     const summary = summarizeZapReceipts([single, single]);
     expect(summary.count).toBe(1);
+  });
+});
+
+describe('hasValidReceiptForInvoice', () => {
+  const MY_INVOICE = `lnbc210n1${'q'.repeat(45)}`;
+
+  it('returns false for no receipts', () => {
+    expect(hasValidReceiptForInvoice(undefined, MY_INVOICE)).toBe(false);
+  });
+
+  it('matches a valid receipt paying the exact invoice', () => {
+    const mine = receipt({ id: '1', tags: [['e', targetId], ['bolt11', MY_INVOICE], ['description', signedZapRequest(21_000).json]] });
+    expect(hasValidReceiptForInvoice([mine], MY_INVOICE)).toBe(true);
+  });
+
+  it('ignores a receipt for a different invoice — someone else zapping the same note must not confirm this payment', () => {
+    const someoneElses = receipt({ id: '1' }); // uses the default FAKE_BOLT11, not MY_INVOICE
+    expect(hasValidReceiptForInvoice([someoneElses], MY_INVOICE)).toBe(false);
+  });
+
+  it('ignores a receipt matching the invoice but with an invalid description', () => {
+    const forged = receipt({ id: '1', tags: [['e', targetId], ['bolt11', MY_INVOICE], ['description', 'not json']] });
+    expect(hasValidReceiptForInvoice([forged], MY_INVOICE)).toBe(false);
   });
 });

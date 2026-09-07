@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { QRCodeCanvas } from '@/components/ui/qrcode';
 import { useToast } from '@/hooks/useToast';
-import { useCreateZapInvoice, useZapReceipts, summarizeZapReceipts, formatSats } from '@/hooks/useZaps';
+import { useCreateZapInvoice, useZapReceipts, hasValidReceiptForInvoice, formatSats } from '@/hooks/useZaps';
 import { useNwcConnection, usePayWithNwc } from '@/hooks/useNwc';
 import { cn } from '@/lib/utils';
 
@@ -38,14 +38,15 @@ export function ZapDialog({ open, onClose, target, recipientMetadata, recipientM
   const [invoice, setInvoice] = useState<string | null>(null);
   const [amountSats, setAmountSats] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
-  const [receiptBaseline, setReceiptBaseline] = useState(0);
 
   // Re-fetched on an interval only while this dialog is showing an unpaid
   // manual invoice. Whether that now means "paid" is derived at render time
   // below instead of copied into state, so there is nothing to keep in sync
-  // by hand.
+  // by hand. Matched against the specific invoice, not just a receipt-count
+  // increase — someone else zapping the same note while this dialog waits
+  // must not be mistaken for this payment completing.
   const receipts = useZapReceipts(target.id, { refetchInterval: stage === 'manual' ? 4_000 : false });
-  const manualPaymentConfirmed = stage === 'manual' && summarizeZapReceipts(receipts.data).count > receiptBaseline;
+  const manualPaymentConfirmed = stage === 'manual' && invoice !== null && hasValidReceiptForInvoice(receipts.data, invoice);
   const effectiveStage: Stage = manualPaymentConfirmed ? 'paid' : stage;
 
   const resolvedAmount = customAmount.trim() ? Number(customAmount) : amount;
@@ -57,9 +58,6 @@ export function ZapDialog({ open, onClose, target, recipientMetadata, recipientM
     setErrorMessage('');
 
     try {
-      const { count } = summarizeZapReceipts(receipts.data);
-      setReceiptBaseline(count);
-
       const result = await createInvoice.mutateAsync({
         target,
         recipientMetadata,

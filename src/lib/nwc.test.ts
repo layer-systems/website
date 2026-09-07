@@ -39,6 +39,11 @@ describe('parseNwcUri', () => {
     expect(() => parseNwcUri(uri)).toThrow();
   });
 
+  it('rejects a plaintext ws:// relay', () => {
+    const uri = `nostr+walletconnect://${PUBKEY}?relay=ws%3A%2F%2Frelay.example.com&secret=${SECRET}`;
+    expect(() => parseNwcUri(uri)).toThrow();
+  });
+
   it('lowercases hex fields', () => {
     const uri = `nostr+walletconnect://${PUBKEY.toUpperCase()}?relay=wss%3A%2F%2Frelay.example.com&secret=${SECRET.toUpperCase()}`;
     const connection = parseNwcUri(uri);
