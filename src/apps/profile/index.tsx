@@ -1,6 +1,6 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useNostr } from '@nostrify/react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Check, Copy, Globe, Loader2, UserMinus, UserPlus } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { AppBody, AppLayout, AppToolbar, EmptyState } from '@/components/os/AppChrome';
@@ -12,8 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useMyFollows } from '@/hooks/useFollows';
-import { useNostrPublish } from '@/hooks/useNostrPublish';
+import { useMyFollows, useToggleFollow } from '@/hooks/useFollows';
 import { useToast } from '@/hooks/useToast';
 import { decodeRelayHints, displayName, isReply, npubOf, sanitizeUrl } from '@/lib/nostrUtils';
 import type { AppProps } from '@/os/types';
@@ -167,32 +166,23 @@ function CopyNpubButton({ pubkey }: { pubkey: string }) {
 }
 
 /**
- * Follows are a whole-list replacement (kind 3), so the current list has to be
- * read back before writing or the edit would silently drop everyone else.
+ * Follows are a whole-list replacement (kind 3). The toggle itself lives in
+ * `useToggleFollow`; this button only reflects the cached list and toasts.
  */
 function FollowButton({ pubkey }: { pubkey: string }) {
   const { user } = useCurrentUser();
-  const myFollows = useMyFollows();
-  const publish = useNostrPublish();
-  const queryClient = useQueryClient();
+  const { data: follows } = useMyFollows();
+  const toggleFollow = useToggleFollow();
   const { toast } = useToast();
 
-  const follows = useMemo(() => myFollows.data ?? [], [myFollows.data]);
-  const isFollowing = follows.includes(pubkey);
+  const isFollowing = (follows ?? []).includes(pubkey);
   const isSelf = user?.pubkey === pubkey;
 
   if (!user || isSelf) return null;
 
   const toggle = async () => {
-    const next = isFollowing ? follows.filter((key) => key !== pubkey) : [...follows, pubkey];
-
     try {
-      await publish.mutateAsync({
-        kind: 3,
-        content: '',
-        tags: next.map((key) => ['p', key]),
-      });
-      await queryClient.invalidateQueries({ queryKey: ['nostr', 'follows'] });
+      await toggleFollow.mutateAsync(pubkey);
       toast({ title: isFollowing ? 'Unfollowed' : 'Following' });
     } catch (error) {
       toast({
@@ -209,9 +199,9 @@ function FollowButton({ pubkey }: { pubkey: string }) {
       variant={isFollowing ? 'outline' : 'default'}
       className="h-7 gap-1.5 px-2.5 text-xs"
       onClick={toggle}
-      disabled={publish.isPending || myFollows.isLoading}
+      disabled={toggleFollow.isPending}
     >
-      {publish.isPending ? (
+      {toggleFollow.isPending ? (
         <Loader2 className="size-3.5 animate-spin" aria-hidden />
       ) : isFollowing ? (
         <UserMinus className="size-3.5" aria-hidden />
