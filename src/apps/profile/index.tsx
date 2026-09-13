@@ -1,7 +1,7 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useNostr } from '@nostrify/react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Copy, Globe, Loader2, UserMinus, UserPlus } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Check, Copy, Globe } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { AppBody, AppLayout, AppToolbar, EmptyState } from '@/components/os/AppChrome';
 import { ModerationMenu } from '@/components/nostr/ModerationMenu';
@@ -12,8 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useMyFollows } from '@/hooks/useFollows';
-import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { decodeRelayHints, displayName, isReply, npubOf, sanitizeUrl } from '@/lib/nostrUtils';
 import type { AppProps } from '@/os/types';
@@ -74,7 +72,6 @@ export default function ProfileApp({ params, setTitle }: AppProps) {
         <span className="truncate text-[13px] font-medium">{name}</span>
         <div className="ml-auto flex items-center gap-1.5">
           <CopyNpubButton pubkey={pubkey} />
-          <FollowButton pubkey={pubkey} />
           <ModerationMenu pubkey={pubkey} />
         </div>
       </AppToolbar>
@@ -162,63 +159,6 @@ function CopyNpubButton({ pubkey }: { pubkey: string }) {
     >
       <Copy className="size-3.5" aria-hidden />
       npub
-    </Button>
-  );
-}
-
-/**
- * Follows are a whole-list replacement (kind 3), so the current list has to be
- * read back before writing or the edit would silently drop everyone else.
- */
-function FollowButton({ pubkey }: { pubkey: string }) {
-  const { user } = useCurrentUser();
-  const myFollows = useMyFollows();
-  const publish = useNostrPublish();
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  const follows = useMemo(() => myFollows.data ?? [], [myFollows.data]);
-  const isFollowing = follows.includes(pubkey);
-  const isSelf = user?.pubkey === pubkey;
-
-  if (!user || isSelf) return null;
-
-  const toggle = async () => {
-    const next = isFollowing ? follows.filter((key) => key !== pubkey) : [...follows, pubkey];
-
-    try {
-      await publish.mutateAsync({
-        kind: 3,
-        content: '',
-        tags: next.map((key) => ['p', key]),
-      });
-      await queryClient.invalidateQueries({ queryKey: ['nostr', 'follows'] });
-      toast({ title: isFollowing ? 'Unfollowed' : 'Following' });
-    } catch (error) {
-      toast({
-        title: 'Could not update your follow list',
-        description: error instanceof Error ? error.message : undefined,
-        variant: 'destructive',
-      });
-    }
-  };
-
-  return (
-    <Button
-      size="sm"
-      variant={isFollowing ? 'outline' : 'default'}
-      className="h-7 gap-1.5 px-2.5 text-xs"
-      onClick={toggle}
-      disabled={publish.isPending || myFollows.isLoading}
-    >
-      {publish.isPending ? (
-        <Loader2 className="size-3.5 animate-spin" aria-hidden />
-      ) : isFollowing ? (
-        <UserMinus className="size-3.5" aria-hidden />
-      ) : (
-        <UserPlus className="size-3.5" aria-hidden />
-      )}
-      {isFollowing ? 'Following' : 'Follow'}
     </Button>
   );
 }
