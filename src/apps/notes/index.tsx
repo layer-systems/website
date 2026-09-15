@@ -9,12 +9,14 @@ import { NoteContent } from '@/components/nostr/NoteContent';
 import { NoteCard } from '@/components/nostr/NoteCard';
 import { ZapButton } from '@/components/nostr/ZapButton';
 import { ReactionButton } from '@/components/nostr/ReactionButton';
+import { RepostButton } from '@/components/nostr/RepostButton';
 import { Composer } from '@/apps/feed/Composer';
 import { DraftNote } from './Draft';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useNote } from '@/hooks/useNote';
 import {
   absoluteTime,
   buildReplyTree,
@@ -25,23 +27,6 @@ import {
 } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
 import type { AppProps } from '@/os/types';
-
-function useNote(id: string | undefined, relays: string[] | undefined) {
-  const { nostr } = useNostr();
-
-  return useQuery<NostrEvent | null>({
-    queryKey: ['nostr', 'note', id ?? '', relays?.join(',') ?? ''],
-    enabled: Boolean(id),
-    queryFn: async ({ signal }) => {
-      const [event] = await nostr.query([{ ids: [id!] }], {
-        signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]),
-        relays,
-      });
-      return event ?? null;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-}
 
 function useReplies(id: string | undefined, relays: string[] | undefined) {
   const { nostr } = useNostr();
@@ -186,6 +171,7 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
             <p className="text-xs text-muted-foreground">{absoluteTime(event.created_at)}</p>
             <ZapButton target={event} className="h-6" />
             <ReactionButton target={event} className="h-6" />
+            <RepostButton target={event} className="h-6" />
           </div>
         </div>
 
