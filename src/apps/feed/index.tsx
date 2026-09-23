@@ -1,22 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
-import { FileText, Globe, Loader2, Users } from 'lucide-react';
+import { FileText, Globe, List, Loader2, Users } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { AppBody, AppLayout, AppToolbar, EmptyState } from '@/components/os/AppChrome';
 import { NoteCard } from '@/components/nostr/NoteCard';
 import { Composer } from './Composer';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useMyFollowSets } from '@/hooks/useFollowSets';
 import { useMyFollows } from '@/hooks/useFollows';
 import { useMutedPubkeys } from '@/hooks/useMuteList';
-import { cn } from '@/lib/utils';
 import { useWindowManager } from '@/os/useWindowManager';
 import { isReply } from '@/lib/nostrUtils';
 import type { AppProps } from '@/os/types';
 
-type Scope = 'following' | 'global';
+/** `list:<d-tag>` selects one of the user's NIP-51 follow sets. */
+type Scope = 'following' | 'global' | `list:${string}`;
+
+const LIST_PREFIX = 'list:';
 
 const PAGE_SIZE = 50;
 
@@ -40,13 +53,13 @@ function useFeed(scope: Scope, authors: string[] | undefined) {
   const { nostr } = useNostr();
 
   return useQuery<NostrEvent[]>({
-    queryKey: ['nostr', 'feed', scope, scope === 'following' ? (authors ?? []).length : 0],
+    queryKey: ['nostr', 'feed', scope, scope === 'global' ? 0 : (authors ?? []).length],
     enabled: scope === 'global' || Boolean(authors),
     queryFn: async ({ signal }) => {
       const filter =
-        scope === 'following'
-          ? { kinds: [1], authors: authors!.slice(0, 500), limit: PAGE_SIZE }
-          : { kinds: [1], limit: PAGE_SIZE };
+        scope === 'global'
+          ? { kinds: [1], limit: PAGE_SIZE }
+          : { kinds: [1], authors: authors!.slice(0, 500), limit: PAGE_SIZE };
 
       const events = await nostr.query([filter], {
         signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]),
@@ -64,17 +77,32 @@ export default function FeedApp({ setTitle }: AppProps) {
   const { user } = useCurrentUser();
   const { openApp } = useWindowManager();
   const { data: follows } = useMyFollows();
+  const followSets = useMyFollowSets();
   const [requestedScope, setScope] = useState<Scope>('following');
 
-  // Signing out mid-session must not strand the user on an empty "Following"
-  // tab, so the effective scope is derived rather than corrected after render.
-  const scope: Scope = user ? requestedScope : 'global';
+  // Signing out mid-session (or deleting the selected list elsewhere) must not
+  // strand the user on an empty feed, so the effective scope is derived rather
+  // than corrected after render. While lists are still loading, a list scope is
+  // kept so the feed simply shows its skeleton.
+  const selectedList = requestedScope.startsWith(LIST_PREFIX)
+    ? followSets.data?.find((set) => set.identifier === requestedScope.slice(LIST_PREFIX.length))
+    : undefined;
+  const scope: Scope = !user
+    ? 'global'
+    : requestedScope.startsWith(LIST_PREFIX) && followSets.data && !selectedList
+      ? 'following'
+      : requestedScope;
+  const isList = scope.startsWith(LIST_PREFIX);
 
   useEffect(() => {
-    setTitle(scope === 'following' ? 'Feed — Following' : 'Feed — Global');
-  }, [scope, setTitle]);
+    const label = scope === 'following' ? 'Following' : scope === 'global' ? 'Global' : selectedList?.title ?? 'List';
+    setTitle(`Feed — ${label}`);
+  }, [scope, selectedList, setTitle]);
 
-  const authors = useMemo(() => follows ?? [], [follows]);
+  const authors = useMemo(
+    () => (isList ? selectedList?.pubkeys : follows ?? []),
+    [isList, selectedList, follows],
+  );
   const query = useFeed(scope, user ? authors : undefined);
   const mutedPubkeys = useMutedPubkeys();
   const visibleNotes = useMemo(
@@ -82,25 +110,49 @@ export default function FeedApp({ setTitle }: AppProps) {
     [query.data, mutedPubkeys],
   );
 
-  const hasNoFollows = scope === 'following' && authors.length === 0 && !query.isLoading;
+  const hasNoFollows = scope === 'following' && (authors ?? []).length === 0 && !query.isLoading;
   const allMuted = (query.data?.length ?? 0) > 0 && visibleNotes.length === 0;
 
   return (
     <AppLayout>
       <AppToolbar className="gap-1">
-        <ScopeTab
-          active={scope === 'following'}
-          disabled={!user}
-          onClick={() => setScope('following')}
-          icon={<Users className="size-3.5" aria-hidden />}
-          label="Following"
-        />
-        <ScopeTab
-          active={scope === 'global'}
-          onClick={() => setScope('global')}
-          icon={<Globe className="size-3.5" aria-hidden />}
-          label="Global"
-        />
+        <Select value={scope} onValueChange={(value) => setScope(value as Scope)}>
+          <SelectTrigger size="sm" className="h-7 max-w-56 gap-1.5 px-2.5 text-[13px] font-medium" aria-label="Feed source">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent position="popper" align="start" className="max-w-72">
+            <SelectItem value="following" disabled={!user}>
+              <Users className="size-3.5" aria-hidden />
+              Following
+            </SelectItem>
+            <SelectItem value="global">
+              <Globe className="size-3.5" aria-hidden />
+              Global
+            </SelectItem>
+            {user && (followSets.data?.length ?? 0) > 0 && (
+              <>
+                <SelectSeparator />
+                <SelectGroup>
+                  <SelectLabel>Your lists</SelectLabel>
+                  {followSets.data!.map((set) => (
+                    <SelectItem key={set.identifier} value={`${LIST_PREFIX}${set.identifier}`}>
+                      <List className="size-3.5" aria-hidden />
+                      <span className="truncate">{set.title}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums in-data-[slot=select-value]:hidden">{set.pubkeys.length}</span>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </>
+            )}
+            {/* Keeps the trigger labelled while a previously chosen list is still loading. */}
+            {isList && !selectedList && (
+              <SelectItem value={scope} disabled>
+                <List className="size-3.5" aria-hidden />
+                Loading list…
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
         <div className="ml-auto flex items-center gap-2">
           {query.isFetching && <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-hidden />}
           <Button
@@ -159,38 +211,6 @@ export default function FeedApp({ setTitle }: AppProps) {
         )}
       </AppBody>
     </AppLayout>
-  );
-}
-
-function ScopeTab({
-  active,
-  disabled,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={active}
-      className={cn(
-        'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[13px] font-medium transition-colors',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-        'disabled:cursor-not-allowed disabled:opacity-40',
-        active ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-muted',
-      )}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }
 
