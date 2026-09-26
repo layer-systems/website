@@ -55,3 +55,20 @@ export function mineChunk(
 export function expectedHashes(difficulty: number): number {
   return 2 ** difficulty;
 }
+
+/** Below this, a note's leading zero bits are as likely luck as effort. */
+export const POW_DISPLAY_THRESHOLD = 8;
+
+/**
+ * The proof of work an event actually carries, per NIP-13: the id's leading
+ * zero bits, capped at the committed target in its `nonce` tag so a lucky
+ * hash doesn't count as extra work. Events without a `nonce` tag score 0 —
+ * the id is what can't be faked, the tag is only a claim.
+ */
+export function eventPow(event: { id: string; tags: string[][] }): number {
+  const nonce = event.tags.findLast(([name]) => name === 'nonce');
+  if (!nonce) return 0;
+  const actual = getPow(event.id);
+  const target = Number.parseInt(nonce[2] ?? '', 10);
+  return Number.isFinite(target) && target >= 0 ? Math.min(actual, target) : actual;
+}
