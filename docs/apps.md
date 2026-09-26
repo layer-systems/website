@@ -100,6 +100,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Bookmarks | `bookmarks` | — | NIP-51 kind 10003 list — bookmarked notes and articles |
 | Web Bookmarks | `web-bookmarks` | — | NIP-B0 kind 39701 — one addressable event per saved URL |
 | Live | `live` | `pubkey?`, `identifier?` | NIP-53 kind 30311 live events + kind 1311 chat |
+| Music | `music` | `kind?`, `pubkey?`, `identifier?`, `relays?`, `view?` | Kind 31337 tracks, kind 30004 playlists, shared player and Blossom publishing |
 | Spells | `spells` | `id?` | Saved/shareable REQ filters — kind 777, a third-party draft NIP |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Relay Admin | `relay-admin` | `relay?` | NIP-86 management console for relays you operate |

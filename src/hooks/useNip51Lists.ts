@@ -95,8 +95,12 @@ async function fetchLatestEvent(
   kind: number,
   identifier: string | undefined,
   signal?: AbortSignal,
+  relays?: string[],
 ): Promise<NostrEvent | undefined> {
-  const events = await nostr.query([listFilter(pubkey, kind, identifier)], { signal: timeout(signal) });
+  const events = await nostr.query([listFilter(pubkey, kind, identifier)], {
+    signal: timeout(signal),
+    ...(relays?.length ? { relays } : {}),
+  });
   return newestPerList(
     events.filter((event) => event.kind === kind && eventIdentifier(event) === (isSetKind(kind) ? (identifier ?? '') : undefined)),
     pubkey,
@@ -139,16 +143,19 @@ export function useNip51List<T = Nip51List>(
   kind: number,
   identifier?: string,
   select?: (list: Nip51List) => T,
+  relays?: string[],
 ) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const owner = Boolean(user && user.pubkey === pubkey);
 
   return useQuery<Nip51List, Error, T>({
-    queryKey: nip51ListKey(pubkey ?? '', kind, identifier, owner),
+    queryKey: relays?.length
+      ? [...nip51ListKey(pubkey ?? '', kind, identifier, owner), relays.join(',')]
+      : nip51ListKey(pubkey ?? '', kind, identifier, owner),
     enabled: Boolean(pubkey),
     queryFn: async ({ signal }) => {
-      const event = await fetchLatestEvent(nostr, pubkey!, kind, identifier, signal);
+      const event = await fetchLatestEvent(nostr, pubkey!, kind, identifier, signal, relays);
       return event ? parseWithDecryption(event, owner ? user : undefined) : emptyList(kind, pubkey!, identifier);
     },
     select,

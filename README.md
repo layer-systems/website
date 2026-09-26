@@ -15,6 +15,7 @@ TypeScript.
 - View profiles, follow or unfollow people, and search notes, replies, hashtags, and users.
 - Read NIP-23 long-form articles, save notes and articles, and create web bookmarks.
 - Discover picture posts and view live events with their NIP-53 chat.
+- Discover, play, publish, and collect music tracks and playlists on Nostr.
 - Browse Nostr calendar events by month.
 - Manage relay connections, inspect connection latency, and configure relays and Blossom
   media servers.
