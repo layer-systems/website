@@ -5,12 +5,14 @@ import { ImagePlus, Loader2, Search, X } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { AppBody, AppLayout, AppToolbar, EmptyState } from '@/components/os/AppChrome';
 import { AuthorLine } from '@/components/nostr/AuthorLine';
+import { FeedScopeSelect } from '@/components/nostr/FeedScopeSelect';
 import { Composer } from '@/apps/feed/Composer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { type FeedScopeState, useFeedScope } from '@/hooks/useFeedScope';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { useUploadFile } from '@/hooks/useUploadFile';
@@ -21,13 +23,16 @@ import type { AppProps } from '@/os/types';
 
 const PAGE_SIZE = 80;
 
-function usePictures(tag: string) {
+function usePictures({ authors, queryKey }: FeedScopeState, tag: string) {
   const { nostr } = useNostr();
   return useQuery<NostrEvent[]>({
-    queryKey: ['nostr', 'images', tag],
+    queryKey: ['nostr', 'images', ...queryKey, tag],
+    // Unresolved or empty author lists have nothing to ask relays for.
+    enabled: authors === null || (authors?.length ?? 0) > 0,
     queryFn: async ({ signal }) => {
       const events = await nostr.query([{
         kinds: [20],
+        ...(authors ? { authors } : {}),
         ...(tag ? { '#t': [tag] } : {}),
         limit: PAGE_SIZE,
       }], { signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]) });
@@ -73,13 +78,16 @@ export default function ImagesApp({ params, setParams, setTitle }: AppProps) {
   const selected = usePicture(params.id);
   const replies = useReplies(params.id);
 
-  useEffect(() => { setTitle(params.id ? 'Image' : 'Images'); }, [params.id, setTitle]);
+  const feedScope = useFeedScope('images:scope');
+
+  useEffect(() => { setTitle(params.id ? 'Image' : `Images — ${feedScope.label}`); }, [params.id, feedScope.label, setTitle]);
 
   if (params.id) {
     return <PictureDetail event={selected.data} loading={selected.isLoading} replies={replies.data ?? []} onBack={() => setParams({})} onRefresh={() => replies.refetch()} />;
   }
 
   return <PictureFeed
+    feedScope={feedScope}
     tag={tag}
     search={search}
     onTagChange={setTag}
@@ -88,11 +96,13 @@ export default function ImagesApp({ params, setParams, setTitle }: AppProps) {
   />;
 }
 
-function PictureFeed({ tag, search, onTagChange, onSearchChange, onOpen }: {
-  tag: string; search: string; onTagChange: (tag: string) => void; onSearchChange: (value: string) => void; onOpen: (id: string) => void;
+function PictureFeed({ feedScope, tag, search, onTagChange, onSearchChange, onOpen }: {
+  feedScope: FeedScopeState; tag: string; search: string; onTagChange: (tag: string) => void; onSearchChange: (value: string) => void; onOpen: (id: string) => void;
 }) {
   const { user } = useCurrentUser();
-  const query = usePictures(tag);
+  const query = usePictures(feedScope, tag);
+  const { scope, setScope, authors } = feedScope;
+  const hasNoFollows = scope === 'following' && authors?.length === 0;
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const pictures = useMemo(() => (query.data ?? []).filter((event) =>
     !normalizedSearch || `${event.content} ${pictureTags(event).join(' ')}`.toLocaleLowerCase().includes(normalizedSearch),
@@ -101,6 +111,7 @@ function PictureFeed({ tag, search, onTagChange, onSearchChange, onOpen }: {
   return (
     <AppLayout>
       <AppToolbar className="gap-2">
+        <FeedScopeSelect state={feedScope} label="Picture source" />
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted-foreground" aria-hidden />
           <Input aria-label="Search picture posts" value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Search pictures" className="h-8 pl-8 text-sm" />
@@ -116,13 +127,15 @@ function PictureFeed({ tag, search, onTagChange, onSearchChange, onOpen }: {
           {tag && <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => onTagChange('')}><X className="size-3" aria-hidden /> Clear filter</Button>}
           {query.isFetching && <Loader2 className="ml-auto size-3.5 animate-spin text-muted-foreground" aria-label="Loading pictures" />}
         </div>
-        {query.isLoading ? <PictureSkeleton /> : query.isError ? (
+        {hasNoFollows ? (
+          <EmptyState title="You are not following anyone yet" hint="Switch to Global to discover pictures, then follow people from their profile." action={<Button size="sm" onClick={() => setScope('global')}>Browse Global</Button>} />
+        ) : query.isPending ? <PictureSkeleton /> : query.isError ? (
           <EmptyState title="Couldn’t load pictures" hint="Check your relays and try again." action={<Button size="sm" onClick={() => query.refetch()}>Try again</Button>} />
         ) : pictures.length ? (
           <div className="columns-2 gap-2 p-2 sm:columns-3 lg:columns-4">
             {pictures.map((event) => <PictureTile key={event.id} event={event} onOpen={onOpen} />)}
           </div>
-        ) : <EmptyState title={search || tag ? 'No matching pictures' : 'No pictures yet'} hint={search || tag ? 'Try a different search or clear the filter.' : 'Your relays have not returned any picture posts.'} />}
+        ) : <EmptyState title={search || tag ? 'No matching pictures' : 'No pictures yet'} hint={search || tag ? 'Try a different search or clear the filter.' : scope === 'global' ? 'Your relays have not returned any picture posts.' : 'Nobody here has posted pictures yet. Try Global to see more.'} action={!search && !tag && scope !== 'global' ? <Button size="sm" variant="outline" onClick={() => setScope('global')}>Browse Global</Button> : undefined} />}
       </AppBody>
     </AppLayout>
   );
