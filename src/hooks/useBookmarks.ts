@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { useNostr } from '@nostrify/react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { useCurrentUser } from './useCurrentUser';
-import { useNostrPublish } from './useNostrPublish';
+import { useNip51List, useNip51ListMutation } from './useNip51Lists';
 import { tagValue } from '@/lib/nostrUtils';
+import { itemKey, type Nip51List } from '@/lib/nip51';
 
 const ARTICLE_KIND = 30023;
 
@@ -18,42 +19,25 @@ export interface BookmarkTarget {
   value: string;
 }
 
-function bookmarkQueryKey(pubkey: string | undefined) {
-  return ['nostr', 'bookmarks', pubkey ?? ''] as const;
-}
-
-async function fetchBookmarkList(
-  nostr: ReturnType<typeof useNostr>['nostr'],
-  pubkey: string,
-  signal?: AbortSignal,
-): Promise<NostrEvent | null> {
-  const [event] = await nostr.query(
-    [{ kinds: [BOOKMARK_LIST_KIND], authors: [pubkey], limit: 1 }],
-    { signal: AbortSignal.any([signal, AbortSignal.timeout(6000)].filter((s): s is AbortSignal => Boolean(s))) },
-  );
-  return event ?? null;
-}
-
-/** The current user's kind 10003 bookmark list, or null if they don't have one yet. */
-export function useBookmarkList() {
-  const { nostr } = useNostr();
-  const { user } = useCurrentUser();
-
-  return useQuery<NostrEvent | null>({
-    queryKey: bookmarkQueryKey(user?.pubkey),
-    enabled: Boolean(user),
-    queryFn: ({ signal }) => fetchBookmarkList(nostr, user!.pubkey, signal),
-    staleTime: 60_000,
-  });
-}
-
-/** The list's public `e`/`a` entries, in the shape a `BookmarkButton` checks against. */
-export function useBookmarkedTargets(): BookmarkTarget[] {
-  const { data } = useBookmarkList();
-  if (!data) return [];
-  return data.tags
+function toTargets(list: Nip51List): BookmarkTarget[] {
+  return [...list.publicItems, ...list.privateItems]
     .filter((tag): tag is [string, string] => (tag[0] === 'e' || tag[0] === 'a') && Boolean(tag[1]))
     .map(([type, value]) => ({ type: type as 'e' | 'a', value }));
+}
+
+/**
+ * The current user's kind 10003 bookmark list, public and private entries,
+ * shared with the Lists app's cache.
+ */
+export function useBookmarkList() {
+  const { user } = useCurrentUser();
+  return useNip51List(user?.pubkey, BOOKMARK_LIST_KIND);
+}
+
+/** The list's `e`/`a` entries (public and private), in the shape a `BookmarkButton` checks against. */
+export function useBookmarkedTargets(): BookmarkTarget[] {
+  const { data } = useBookmarkList();
+  return useMemo(() => (data ? toTargets(data) : []), [data]);
 }
 
 export function isBookmarked(targets: BookmarkTarget[], target: BookmarkTarget): boolean {
@@ -61,37 +45,23 @@ export function isBookmarked(targets: BookmarkTarget[], target: BookmarkTarget):
 }
 
 /**
- * Adds or removes one target from the bookmark list. Fetches the list fresh
- * from relays right before writing — kind 10003 is a whole-list replacement,
- * so publishing against a stale cached copy (the query's staleTime is 60s)
- * could silently drop entries added from another tab or device in the
- * meantime, the same trap NIP-02 follow lists have.
+ * Adds or removes one target from the bookmark list. The shared list mutation
+ * re-fetches the list right before writing — kind 10003 is a whole-list
+ * replacement, so publishing against a stale cached copy could silently drop
+ * entries added from another tab or device in the meantime.
  */
 export function useToggleBookmark() {
-  const { nostr } = useNostr();
-  const { user } = useCurrentUser();
-  const publish = useNostrPublish();
-  const queryClient = useQueryClient();
+  const targets = useBookmarkedTargets();
+  const mutation = useNip51ListMutation();
 
   return useMutation({
-    mutationFn: async (target: BookmarkTarget) => {
-      if (!user) throw new Error('Sign in to bookmark');
-      const current = await fetchBookmarkList(nostr, user.pubkey);
-      const currentTags = current?.tags ?? [];
-      const already = currentTags.some(([name, value]) => name === target.type && value === target.value);
-      const tags = already
-        ? currentTags.filter(([name, value]) => !(name === target.type && value === target.value))
-        : [...currentTags, [target.type, target.value]];
-
-      return publish.mutateAsync({
+    mutationFn: (target: BookmarkTarget) =>
+      mutation.mutateAsync({
         kind: BOOKMARK_LIST_KIND,
-        content: current?.content ?? '',
-        tags,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: bookmarkQueryKey(user?.pubkey) });
-    },
+        ops: isBookmarked(targets, target)
+          ? [{ type: 'remove', key: itemKey([target.type, target.value]) }]
+          : [{ type: 'add', tag: [target.type, target.value], private: false }],
+      }),
   });
 }
 

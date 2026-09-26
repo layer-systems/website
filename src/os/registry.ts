@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, Bookmark, BookOpen, CalendarDays, FileText, Image, Info, Link2, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, User } from 'lucide-react';
+import { Activity, Bookmark, BookOpen, CalendarDays, FileText, Image, Info, Link2, ListChecks, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -78,6 +78,16 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/bookmarks')),
     defaultSize: { width: 600, height: 660 },
     minSize: { width: 340, height: 300 },
+  },
+  {
+    id: 'lists',
+    title: 'Lists',
+    description: 'Your NIP-51 lists and sets, with public and private items',
+    icon: ListChecks,
+    category: 'social',
+    component: lazy(() => import('@/apps/lists')),
+    defaultSize: { width: 640, height: 700 },
+    minSize: { width: 340, height: 320 },
   },
   {
     id: 'web-bookmarks',

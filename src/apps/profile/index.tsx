@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
-import { Check, Copy, Globe } from 'lucide-react';
+import { Check, Copy, Globe, ListChecks } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { AppBody, AppLayout, AppToolbar, EmptyState } from '@/components/os/AppChrome';
 import { ModerationMenu } from '@/components/nostr/ModerationMenu';
@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/hooks/useToast';
+import { useWindowManager } from '@/os/useWindowManager';
 import { decodeRelayHints, displayName, isReply, npubOf, sanitizeUrl } from '@/lib/nostrUtils';
 import type { AppProps } from '@/os/types';
 
@@ -71,6 +72,7 @@ export default function ProfileApp({ params, setTitle }: AppProps) {
       <AppToolbar>
         <span className="truncate text-[13px] font-medium">{name}</span>
         <div className="ml-auto flex items-center gap-1.5">
+          <ListsButton pubkey={pubkey} />
           <CopyNpubButton pubkey={pubkey} />
           <ModerationMenu pubkey={pubkey} />
         </div>
@@ -159,6 +161,17 @@ function CopyNpubButton({ pubkey }: { pubkey: string }) {
     >
       <Copy className="size-3.5" aria-hidden />
       npub
+    </Button>
+  );
+}
+
+function ListsButton({ pubkey }: { pubkey: string }) {
+  const { openApp } = useWindowManager();
+
+  return (
+    <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={() => openApp('lists', { pubkey })}>
+      <ListChecks className="size-3.5" aria-hidden />
+      Lists
     </Button>
   );
 }
