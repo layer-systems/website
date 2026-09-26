@@ -7,6 +7,7 @@ import { AppBody, AppLayout, AppToolbar, EmptyState } from '@/components/os/AppC
 import { AuthorLine } from '@/components/nostr/AuthorLine';
 import { NoteContent } from '@/components/nostr/NoteContent';
 import { NoteCard } from '@/components/nostr/NoteCard';
+import { NoteRelaysDialog } from '@/components/nostr/NoteRelaysDialog';
 import { PowBadge } from '@/components/nostr/PowBadge';
 import { ZapButton } from '@/components/nostr/ZapButton';
 import { ReactionButton } from '@/components/nostr/ReactionButton';
@@ -185,11 +186,12 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
           <div className="mt-3">
             <NoteContent content={event.content} className="text-base" />
           </div>
-          <div className="mt-3 flex items-center gap-3">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
             <p className="text-xs text-muted-foreground">{absoluteTime(event.created_at)}</p>
             <PowBadge event={event} />
             <ZapButton target={event} className="h-6" />
             <ReactionButton target={event} className="h-6" />
+            <NoteRelaysDialog id={event.id} hints={relays} />
           </div>
         </div>
 

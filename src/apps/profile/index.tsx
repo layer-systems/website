@@ -7,6 +7,7 @@ import { AppBody, AppLayout, AppToolbar, EmptyState } from '@/components/os/AppC
 import { ModerationMenu } from '@/components/nostr/ModerationMenu';
 import { NoteCard } from '@/components/nostr/NoteCard';
 import { NoteContent } from '@/components/nostr/NoteContent';
+import { ProfileRelaysDialog } from '@/components/nostr/ProfileRelaysDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -73,6 +74,7 @@ export default function ProfileApp({ params, setTitle }: AppProps) {
         <span className="truncate text-[13px] font-medium">{name}</span>
         <div className="ml-auto flex items-center gap-1.5">
           <ListsButton pubkey={pubkey} />
+          <ProfileRelaysDialog pubkey={pubkey} />
           <CopyNpubButton pubkey={pubkey} />
           <ModerationMenu pubkey={pubkey} />
         </div>
