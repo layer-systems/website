@@ -31,7 +31,7 @@ relays you use.
 
 ### Requirements
 
-- Node.js 22 or newer
+- Node.js 26 or newer (`nvm use` reads `.nvmrc`)
 - npm
 
 Clone the repository, install dependencies, and start the Vite development server:
@@ -60,7 +60,7 @@ build is deployed as a static site.
 
 The repository includes a GitHub Actions workflow in
 [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml). It runs on pushes to
-`main` (or manually from the Actions tab), builds the app with Node.js 22, and deploys
+`main` (or manually from the Actions tab), builds the app with Node.js 26, and deploys
 `dist/` to GitHub Pages.
 
 For another static host, run `npm run build` and publish the generated `dist/` directory.
