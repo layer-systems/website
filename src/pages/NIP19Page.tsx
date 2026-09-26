@@ -4,12 +4,20 @@ import { OsShell } from '@/components/os/OsShell';
 import NotFound from './NotFound';
 import { isCalendarEventKind } from '@/lib/calendarEvents';
 import { encodeRelayHints } from '@/lib/nostrUtils';
+import { LEGACY_GENERIC_KIND, SET_KINDS } from '@/lib/nip51';
 import type { AppParams } from '@/os/types';
 
 /** Attaches any relay hints the identifier carried to the app's parameters. */
 function withHints(params: AppParams, relays: string[] | undefined): AppParams {
   const hints = encodeRelayHints(relays);
   return hints ? { ...params, relays: hints } : params;
+}
+
+/** The app an `naddr` opens, by the addressed event's kind. */
+function naddrApp(kind: number): string {
+  if (isCalendarEventKind(kind)) return 'calendar';
+  if (SET_KINDS.includes(kind) || kind === LEGACY_GENERIC_KIND) return 'lists';
+  return 'articles';
 }
 
 /**
@@ -43,7 +51,7 @@ export function NIP19Page() {
         break;
       case 'naddr':
         boot = {
-          appId: isCalendarEventKind(decoded.data.kind) ? 'calendar' : 'articles',
+          appId: naddrApp(decoded.data.kind),
           params: withHints(
             {
               pubkey: decoded.data.pubkey,
