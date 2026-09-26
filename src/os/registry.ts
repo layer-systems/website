@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, Bike, Bookmark, BookOpen, CalendarDays, FileText, Image, Info, Link2, ListChecks, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, User } from 'lucide-react';
+import { Activity, Bike, Bookmark, BookOpen, CalendarDays, FileText, FolderOpen, Image, Info, Link2, ListChecks, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -128,6 +128,16 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/workouts')),
     defaultSize: { width: 720, height: 720 },
     minSize: { width: 360, height: 400 },
+  },
+  {
+    id: 'media',
+    title: 'Media',
+    description: 'Upload, browse, mirror and delete your files on Blossom servers',
+    icon: FolderOpen,
+    category: 'tools',
+    component: lazy(() => import('@/apps/media')),
+    defaultSize: { width: 760, height: 680 },
+    minSize: { width: 340, height: 360 },
   },
   {
     id: 'spells',

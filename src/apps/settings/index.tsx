@@ -360,6 +360,7 @@ function RelaySection() {
 
 function MediaSection() {
   const { config, updateConfig } = useAppContext();
+  const { openApp } = useWindowManager();
 
   return (
     <Section
@@ -391,6 +392,10 @@ function MediaSection() {
           </li>
         ))}
       </ul>
+
+      <Button variant="outline" onClick={() => openApp('media', { tab: 'servers' })}>
+        Edit servers in Media
+      </Button>
     </Section>
   );
 }
