@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import { Bike, Clock3, Flame, HeartPulse, Loader2, MapPinned, Mountain, Plus, RotateCw, Users } from 'lucide-react';
@@ -34,13 +34,14 @@ const activities: { value: Activity; label: string }[] = [
 function useWorkouts(scope: Scope, authors: string[] | undefined, topic: string) {
   const { nostr } = useNostr();
   const canQuery = scope === 'public' || Boolean(authors?.length);
+  const sortedAuthors = useMemo(() => authors ? [...authors].sort() : undefined, [authors]);
   return useQuery<NostrEvent[]>({
-    queryKey: ['nostr', 'workouts', scope, authors?.join(',') ?? '', topic],
+    queryKey: ['nostr', 'workouts', scope, scope === 'following' ? sortedAuthors?.join(',') ?? '' : '', topic],
     enabled: canQuery,
     queryFn: async ({ signal }) => {
       const events = await nostr.query([{
         kinds: [WORKOUT_KIND],
-        ...(scope === 'following' ? { authors } : {}),
+        ...(scope === 'following' ? { authors: sortedAuthors } : {}),
         ...(topic ? { '#t': [topic] } : {}),
         since: Math.floor(Date.now() / 1000) - 180 * 24 * 60 * 60,
         limit: 80,
@@ -94,7 +95,7 @@ function ScopeButton({ active, children, ...props }: React.ComponentProps<typeof
 function WorkoutCard({ event }: { event: NostrEvent }) {
   const workout = parseWorkout(event);
   if (!workout) return null;
-  const date = workout.startedAt ? new Date(workout.startedAt * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : undefined;
+  const date = workout.startedAt !== undefined ? new Date(workout.startedAt * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : undefined;
   const metrics = [
     workout.duration !== undefined && { icon: Clock3, text: formatDuration(workout.duration) },
     workout.distance && { icon: MapPinned, text: `${workout.distance.value} ${workout.distance.unit}` },
@@ -129,17 +130,18 @@ function WorkoutDialog({ open, onOpenChange, onPublished }: { open: boolean; onO
   const set = <K extends keyof WorkoutForm>(key: K, value: WorkoutForm[K]) => setForm((current) => ({ ...current, [key]: value }));
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setError(null);
-    const start = form.start ? Math.floor(new Date(form.start).getTime() / 1000) : undefined;
-    const end = form.end ? Math.floor(new Date(form.end).getTime() / 1000) : undefined;
-    const duration = form.durationMinutes ? Number(form.durationMinutes) * 60 : end && start ? end - start : undefined;
+    const toTimestamp = (value: string) => value ? Math.floor(new Date(value).getTime() / 1000) : undefined;
+    const start = toTimestamp(form.start);
+    const end = toTimestamp(form.end);
+    const duration = form.durationMinutes ? Number(form.durationMinutes) * 60 : end !== undefined && start !== undefined ? end - start : undefined;
     const inRange = (value: string, maximum: number) => value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= maximum);
-    if ((form.start && !start) || (form.end && !end) || (start && end && end <= start) || !duration || duration <= 0 || !inRange(form.distance, 100000) || !inRange(form.elevation, 30000) || !inRange(form.calories, 100000) || !inRange(form.averageHeartRate, 300) || !inRange(form.maximumHeartRate, 300) || !inRange(form.cadence, 300)) { setError('Enter a valid duration or start and end time. Check that metric values are in a realistic range.'); return; }
+    if ((start !== undefined && !Number.isFinite(start)) || (end !== undefined && !Number.isFinite(end)) || (start !== undefined && end !== undefined && end <= start) || duration === undefined || !Number.isFinite(duration) || duration <= 0 || !inRange(form.distance, 100000) || !inRange(form.elevation, 30000) || !inRange(form.calories, 100000) || !inRange(form.averageHeartRate, 300) || !inRange(form.maximumHeartRate, 300) || !inRange(form.cadence, 300)) { setError('Enter a valid duration or start and end time. Check that metric values are in a realistic range.'); return; }
     if (form.maximumHeartRate && form.averageHeartRate && Number(form.maximumHeartRate) < Number(form.averageHeartRate)) { setError('Maximum heart rate cannot be lower than average heart rate.'); return; }
     const numberTag = (name: string, value: string) => value === '' ? [] : [[name, String(Number(value))]];
     const topics = [...new Set(form.topics.split(/[\s,]+/).map((topic) => topic.replace(/^#/, '').toLowerCase()).filter((topic) => /^[a-z0-9][a-z0-9-_]{0,63}$/.test(topic)))];
     const activityLabel = activities.find((activity) => activity.value === form.activity)?.label ?? form.activity;
     const tags: string[][] = [
-      ['exercise', form.activity], ['duration', formatDuration(duration)], ...(start ? [['workout_start_time', String(start)]] : []), ...(end ? [['end', String(end)]] : []),
+      ['exercise', form.activity], ['duration', formatDuration(duration)], ...(start !== undefined ? [['workout_start_time', String(start)]] : []), ...(end !== undefined ? [['end', String(end)]] : []),
       ...(form.distance ? [['distance', String(Number(form.distance)), form.distanceUnit]] : []), ...(form.elevation ? [['elevation_gain', String(Number(form.elevation)), 'm']] : []),
       ...numberTag('calories', form.calories), ...numberTag('avg_heart_rate', form.averageHeartRate), ...numberTag('max_heart_rate', form.maximumHeartRate), ...numberTag('cadence', form.cadence),
       ...(form.source.trim() ? [['source', form.source.trim().slice(0, 100)]] : []), ...topics.map((topic) => ['t', topic]), ['alt', `${activityLabel} workout, ${formatDuration(duration)}${form.distance ? `, ${form.distance} ${form.distanceUnit}` : ''}`],
