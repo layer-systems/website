@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Loader2, Send, Trash2 } from 'lucide-react';
+import { PowControl, PowStatus } from '@/components/nostr/PowControl';
 import { AppBody, AppLayout, AppToolbar } from '@/components/os/AppChrome';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
+import { isAbortError, usePowMining } from '@/hooks/usePowMining';
 import { useToast } from '@/hooks/useToast';
 
 const DRAFT_KEY = 'layer-os:draft-note';
@@ -23,6 +25,7 @@ export function DraftNote({ onPublished }: { onPublished: (id: string) => void }
   const publish = useNostrPublish();
   const { toast } = useToast();
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  const pow = usePowMining();
 
   const trimmed = draft.trim();
 
@@ -32,11 +35,14 @@ export function DraftNote({ onPublished }: { onPublished: (id: string) => void }
     // lands in the same tick, and mutateAsync itself doesn't dedupe calls.
     if (!trimmed || publish.isPending) return;
     try {
-      const event = await publish.mutateAsync({ kind: 1, content: trimmed, tags: [] });
+      const event = await publish.mutateAsync({ kind: 1, content: trimmed, tags: [], pow: pow.begin() });
+      pow.end();
       setDraft('');
       toast({ title: 'Note published' });
       onPublished(event.id);
     } catch (error) {
+      pow.end();
+      if (isAbortError(error)) return;
       toast({
         title: 'Could not publish',
         description: error instanceof Error ? error.message : 'No relay accepted the note.',
@@ -59,7 +65,8 @@ export function DraftNote({ onPublished }: { onPublished: (id: string) => void }
       <AppToolbar>
         <span className="text-[13px] font-medium">New Note</span>
         <div className="ml-auto flex items-center gap-2">
-          {draft && (
+          {pow.progress && <PowStatus progress={pow.progress} onCancel={pow.cancel} />}
+          {draft && !publish.isPending && (
             <Button
               variant="ghost"
               size="sm"
@@ -70,6 +77,9 @@ export function DraftNote({ onPublished }: { onPublished: (id: string) => void }
               <Trash2 className="size-3.5" aria-hidden />
               {confirmingDiscard ? 'Click again to discard' : 'Discard draft'}
             </Button>
+          )}
+          {user && (
+            <PowControl settings={pow.settings} onChange={pow.setSettings} disabled={publish.isPending} />
           )}
           {user && (
             <Button

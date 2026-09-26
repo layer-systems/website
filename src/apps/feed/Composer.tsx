@@ -3,6 +3,8 @@ import { Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
+import { isAbortError, usePowMining } from '@/hooks/usePowMining';
+import { PowControl, PowStatus } from '@/components/nostr/PowControl';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAuthor } from '@/hooks/useAuthor';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,6 +24,7 @@ export function Composer({ replyTags, placeholder = 'What’s happening?', onPub
   const publish = useNostrPublish();
   const { toast } = useToast();
   const [content, setContent] = useState('');
+  const pow = usePowMining();
 
   if (!user) return null;
 
@@ -30,13 +33,22 @@ export function Composer({ replyTags, placeholder = 'What’s happening?', onPub
   const trimmed = content.trim();
 
   const submit = async () => {
-    if (!trimmed) return;
+    if (!trimmed || publish.isPending) return;
     try {
-      await publish.mutateAsync({ kind: 1, content: trimmed, tags: replyTags ?? [] });
+      await publish.mutateAsync({
+        kind: 1,
+        content: trimmed,
+        // Copied: useNostrPublish appends to the array it's given.
+        tags: [...(replyTags ?? [])],
+        pow: pow.begin(),
+      });
+      pow.end();
       setContent('');
       toast({ title: replyTags ? 'Reply published' : 'Note published' });
       onPublished?.();
     } catch (error) {
+      pow.end();
+      if (isAbortError(error)) return;
       toast({
         title: 'Could not publish',
         description: error instanceof Error ? error.message : 'No relay accepted the note.',
@@ -69,15 +81,22 @@ export function Composer({ replyTags, placeholder = 'What’s happening?', onPub
         />
 
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">⌘↵ to publish</span>
-          <Button size="sm" onClick={submit} disabled={!trimmed || publish.isPending} className="gap-1.5">
-            {publish.isPending ? (
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
-            ) : (
-              <Send className="size-3.5" aria-hidden />
-            )}
-            {replyTags ? 'Reply' : 'Publish'}
-          </Button>
+          {pow.progress ? (
+            <PowStatus progress={pow.progress} onCancel={pow.cancel} />
+          ) : (
+            <span className="text-xs text-muted-foreground">⌘↵ to publish</span>
+          )}
+          <div className="flex items-center gap-1">
+            <PowControl settings={pow.settings} onChange={pow.setSettings} disabled={publish.isPending} />
+            <Button size="sm" onClick={submit} disabled={!trimmed || publish.isPending} className="gap-1.5">
+              {publish.isPending ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <Send className="size-3.5" aria-hidden />
+              )}
+              {replyTags ? 'Reply' : 'Publish'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
