@@ -21,9 +21,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useMutedPubkeys } from '@/hooks/useMuteList';
-import { useNotificationReadState, useNotifications, type Notification, type NotificationKind } from '@/hooks/useNotifications';
+import type { NostrEvent } from '@nostrify/nostrify';
+import {
+  useNotificationParents,
+  useNotificationReadState,
+  useNotifications,
+  type Notification,
+  type NotificationKind,
+} from '@/hooks/useNotifications';
 import { useWindowManager } from '@/os/useWindowManager';
-import { displayName, relativeTime, rootReference } from '@/lib/nostrUtils';
+import { notificationParentId, notificationTarget } from '@/lib/notifications';
+import { displayName, relativeTime } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
 
 const ICONS: Record<NotificationKind, typeof Bell> = {
@@ -139,6 +147,11 @@ function NotificationFeed({
   onNavigate?: () => void;
   showHeading?: boolean;
 }) {
+  const parents = useNotificationParents(state.notifications);
+  // Only a settled query can prove a parent is missing; until then rows
+  // optimistically open the parent. A failed lookup counts as "none found".
+  const settledParents = parents.isSuccess ? parents.data : parents.isError ? EMPTY_PARENTS : undefined;
+
   return (
     <section className="flex min-h-0 flex-1 flex-col" aria-label="Notifications">
       {showHeading && (
@@ -165,6 +178,8 @@ function NotificationFeed({
             key={notification.event.id}
             notification={notification}
             unread={notification.event.created_at > state.lastReadAt}
+            parents={settledParents}
+            parentsLoading={parents.isLoading}
             onNavigate={onNavigate}
           />
         ))}
@@ -182,18 +197,32 @@ function MarkAllReadButton({ state }: { state: NotificationState }) {
   );
 }
 
-function NotificationRow({ notification, unread, onNavigate }: { notification: Notification; unread: boolean; onNavigate?: () => void }) {
+const EMPTY_PARENTS: ReadonlyMap<string, NostrEvent> = new Map();
+
+function NotificationRow({
+  notification,
+  unread,
+  parents,
+  parentsLoading,
+  onNavigate,
+}: {
+  notification: Notification;
+  unread: boolean;
+  parents?: ReadonlyMap<string, NostrEvent>;
+  parentsLoading: boolean;
+  onNavigate?: () => void;
+}) {
   const { openApp } = useWindowManager();
   const { data } = useAuthor(notification.event.pubkey);
   const Icon = ICONS[notification.kind];
   const author = displayName(notification.event.pubkey, data?.metadata);
   const preview = notification.event.content.replace(/\s+/g, ' ').trim();
-  const targetEvent = notification.kind === 'mention' || notification.kind === 'reply'
-    ? notification.event.id
-    : rootReference(notification.event);
+  const target = notificationTarget(notification, parents);
+  const parentId = notificationParentId(notification);
+  const parent = parentId ? parents?.get(parentId) : undefined;
 
   const openNotification = () => {
-    if (targetEvent) openApp('notes', { id: targetEvent });
+    if (target) openApp('notes', target.highlight ? { id: target.id, highlight: target.highlight } : { id: target.id });
     else openApp('profile', { pubkey: notification.event.pubkey });
     onNavigate?.();
   };
@@ -219,9 +248,26 @@ function NotificationRow({ notification, unread, onNavigate }: { notification: N
         </span>
         <span className="mt-0.5 block text-sm text-muted-foreground">{LABELS[notification.kind]}</span>
         {preview && <span className="mt-1 block line-clamp-2 text-sm text-foreground/80">{preview}</span>}
+        {parentId && (parent || parentsLoading) && <ParentPreview parent={parent} />}
       </span>
       {unread && <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
     </button>
+  );
+}
+
+/** A muted, quoted snippet of the note a reply is answering. */
+function ParentPreview({ parent }: { parent?: NostrEvent }) {
+  if (!parent) {
+    return <Skeleton className="mt-1.5 h-3.5 w-3/4" aria-label="Loading the note this replies to" />;
+  }
+  const snippet = parent.content.replace(/\s+/g, ' ').trim();
+  if (!snippet) return null;
+  return (
+    <span className="mt-1.5 flex min-w-0 gap-1 border-l-2 border-border pl-2 text-xs text-muted-foreground">
+      <span aria-hidden>↳</span>
+      <span className="shrink-0">replying to:</span>
+      <span className="min-w-0 truncate italic">{snippet}</span>
+    </span>
   );
 }
 

@@ -6,7 +6,7 @@ import { useNostr } from '@nostrify/react';
 
 import { TestApp } from '@/test/TestApp';
 import { useLoginActions } from './useLoginActions';
-import { useNotifications } from './useNotifications';
+import { useNotificationParents, useNotifications } from './useNotifications';
 
 const alice = getPublicKey(generateSecretKey());
 const carol = getPublicKey(generateSecretKey());
@@ -38,19 +38,33 @@ afterEach(() => {
  * immediately triggers the notification query. `events` receives the new
  * user's pubkey so tests can build events that tag them.
  */
-async function renderLoggedInNotifications(events: (pubkey: string) => NostrEvent[]) {
+async function renderLoggedInNotifications(
+  events: (pubkey: string) => NostrEvent[],
+  parentEvents: NostrEvent[] = [],
+) {
   const nsec = nip19.nsecEncode(generateSecretKey());
   const pubkey = getPublicKey(nip19.decode(nsec).data as Uint8Array);
 
   const { result } = renderHook(
-    () => ({ actions: useLoginActions(), nostr: useNostr(), notifications: useNotifications() }),
+    () => {
+      const notifications = useNotifications();
+      return {
+        actions: useLoginActions(),
+        nostr: useNostr(),
+        notifications,
+        parents: useNotificationParents(notifications.data ?? []),
+      };
+    },
     { wrapper: TestApp },
   );
 
   // NostrLoginProvider renders null while it reads logins from storage.
   await waitFor(() => expect(result.current).not.toBeNull());
 
-  const query = vi.spyOn(result.current.nostr.nostr, 'query').mockImplementation(async () => events(pubkey));
+  // `ids` filters are the batched parent lookup; everything else is the feed.
+  const query = vi.spyOn(result.current.nostr.nostr, 'query').mockImplementation(async (filters) =>
+    filters.some((filter) => filter.ids) ? parentEvents : events(pubkey),
+  );
 
   act(() => result.current.actions.nsec(nsec));
   await waitFor(() => expect(result.current.notifications.isSuccess).toBe(true));
@@ -90,5 +104,39 @@ describe('useNotifications', () => {
     expect(byId.get('reaction')).toBe('reaction');
     expect(byId.get('repost')).toBe('repost');
     expect(byId.get('zap')).toBe('zap');
+  });
+
+  it('fetches reply parents in a single batched ids query', async () => {
+    const parentA: NostrEvent = { id: 'parent-a', pubkey: alice, created_at: 100, kind: 1, tags: [], content: 'parent a', sig: '' };
+    const unrelated: NostrEvent = { id: 'unrelated', pubkey: alice, created_at: 100, kind: 1, tags: [], content: 'nope', sig: '' };
+
+    const { result, query } = await renderLoggedInNotifications((pubkey) => [
+      { id: 'reply-a', pubkey: alice, created_at: 400, kind: 1, tags: [['e', 'root-id', '', 'root'], ['e', 'parent-a', '', 'reply'], ['p', pubkey]], content: 'a', sig: '' },
+      { id: 'reply-b', pubkey: carol, created_at: 500, kind: 1, tags: [['e', 'parent-b', '', 'root'], ['p', pubkey]], content: 'b', sig: '' },
+      { id: 'reply-c', pubkey: carol, created_at: 600, kind: 1, tags: [['e', 'parent-a', '', 'root'], ['p', pubkey]], content: 'c', sig: '' },
+      { id: 'mention', pubkey: alice, created_at: 700, kind: 1, tags: [['p', pubkey]], content: 'hi', sig: '' },
+    ], [parentA, unrelated]);
+
+    await waitFor(() => expect(result.current.parents.isSuccess).toBe(true));
+
+    const parentQueries = query.mock.calls.filter(([filters]) => filters.some((filter) => filter.ids));
+    expect(parentQueries).toHaveLength(1);
+    const [filters] = parentQueries[0];
+    expect(filters).toHaveLength(1);
+    expect(filters[0].ids).toEqual(['parent-a', 'parent-b']);
+
+    const found = result.current.parents.data;
+    expect(found?.get('parent-a')).toEqual(parentA);
+    expect(found?.has('parent-b')).toBe(false);
+    expect(found?.has('unrelated')).toBe(false);
+  });
+
+  it('skips the parent query when there are no replies', async () => {
+    const { result, query } = await renderLoggedInNotifications((pubkey) => [
+      { id: 'mention', pubkey: alice, created_at: 300, kind: 1, tags: [['p', pubkey]], content: 'hi', sig: '' },
+    ]);
+
+    expect(result.current.parents.fetchStatus).toBe('idle');
+    expect(query.mock.calls.some(([filters]) => filters.some((filter) => filter.ids))).toBe(false);
   });
 });

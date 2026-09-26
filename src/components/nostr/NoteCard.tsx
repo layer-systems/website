@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MessageSquare, MessageSquareReply, Repeat2 } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
@@ -24,6 +24,8 @@ interface NoteCardProps {
   onReply?: (event: NostrEvent) => void;
   /** True while this note is the one being answered in the inline composer. */
   replyOpen?: boolean;
+  /** Scrolls this note into view and marks it, e.g. the reply a notification points at. */
+  highlighted?: boolean;
   className?: string;
 }
 
@@ -31,7 +33,7 @@ interface NoteCardProps {
  * One note in a list. Dense by design: a 44px-ish header, the content, and a
  * thin action row — no oversized card padding.
  */
-export function NoteCard({ event, compact, onReply, replyOpen, className }: NoteCardProps) {
+export function NoteCard({ event, compact, onReply, replyOpen, highlighted, className }: NoteCardProps) {
   const { openApp } = useWindowManager();
   const { toast } = useToast();
   const hints = useRelayHints();
@@ -39,6 +41,14 @@ export function NoteCard({ event, compact, onReply, replyOpen, className }: Note
   // (`group-hover`/`focus-within`), so `ZapButton` can defer its relay query
   // until this note is actually looked at instead of firing on every mount.
   const [revealed, setRevealed] = useState(false);
+  const articleRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const article = articleRef.current;
+    if (!highlighted || !article || typeof article.scrollIntoView !== 'function') return;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    article.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' });
+  }, [highlighted]);
 
   const copyLink = async () => {
     try {
@@ -54,9 +64,12 @@ export function NoteCard({ event, compact, onReply, replyOpen, className }: Note
 
   return (
     <article
+      ref={articleRef}
       aria-label={`Note by ${genUserName(event.pubkey)}`}
+      aria-current={highlighted ? 'true' : undefined}
       className={cn(
         'group border-b border-border px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/40',
+        highlighted && 'bg-primary/[0.06] shadow-[inset_2px_0_0_var(--color-primary)] hover:bg-primary/10',
         className,
       )}
       onMouseEnter={() => setRevealed(true)}
