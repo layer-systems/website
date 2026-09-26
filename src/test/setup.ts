@@ -1,6 +1,17 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// Unit tests should never open real relay sockets. In Node, the native
+// WebSocket also uses an Event class incompatible with jsdom's global Event.
+Object.defineProperty(globalThis, 'WebSocket', {
+  configurable: true,
+  value: class TestWebSocket {
+    constructor() {
+      throw new Error('WebSocket connections are disabled in unit tests');
+    }
+  },
+});
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
