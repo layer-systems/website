@@ -24,9 +24,13 @@ export function genUserName(pubkey: string): string {
   return `npub…${pubkey.slice(-6)}`;
 }
 
+/** The published name, or undefined when the profile has none. */
+export function profileName(metadata: NostrMetadata | undefined): string | undefined {
+  return metadata?.display_name?.trim() || metadata?.name?.trim() || undefined;
+}
+
 export function displayName(pubkey: string, metadata?: NostrMetadata): string {
-  const name = metadata?.display_name?.trim() || metadata?.name?.trim();
-  return name || genUserName(pubkey);
+  return profileName(metadata) || genUserName(pubkey);
 }
 
 export function npubOf(pubkey: string): string {
@@ -35,6 +39,12 @@ export function npubOf(pubkey: string): string {
   } catch {
     return pubkey;
   }
+}
+
+/** `npub1abcdef…uvwxyz`: recognisable at a glance, short enough for a row. */
+export function shortNpub(pubkey: string): string {
+  const npub = npubOf(pubkey);
+  return npub.length > 20 ? `${npub.slice(0, 11)}…${npub.slice(-6)}` : npub;
 }
 
 const UNITS: [limit: number, divisor: number, unit: Intl.RelativeTimeFormatUnit][] = [

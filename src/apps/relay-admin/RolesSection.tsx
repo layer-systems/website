@@ -19,6 +19,7 @@ import {
   type Nip86Role,
 } from '@/lib/nip86';
 import { ConfirmAction, Field, FormDialog, type PendingConfirm } from './dialogs';
+import { PubkeyInputPreview, PubkeyLabel } from './PubkeyLabel';
 import { ListEmpty, ListSkeleton, RowAction, Section } from './shared';
 
 type AuditFn = (entry: Omit<AuditEntry, 'id' | 'at'>) => void;
@@ -194,6 +195,7 @@ function AssignDialog({
 }) {
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
+  const resolved = parsePubkeyInput(value);
 
   const close = (next: boolean) => {
     if (!next) {
@@ -252,6 +254,7 @@ function AssignDialog({
           autoFocus
         />
       </Field>
+      <PubkeyInputPreview pubkey={typeof resolved === 'string' ? resolved : undefined} />
     </FormDialog>
   );
 }
@@ -280,6 +283,7 @@ export function RolesSection({
   const canUnassign = session.methods.includes('unassignrole');
 
   const roles = session.canListRoles ? parseRoles(rolesQuery.data) : [];
+  const unassignPubkey = parsePubkeyInput(unassignKey);
 
   const run = async (
     method: 'createrole' | 'editrole' | 'deleterole' | 'assignrole' | 'unassignrole',
@@ -426,7 +430,14 @@ export function RolesSection({
               if (typeof parsed !== 'string' || !roleId) return;
               setConfirm({
                 title: `Remove role ${roleId}?`,
-                target: `role ${roleId} for pubkey ${parsed.slice(0, 16)}…`,
+                target: (
+                  <div className="space-y-1">
+                    <span className="block text-xs text-muted-foreground">
+                      Role <span className="font-mono">{roleId}</span> for
+                    </span>
+                    <PubkeyLabel pubkey={parsed} fullNpub />
+                  </div>
+                ),
                 effect: 'The key loses whatever this role grants on the relay.',
                 reversible: 'Reversible: you can assign the role again.',
                 actionLabel: 'Remove role',
@@ -453,6 +464,11 @@ export function RolesSection({
               Remove
             </Button>
           </form>
+          {typeof unassignPubkey === 'string' && (
+            <div className="mt-2">
+              <PubkeyInputPreview pubkey={unassignPubkey} />
+            </div>
+          )}
         </div>
       )}
 
