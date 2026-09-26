@@ -7,6 +7,6 @@ describe('app metadata', () => {
     expect(APP_NAME).toBe(packageJson.name);
     expect(APP_VERSION).toBe(packageJson.version);
     expect(APP_NAME).toBe('LAYER.systems');
-    expect(APP_VERSION).toBe('1.0.0');
+    expect(APP_VERSION).toBe('1.0.1');
   });
 });
