@@ -83,68 +83,68 @@ export function AddRelayForm({
         Add a relay
       </CollapsibleTrigger>
       <CollapsibleContent>
-            <form onSubmit={submit} className="space-y-2 px-3 pb-3" noValidate>
-              <Label htmlFor={`${id}-url`} className="sr-only">
-                Relay address
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  id={`${id}-url`}
-                  value={draft}
-                  onChange={(event) => {
-                    setDraft(event.target.value);
-                    if (feedback) setFeedback(undefined);
-                  }}
-                  placeholder="wss://relay.example.com"
-                  className="h-8 min-w-0 font-mono text-xs"
-                  autoComplete="off"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  inputMode="url"
-                  aria-invalid={invalid || undefined}
-                  aria-describedby={`${id}-feedback`}
-                  disabled={testing}
-                  autoFocus
-                />
-                <Button type="submit" size="sm" className="h-8 shrink-0 gap-1.5" disabled={testing || !draft.trim()}>
-                  {testing ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Plus className="size-4" aria-hidden />}
-                  {testing ? 'Testing…' : 'Add'}
+        <form onSubmit={submit} className="space-y-2 px-3 pb-3" noValidate>
+          <Label htmlFor={`${id}-url`} className="sr-only">
+            Relay address
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              id={`${id}-url`}
+              value={draft}
+              onChange={(event) => {
+                setDraft(event.target.value);
+                if (feedback) setFeedback(undefined);
+              }}
+              placeholder="wss://relay.example.com"
+              className="h-8 min-w-0 font-mono text-xs"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              inputMode="url"
+              aria-invalid={invalid || undefined}
+              aria-describedby={`${id}-feedback`}
+              disabled={testing}
+              autoFocus
+            />
+            <Button type="submit" size="sm" className="h-8 shrink-0 gap-1.5" disabled={testing || !draft.trim()}>
+              {testing ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Plus className="size-4" aria-hidden />}
+              {testing ? 'Testing…' : 'Add'}
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id={`${id}-test`}
+              checked={test}
+              onCheckedChange={(checked) => setTest(checked === true)}
+              disabled={testing}
+            />
+            <Label htmlFor={`${id}-test`} className="text-xs font-normal text-muted-foreground">
+              Test the connection before adding
+            </Label>
+          </div>
+
+          <div id={`${id}-feedback`} aria-live="polite" className="text-xs empty:hidden">
+            {feedback?.kind === 'error' && <p className="text-destructive">{feedback.message}</p>}
+            {feedback?.kind === 'added' && <p className="text-muted-foreground">{feedback.message}</p>}
+            {feedback?.kind === 'unreachable' && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <p className="text-destructive">
+                  {relayLabel(feedback.url)} did not answer within 5 seconds.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => commit(feedback.url)}
+                >
+                  Add anyway
                 </Button>
               </div>
-    
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id={`${id}-test`}
-                  checked={test}
-                  onCheckedChange={(checked) => setTest(checked === true)}
-                  disabled={testing}
-                />
-                <Label htmlFor={`${id}-test`} className="text-xs font-normal text-muted-foreground">
-                  Test the connection before adding
-                </Label>
-              </div>
-    
-              <div id={`${id}-feedback`} aria-live="polite" className="text-xs empty:hidden">
-                {feedback?.kind === 'error' && <p className="text-destructive">{feedback.message}</p>}
-                {feedback?.kind === 'added' && <p className="text-muted-foreground">{feedback.message}</p>}
-                {feedback?.kind === 'unreachable' && (
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <p className="text-destructive">
-                      {relayLabel(feedback.url)} did not answer within 5 seconds.
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 px-2 text-xs"
-                      onClick={() => commit(feedback.url)}
-                    >
-                      Add anyway
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </form>
+            )}
+          </div>
+        </form>
       </CollapsibleContent>
     </Collapsible>
   );
