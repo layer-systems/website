@@ -17,6 +17,8 @@ import { desktopApps, getApp } from '@/os/registry';
 import { cn } from '@/lib/utils';
 import type { AppParams } from '@/os/types';
 import { useIconLayout } from '@/os/useIconLayout';
+import { useAppFolders } from '@/os/appFoldersContext';
+import { AppFolderControls, FolderTile, MoveAppMenu } from './AppFolderControls';
 
 const MOBILE_DRAG_THRESHOLD = 8;
 
@@ -159,6 +161,11 @@ export function MobileAppShell() {
 
 function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
   const apps = desktopApps();
+  const { folders, moveApp } = useAppFolders();
+  const nested = new Set(folders.flatMap((folder) => folder.appIds));
+  const topApps = apps.filter((app) => !nested.has(app.id));
+  const topIds = [...topApps.map((app) => app.id), ...folders.map((folder) => folder.id)];
+  const [openFolderId, setOpenFolderId] = useState<string | null>(null);
   const [columns, setColumns] = useState(() => window.innerWidth < 480 ? 3 : 4);
   const [dragging, setDragging] = useState<string | null>(null);
   const [target, setTarget] = useState<string | null>(null);
@@ -168,9 +175,9 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
   const dragStart = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
   const suppressClick = useRef(false);
   const targetRef = useRef<string | null>(null);
-  const { layout, setMobile } = useIconLayout(apps.map((app) => app.id), { columns, rows: Math.max(8, Math.ceil(apps.length / columns) + 4) });
+  const { layout, setMobile } = useIconLayout(topIds, { columns, rows: Math.max(8, Math.ceil(topIds.length / columns) + 4) });
   const byId = useMemo(() => new Map(apps.map((app) => [app.id, app])), [apps]);
-  const orderedApps = layout.mobile.map((id) => byId.get(id)).filter((app): app is NonNullable<typeof app> => Boolean(app));
+  const orderedIds = layout.mobile;
 
   useEffect(() => {
     const onResize = () => setColumns(window.innerWidth < 480 ? 3 : 4);
@@ -179,6 +186,11 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
   }, []);
 
   const reorder = useCallback((id: string, beforeId: string | null) => {
+    if (beforeId?.startsWith('folder:') && !id.startsWith('folder:')) {
+      moveApp(id, beforeId);
+      setAnnouncement(`${byId.get(id)?.title ?? id} moved into folder.`);
+      return;
+    }
     setMobile((order) => {
       const without = order.filter((item) => item !== id);
       const index = beforeId ? without.indexOf(beforeId) : without.length;
@@ -188,7 +200,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
     });
     const position = beforeId ? Math.max(1, layout.mobile.indexOf(beforeId) + 1) : layout.mobile.length;
     setAnnouncement(`${id} moved to position ${position}.`);
-  }, [layout.mobile, setAnnouncement, setMobile]);
+  }, [byId, layout.mobile, moveApp, setMobile]);
 
   useEffect(() => {
     const onMove = (event: PointerEvent) => {
@@ -264,10 +276,15 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
 
   return (
     <div className="os-desktop-surface h-full overflow-y-auto p-6">
+      <div className="mb-5 flex items-center justify-between gap-3"><h1 className="text-lg font-semibold">Apps</h1><AppFolderControls mobile onOpenApp={onOpen} openFolderId={openFolderId} onCloseFolder={() => setOpenFolderId(null)} /></div>
       <div className="grid grid-cols-3 gap-4 min-[480px]:grid-cols-4">
-        {orderedApps.map((app) => (
+        {orderedIds.map((id) => {
+          const folder = folders.find((item) => item.id === id);
+          if (folder) return <FolderTile key={id} folder={folder} mobile onOpen={() => setOpenFolderId(id)} />;
+          const app = byId.get(id);
+          if (!app) return null;
+          return <div key={app.id} className="relative">
           <button
-            key={app.id}
             type="button"
             data-home-icon-id={app.id}
             aria-pressed={picked === app.id || undefined}
@@ -296,7 +313,9 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
             </span>
             <span className="text-center text-xs font-medium leading-tight">{app.title}</span>
           </button>
-        ))}
+          <span className="absolute right-0 top-0"><MoveAppMenu appId={app.id} appTitle={app.title} /></span>
+          </div>;
+        })}
       </div>
       <span id="mobile-icon-layout-status" className="sr-only" aria-live="polite">{announcement}</span>
     </div>

@@ -10,6 +10,7 @@ import { useOsKeyboard } from '@/os/useOsKeyboard';
 import { getApp } from '@/os/registry';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import type { AppParams } from '@/os/types';
+import { AppFoldersProvider } from '@/os/appFolders';
 
 interface OsShellProps {
   /** App to open on first render, e.g. resolved from a NIP-19 deep link. */
@@ -87,14 +88,14 @@ export function OsShell({ boot, syncUrl = false }: OsShellProps) {
   });
 
   if (isMobile) {
-    return <MobileAppShell />;
+    return <AppFoldersProvider><MobileAppShell /></AppFoldersProvider>;
   }
 
   return (
-    <div className="h-full overflow-hidden">
+    <AppFoldersProvider><div className="h-full overflow-hidden">
       <MenuBar onOpenCommandPalette={openPalette} />
       <Desktop />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-    </div>
+    </div></AppFoldersProvider>
   );
 }

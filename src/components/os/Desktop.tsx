@@ -13,6 +13,8 @@ import { desktopApps } from '@/os/registry';
 import { MENUBAR_HEIGHT } from '@/os/layout';
 import { swapDesktopSlots, type DesktopSlot, type GridGeometry } from '@/os/iconLayout';
 import { useIconLayout } from '@/os/useIconLayout';
+import { useAppFolders } from '@/os/appFoldersContext';
+import { AppFolderControls, FolderTile, MoveAppMenu } from './AppFolderControls';
 
 const CELL_WIDTH = 96;
 const CELL_HEIGHT = 92;
@@ -42,8 +44,12 @@ export function Desktop() {
   const [announcement, setAnnouncement] = useState('');
   const pointerStart = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
   const apps = desktopApps();
+  const { folders, moveApp } = useAppFolders();
+  const nested = new Set(folders.flatMap((folder) => folder.appIds));
+  const topApps = apps.filter((app) => !nested.has(app.id));
+  const topIds = [...topApps.map((app) => app.id), ...folders.map((folder) => folder.id)];
   const geometry = useMemo(() => geometryFor(surfaceSize.width, surfaceSize.height), [surfaceSize]);
-  const { layout, setDesktop, reset } = useIconLayout(apps.map((app) => app.id), geometry);
+  const { layout, setDesktop, reset } = useIconLayout(topIds, geometry);
   const slots = layout.desktop;
 
   useEffect(() => {
@@ -75,13 +81,17 @@ export function Desktop() {
     const active = pointerStart.current;
     if (active?.moved) {
       const target = cellAt(event.clientX, event.clientY);
-      move(active.id, target);
+      const occupant = slots.find((slot) => slot.col === target.col && slot.row === target.row && slot.id !== active.id);
+      if (occupant?.id.startsWith('folder:') && !active.id.startsWith('folder:')) {
+        moveApp(active.id, occupant.id);
+        setAnnouncement(`${active.id} moved into folder.`);
+      } else move(active.id, target);
       setSelected(active.id);
     }
     pointerStart.current = null;
     setDragging(null);
     setCandidate(null);
-  }, [cellAt, move]);
+  }, [cellAt, move, moveApp, slots]);
 
   useEffect(() => {
     window.addEventListener('pointermove', onPointerMove);
@@ -142,20 +152,19 @@ export function Desktop() {
           {/* `isolate` keeps the icons' z-indexes local so they stay beneath the
               (also isolated) window layer that follows in DOM order. */}
           <div className="absolute inset-0 isolate" aria-label="Desktop app grid">
-            {apps.map((app) => {
+            {topApps.map((app) => {
               const slot = slots.find((item) => item.id === app.id);
               if (!slot) return null;
               const isCandidate = dragging === app.id && candidate;
               const displaySlot = isCandidate ? candidate : slot;
               return (
+                <div key={app.id} style={{ position: 'absolute', left: SURFACE_PADDING + displaySlot.col * CELL_WIDTH, top: SURFACE_PADDING + displaySlot.row * CELL_HEIGHT, zIndex: dragging === app.id ? 2 : 1 }} className="group/icon">
                 <DesktopIcon
-                  key={app.id}
                   app={app}
                   selected={selected === app.id}
                   dragging={dragging === app.id}
                   pickedUp={picked === app.id}
                   tabIndex={0}
-                  style={{ position: 'absolute', left: SURFACE_PADDING + displaySlot.col * CELL_WIDTH, top: SURFACE_PADDING + displaySlot.row * CELL_HEIGHT, zIndex: dragging === app.id ? 2 : 1 }}
                   onPointerDown={(event) => {
                     if (event.button !== 0) return;
                     pointerStart.current = { id: app.id, x: event.clientX, y: event.clientY, moved: false };
@@ -165,8 +174,16 @@ export function Desktop() {
                   onSelect={() => { if (!pointerStart.current?.moved) setSelected(app.id); }}
                   onOpen={() => openApp(app.id)}
                 />
+                <span className="absolute right-0 top-0 opacity-0 transition-opacity group-hover/icon:opacity-100 group-focus-within/icon:opacity-100"><MoveAppMenu appId={app.id} appTitle={app.title} /></span>
+                </div>
               );
             })}
+            {folders.map((folder) => {
+              const slot = slots.find((item) => item.id === folder.id);
+              if (!slot) return null;
+              return <FolderTile key={folder.id} folder={folder} onOpen={() => setSelected(folder.id)} style={{ position: 'absolute', left: SURFACE_PADDING + slot.col * CELL_WIDTH, top: SURFACE_PADDING + slot.row * CELL_HEIGHT }} />;
+            })}
+            <AppFolderControls onOpenApp={openApp} openFolderId={selected?.startsWith('folder:') ? selected : null} onCloseFolder={() => setSelected(null)} />
           </div>
 
           <WindowLayer />
