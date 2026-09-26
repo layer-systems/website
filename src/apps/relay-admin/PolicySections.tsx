@@ -12,6 +12,7 @@ import {
   useNip86Mutation,
   type Nip86Session,
 } from '@/hooks/useNip86';
+import { useAuthors } from '@/hooks/useAuthors';
 import { useToast } from '@/hooks/useToast';
 import {
   parseKindInput,
@@ -23,12 +24,14 @@ import {
   type BlockedIp,
   type Nip86CoreMethod,
 } from '@/lib/nip86';
+import { npubOf, profileName } from '@/lib/nostrUtils';
 import {
   ConfirmAction,
   Field,
   FormDialog,
   type PendingConfirm,
 } from './dialogs';
+import { PubkeyInputPreview, PubkeyLabel } from './PubkeyLabel';
 import { useFilter } from './useFilter';
 import {
   IdText,
@@ -119,6 +122,7 @@ function AddDialog({
   valueHint,
   valuePlaceholder,
   validate,
+  preview,
   withReason,
   pending,
   onSubmit,
@@ -132,6 +136,8 @@ function AddDialog({
   valueHint: string;
   valuePlaceholder: string;
   validate: (value: string) => string | undefined;
+  /** Rendered under the value field, e.g. who a typed pubkey resolves to. */
+  preview?: (value: string) => ReactNode;
   withReason?: boolean;
   pending: boolean;
   onSubmit: (value: string, reason: string) => Promise<void>;
@@ -188,6 +194,7 @@ function AddDialog({
           autoFocus
         />
       </Field>
+      {preview?.(form.value)}
       {withReason !== false && (
         <ReasonInput
           id={`${idPrefix}-reason`}
@@ -199,13 +206,21 @@ function AddDialog({
   );
 }
 
+function pubkeyPreview(value: string) {
+  const parsed = parsePubkeyInput(value);
+  return <PubkeyInputPreview pubkey={typeof parsed === 'string' ? parsed : undefined} />;
+}
+
 function PolicyRow({
   id,
+  identity,
   reason,
   reasonLabel,
   actions,
 }: {
   id: string;
+  /** Replaces the mono `id` text, e.g. with a `PubkeyLabel`. */
+  identity?: ReactNode;
   reason?: string;
   reasonLabel: string;
   actions: ReactNode;
@@ -213,7 +228,7 @@ function PolicyRow({
   return (
     <li className="flex items-center gap-3 px-3 py-2">
       <div className="min-w-0 flex-1">
-        <IdText value={id} />
+        {identity ?? <IdText value={id} />}
         {reason ? (
           <p className="truncate text-xs text-muted-foreground" title={reason}>
             {reasonLabel}: {reason}
@@ -237,10 +252,20 @@ export function BannedPubkeysSection({
   onResult: (entry: { method: string; target: string; status: 'ok' | 'failed' | 'cancelled'; detail?: string }) => void;
 }) {
   const list = useBannedPubkeys(session, { onResult });
+  const profiles = useAuthors(list.data?.map((entry) => entry.pubkey));
   const { run, isPending } = usePolicyMutation(session, onResult);
   const [addOpen, setAddOpen] = useState(false);
   const [confirm, setConfirm] = useState<PendingConfirm | undefined>(undefined);
-  const { search, setSearch, filtered } = useFilter(list.data, (entry) => [entry.pubkey, entry.reason]);
+  const { search, setSearch, filtered } = useFilter(list.data, (entry) => [
+    entry.pubkey,
+    npubOf(entry.pubkey),
+    profileName(profiles.data?.get(entry.pubkey)),
+    entry.reason,
+  ]);
+  const profileOf = (pubkey: string) => ({
+    metadata: profiles.data?.get(pubkey),
+    loading: profiles.isLoading,
+  });
 
   const canBan = session.methods.includes('banpubkey');
   const canUnban = session.methods.includes('unbanpubkey');
@@ -261,7 +286,7 @@ export function BannedPubkeysSection({
       <SectionToolbar
         search={search}
         onSearch={setSearch}
-        searchLabel="Filter by pubkey or reason"
+        searchLabel="Filter by name, npub, hex or reason"
         count={filtered?.length}
         onRefresh={() => list.refetch()}
         refreshing={list.isFetching}
@@ -281,6 +306,7 @@ export function BannedPubkeysSection({
             <PolicyRow
               key={entry.pubkey}
               id={entry.pubkey}
+              identity={<PubkeyLabel pubkey={entry.pubkey} profile={profileOf(entry.pubkey)} />}
               reason={entry.reason}
               reasonLabel="Reason"
               actions={
@@ -291,7 +317,7 @@ export function BannedPubkeysSection({
                     onClick={() =>
                       setConfirm({
                         title: 'Unban this pubkey?',
-                        target: entry.pubkey,
+                        target: <PubkeyLabel pubkey={entry.pubkey} profile={profileOf(entry.pubkey)} fullNpub />,
                         effect:
                           'The relay will accept and serve this key’s events again, subject to its other rules.',
                         reversible: 'Reversible: you can ban the key again.',
@@ -329,6 +355,7 @@ export function BannedPubkeysSection({
           const parsed = parsePubkeyInput(value);
           return typeof parsed === 'string' ? undefined : parsed.error;
         }}
+        preview={pubkeyPreview}
         onSubmit={async (value, reason) => {
           const parsed = parsePubkeyInput(value);
           if (typeof parsed !== 'string') return;
@@ -357,10 +384,20 @@ export function AllowedPubkeysSection({
   onResult: (entry: { method: string; target: string; status: 'ok' | 'failed' | 'cancelled'; detail?: string }) => void;
 }) {
   const list = useAllowedPubkeys(session, { onResult });
+  const profiles = useAuthors(list.data?.map((entry) => entry.pubkey));
   const { run, isPending } = usePolicyMutation(session, onResult);
   const [addOpen, setAddOpen] = useState(false);
   const [confirm, setConfirm] = useState<PendingConfirm | undefined>(undefined);
-  const { search, setSearch, filtered } = useFilter(list.data, (entry) => [entry.pubkey, entry.reason]);
+  const { search, setSearch, filtered } = useFilter(list.data, (entry) => [
+    entry.pubkey,
+    npubOf(entry.pubkey),
+    profileName(profiles.data?.get(entry.pubkey)),
+    entry.reason,
+  ]);
+  const profileOf = (pubkey: string) => ({
+    metadata: profiles.data?.get(pubkey),
+    loading: profiles.isLoading,
+  });
 
   const canAllow = session.methods.includes('allowpubkey');
   const canUnallow = session.methods.includes('unallowpubkey');
@@ -381,7 +418,7 @@ export function AllowedPubkeysSection({
       <SectionToolbar
         search={search}
         onSearch={setSearch}
-        searchLabel="Filter by pubkey or reason"
+        searchLabel="Filter by name, npub, hex or reason"
         count={filtered?.length}
         onRefresh={() => list.refetch()}
         refreshing={list.isFetching}
@@ -405,6 +442,7 @@ export function AllowedPubkeysSection({
             <PolicyRow
               key={entry.pubkey}
               id={entry.pubkey}
+              identity={<PubkeyLabel pubkey={entry.pubkey} profile={profileOf(entry.pubkey)} />}
               reason={entry.reason}
               reasonLabel="Note"
               actions={
@@ -416,7 +454,7 @@ export function AllowedPubkeysSection({
                     onClick={() =>
                       setConfirm({
                         title: 'Remove this pubkey from the allowlist?',
-                        target: entry.pubkey,
+                        target: <PubkeyLabel pubkey={entry.pubkey} profile={profileOf(entry.pubkey)} fullNpub />,
                         effect:
                           'If this relay enforces its allowlist, the key immediately loses access. Check the relay’s documentation for its exact enforcement semantics.',
                         reversible: 'Reversible: you can allow the key again.',
@@ -454,6 +492,7 @@ export function AllowedPubkeysSection({
           const parsed = parsePubkeyInput(value);
           return typeof parsed === 'string' ? undefined : parsed.error;
         }}
+        preview={pubkeyPreview}
         onSubmit={async (value, reason) => {
           const parsed = parsePubkeyInput(value);
           if (typeof parsed !== 'string') return;

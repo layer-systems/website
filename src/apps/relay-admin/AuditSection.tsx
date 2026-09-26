@@ -92,7 +92,7 @@ export function AuditSection({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="font-mono">{entry.method}</span>{' '}
-                <span className="text-muted-foreground">→ {entry.target}</span>
+                <span className="break-all text-muted-foreground">→ {entry.target}</span>
                 {entry.detail && (
                   <span className="block truncate text-muted-foreground" title={entry.detail}>
                     {entry.detail}

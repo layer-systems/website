@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-query';
 import type { NostrSigner } from '@nostrify/nostrify';
 
+import { npubOf } from '@/lib/nostrUtils';
 import { useCurrentUser } from './useCurrentUser';
 import {
   fetchRelayInfo,
@@ -89,7 +90,7 @@ export function auditTarget(method: string, params: unknown[]): string {
     case 'unbanpubkey':
     case 'allowpubkey':
     case 'unallowpubkey':
-      return `pubkey ${String(first).slice(0, 16)}…`;
+      return `pubkey ${npubOf(String(first))}`;
     case 'banevent':
     case 'allowevent':
       return `event ${String(first).slice(0, 16)}…`;
@@ -105,7 +106,7 @@ export function auditTarget(method: string, params: unknown[]): string {
       return `role ${String(first)}`;
     case 'assignrole':
     case 'unassignrole':
-      return `role ${String(params[1])} for pubkey ${String(first).slice(0, 16)}…`;
+      return `role ${String(params[1])} for pubkey ${npubOf(String(first))}`;
     case 'changerelayname':
       return 'the relay name';
     case 'changerelaydescription':

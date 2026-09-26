@@ -39,7 +39,8 @@ import { cn } from '@/lib/utils';
 
 export interface PendingConfirm {
   title: string;
-  target: string;
+  /** Plain identifiers render as mono text; pass a node (e.g. a `PubkeyLabel`) for richer targets. */
+  target: ReactNode;
   effect: string;
   reversible?: string;
   actionLabel: string;
@@ -78,9 +79,18 @@ export function ConfirmAction({
           <AlertDialogTitle>{pending?.title}</AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-2 text-left">
-              <span className="block">
-                Target: <span className="break-all font-mono text-xs">{pending?.target}</span>
-              </span>
+              {typeof pending?.target === 'string' ? (
+                <span className="block">
+                  Target: <span className="break-all font-mono text-xs">{pending.target}</span>
+                </span>
+              ) : (
+                <div className="space-y-1">
+                  <span className="block">Target:</span>
+                  <div className="rounded-lg border border-border px-2 py-1.5 text-foreground">
+                    {pending?.target}
+                  </div>
+                </div>
+              )}
               <span className="block">{pending?.effect}</span>
               <span className="block">
                 {pending?.reversible ?? 'The relay offers no operation that reverses this.'}
