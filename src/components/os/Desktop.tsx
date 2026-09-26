@@ -139,7 +139,9 @@ export function Desktop() {
             if (event.target === event.currentTarget) setSelected(null);
           }}
         >
-          <div className="absolute inset-0" aria-label="Desktop app grid">
+          {/* `isolate` keeps the icons' z-indexes local so they stay beneath the
+              (also isolated) window layer that follows in DOM order. */}
+          <div className="absolute inset-0 isolate" aria-label="Desktop app grid">
             {apps.map((app) => {
               const slot = slots.find((item) => item.id === app.id);
               if (!slot) return null;
