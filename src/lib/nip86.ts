@@ -305,6 +305,18 @@ export interface RelayInfo {
   software?: string;
   version?: string;
   icon?: string;
+  supported_nips?: number[];
+  /** Server limitations (`max_message_length`, `auth_required`, ...), primitives only. */
+  limitation?: Record<string, string | number | boolean>;
+}
+
+function pickLimitation(value: unknown): RelayInfo['limitation'] {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined;
+  const entries = Object.entries(value).filter(
+    (entry): entry is [string, string | number | boolean] =>
+      ['string', 'number', 'boolean'].includes(typeof entry[1]),
+  );
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
 /**
@@ -335,6 +347,10 @@ export async function fetchRelayInfo(
       software: pick('software'),
       version: pick('version'),
       icon: pick('icon'),
+      supported_nips: Array.isArray(record.supported_nips)
+        ? record.supported_nips.filter((nip): nip is number => Number.isInteger(nip))
+        : undefined,
+      limitation: pickLimitation(record.limitation),
     };
   } catch {
     return undefined;

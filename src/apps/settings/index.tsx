@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Plus, Trash2, Zap } from 'lucide-react';
+import { Check, Zap } from 'lucide-react';
 import { AppBody, AppLayout, AppToolbar } from '@/components/os/AppChrome';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useMuteList, useSetPubkeyMuted } from '@/hooks/useMuteList';
 import { useNwcConnection } from '@/hooks/useNwc';
+import { useRelayList } from '@/hooks/useRelayList';
 import { useWindowManager } from '@/os/useWindowManager';
 import { desktopApps } from '@/os/registry';
 import { useIconLayout } from '@/os/useIconLayout';
@@ -240,118 +241,22 @@ function AppearanceSection() {
 }
 
 function RelaySection() {
-  const { config, updateConfig } = useAppContext();
-  const { toast } = useToast();
-  const [draft, setDraft] = useState('');
-
-  const relays = config.relayMetadata.relays;
-
-  const addRelay = () => {
-    const value = draft.trim();
-    if (!value) return;
-
-    let url: string;
-    try {
-      const parsed = new URL(value.startsWith('ws') ? value : `wss://${value}`);
-      if (parsed.protocol !== 'wss:' && parsed.protocol !== 'ws:') throw new Error('bad protocol');
-      url = parsed.href;
-    } catch {
-      toast({ title: 'That is not a valid relay URL', variant: 'destructive' });
-      return;
-    }
-
-    if (relays.some((relay) => relay.url === url)) {
-      toast({ title: 'That relay is already in your list' });
-      return;
-    }
-
-    updateConfig((current) => ({
-      ...current,
-      relayMetadata: {
-        relays: [...relays, { url, read: true, write: true }],
-        updatedAt: Math.floor(Date.now() / 1000),
-      },
-    }));
-    setDraft('');
-  };
-
-  const update = (url: string, patch: { read?: boolean; write?: boolean }) => {
-    updateConfig((current) => ({
-      ...current,
-      relayMetadata: {
-        relays: relays.map((relay) => (relay.url === url ? { ...relay, ...patch } : relay)),
-        updatedAt: Math.floor(Date.now() / 1000),
-      },
-    }));
-  };
-
-  const remove = (url: string) => {
-    updateConfig((current) => ({
-      ...current,
-      relayMetadata: {
-        relays: relays.filter((relay) => relay.url !== url),
-        updatedAt: Math.floor(Date.now() / 1000),
-      },
-    }));
-  };
+  const { relays } = useRelayList();
+  const { openApp } = useWindowManager();
+  const read = relays.filter((relay) => relay.read).length;
+  const write = relays.filter((relay) => relay.write).length;
 
   return (
     <Section
       title="Relays"
       description="Read relays supply your feeds; write relays receive what you publish."
     >
-      <ul className="divide-y divide-border rounded-lg border border-border">
-        {relays.map((relay) => (
-          <li key={relay.url} className="flex items-center gap-3 px-3 py-2">
-            <span className="min-w-0 flex-1 truncate font-mono text-xs">
-              {relay.url.replace(/^wss:\/\//, '').replace(/\/$/, '')}
-            </span>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Switch
-                checked={relay.read}
-                onCheckedChange={(checked) => update(relay.url, { read: checked })}
-                aria-label={`Read from ${relay.url}`}
-              />
-              read
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Switch
-                checked={relay.write}
-                onCheckedChange={(checked) => update(relay.url, { write: checked })}
-                aria-label={`Write to ${relay.url}`}
-              />
-              write
-            </label>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7"
-              onClick={() => remove(relay.url)}
-              aria-label={`Remove ${relay.url}`}
-            >
-              <Trash2 className="size-3.5" aria-hidden />
-            </Button>
-          </li>
-        ))}
-        {relays.length === 0 && (
-          <li className="px-3 py-4 text-center text-sm text-muted-foreground">
-            No relays. Add one below.
-          </li>
-        )}
-      </ul>
-
-      <div className="flex gap-2">
-        <Input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => event.key === 'Enter' && addRelay()}
-          placeholder="wss://relay.example.com"
-          className="font-mono text-xs"
-          aria-label="New relay URL"
-        />
-        <Button onClick={addRelay} className="gap-1.5" disabled={!draft.trim()}>
-          <Plus className="size-4" aria-hidden />
-          Add
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+        <p className="text-sm text-muted-foreground">
+          {relays.length} {relays.length === 1 ? 'relay' : 'relays'} · {read} read · {write} write
+        </p>
+        <Button variant="outline" size="sm" onClick={() => openApp('relays')}>
+          Manage relays
         </Button>
       </div>
     </Section>
