@@ -4,6 +4,7 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
 import { AuthorLine } from './AuthorLine';
 import { NoteContent } from './NoteContent';
+import { PowBadge } from './PowBadge';
 import { BookmarkButton } from './BookmarkButton';
 import { ModerationMenu } from './ModerationMenu';
 import { ZapButton } from './ZapButton';
@@ -61,7 +62,7 @@ export function NoteCard({ event, compact, onReply, replyOpen, className }: Note
       onMouseEnter={() => setRevealed(true)}
       onFocus={() => setRevealed(true)}
     >
-      <AuthorLine pubkey={event.pubkey} createdAt={event.created_at} />
+      <AuthorLine pubkey={event.pubkey} createdAt={event.created_at} badges={<PowBadge event={event} />} />
 
       <div className="mt-2 pl-11">
         <NoteContent content={event.content} />

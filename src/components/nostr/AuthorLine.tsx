@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useWindowManager } from '@/os/useWindowManager';
@@ -7,12 +8,14 @@ import { cn } from '@/lib/utils';
 interface AuthorLineProps {
   pubkey: string;
   createdAt?: number;
+  /** Extra markers (e.g. a PoW badge) shown beside the timestamp. */
+  badges?: ReactNode;
   size?: 'sm' | 'md';
   className?: string;
 }
 
 /** Avatar, name, optional timestamp — the header of every note. */
-export function AuthorLine({ pubkey, createdAt, size = 'md', className }: AuthorLineProps) {
+export function AuthorLine({ pubkey, createdAt, badges, size = 'md', className }: AuthorLineProps) {
   const { openApp } = useWindowManager();
   const { data } = useAuthor(pubkey);
   const name = displayName(pubkey, data?.metadata);
@@ -48,14 +51,19 @@ export function AuthorLine({ pubkey, createdAt, size = 'md', className }: Author
             {nip05}
           </span>
         )}
-        {createdAt !== undefined && (
-          <time
-            dateTime={new Date(createdAt * 1000).toISOString()}
-            title={absoluteTime(createdAt)}
-            className="ml-auto shrink-0 text-xs text-muted-foreground"
-          >
-            {relativeTime(createdAt)}
-          </time>
+        {(badges || createdAt !== undefined) && (
+          <span className="ml-auto flex shrink-0 items-baseline gap-2">
+            {badges}
+            {createdAt !== undefined && (
+              <time
+                dateTime={new Date(createdAt * 1000).toISOString()}
+                title={absoluteTime(createdAt)}
+                className="text-xs text-muted-foreground"
+              >
+                {relativeTime(createdAt)}
+              </time>
+            )}
+          </span>
         )}
       </div>
     </div>
