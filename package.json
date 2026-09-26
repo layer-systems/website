@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.1",
   "type": "module",
+  "engines": {
+    "node": ">=26"
+  },
   "scripts": {
     "dev": "npm i --silent && vite",
     "build": "npm i --silent && vite build -l error && cp dist/index.html dist/404.html && echo 'Project built successfully!'",

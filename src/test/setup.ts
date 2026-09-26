@@ -12,6 +12,20 @@ Object.defineProperty(globalThis, 'WebSocket', {
   },
 });
 
+// Node 26 defines a global localStorage getter that Vitest copies over jsdom's
+// Storage. Without --localstorage-file that getter returns undefined.
+const items = new Map<string, string>();
+const localStorage: Storage = {
+  get length() { return items.size; },
+  clear() { items.clear(); },
+  getItem(key) { return items.get(String(key)) ?? null; },
+  key(index) { return [...items.keys()][index] ?? null; },
+  removeItem(key) { items.delete(String(key)); },
+  setItem(key, value) { items.set(String(key), String(value)); },
+};
+Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: localStorage });
+Object.defineProperty(window, 'localStorage', { configurable: true, value: localStorage });
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
