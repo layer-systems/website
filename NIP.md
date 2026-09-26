@@ -21,6 +21,12 @@ protocols:
 
 ## Adopted third-party kinds
 
+- **Kind `1301` (NIP-101e / deployed RUNSTR fitness dialect)** — the Workouts app
+  publishes regular workout records using the interoperable `exercise`, `duration`,
+  `distance`, `elevation_gain`, `workout_start_time`, heart-rate, `cadence`, `source`
+  and `t` tags. It includes the required human-readable `alt` tag. No custom schema
+  extensions are introduced.
+
 - **Kind `777` ("Spell")** — a third-party draft NIP from the
   [Grimoire](https://github.com/purrgrammer/grimoire) client, adopted as-is for interop.
   See `docs/apps.md` ("Spells are a third-party kind") and `src/hooks/useSpells.ts`.
