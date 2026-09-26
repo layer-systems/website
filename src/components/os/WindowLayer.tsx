@@ -33,8 +33,11 @@ export function WindowLayer() {
   const windows = state.windows;
   const [snap, setSnap] = useState<SnapZone>(null);
 
+  // `isolate` keeps the windows' ever-growing z-indexes (persisted, up to
+  // thousands) inside this layer, so portalled popovers (`z-50`) and the menu
+  // bar always stack above every window.
   return (
-    <div className="pointer-events-none absolute inset-0">
+    <div className="pointer-events-none absolute inset-0 isolate">
       {snap && <SnapPreview zone={snap} />}
 
       {windows.map((win) => {
