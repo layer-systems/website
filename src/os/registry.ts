@@ -142,7 +142,7 @@ export const APPS: AppDefinition[] = [
   {
     id: 'relays',
     title: 'Relays',
-    description: 'Connection status, latency and throughput of your relays',
+    description: 'Add, remove and monitor your relays',
     icon: Activity,
     category: 'system',
     component: lazy(() => import('@/apps/relays')),
