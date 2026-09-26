@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { isReply } from '@/lib/nostrUtils';
+import { notificationParentId } from '@/lib/notifications';
 import { useCurrentUser } from './useCurrentUser';
 import { useLocalStorage } from './useLocalStorage';
 
@@ -93,4 +94,29 @@ export function useNotificationReadState() {
     lastReadAt,
     markAllRead: () => setLastReadAt(Math.floor(Date.now() / 1000)),
   };
+}
+
+/**
+ * Fetches the notes that reply notifications are answering, in one batched
+ * `ids` query rather than one request per row. Resolves to a map keyed by id;
+ * parents no relay returned are simply absent from it.
+ */
+export function useNotificationParents(notifications: Notification[]) {
+  const { nostr } = useNostr();
+  const ids = [...new Set(notifications.map(notificationParentId).filter((id): id is string => Boolean(id)))].sort();
+
+  return useQuery<Map<string, NostrEvent>>({
+    queryKey: ['nostr', 'notification-parents', ids.join(',')],
+    enabled: ids.length > 0,
+    queryFn: async ({ signal }) => {
+      const events = await nostr.query([{ ids, limit: ids.length }], {
+        signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]),
+      });
+      const wanted = new Set(ids);
+      // Only keep events we actually asked for, so a misbehaving relay can't
+      // attach unrelated content to a notification.
+      return new Map(events.filter((event) => wanted.has(event.id)).map((event) => [event.id, event]));
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 }

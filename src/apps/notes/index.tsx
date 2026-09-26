@@ -66,6 +66,8 @@ function useReplies(id: string | undefined, relays: string[] | undefined) {
 export default function NotesApp({ params, setTitle, setParams }: AppProps) {
   const { user } = useCurrentUser();
   const id = params.id;
+  // A reply to scroll to and mark, e.g. when opened from a reply notification.
+  const highlightId = params.highlight;
   const relays = decodeRelayHints(params.relays);
   const note = useNote(id, relays);
   const replies = useReplies(id, relays);
@@ -203,6 +205,7 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
                 onReply={user ? setReplyTarget : undefined}
                 composer={!isRootReply ? composer : null}
                 replyTargetId={replyTarget?.id}
+                highlightId={highlightId}
               />
             ))}
           </div>
@@ -225,6 +228,7 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
                   event={node.event}
                   onReply={user ? setReplyTarget : undefined}
                   replyOpen={node.event.id === replyTarget?.id}
+                  highlighted={node.event.id === highlightId}
                 />
                 {node.event.id === replyTarget?.id && composer}
                 {node.children.length > 0 && (
@@ -238,6 +242,7 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
                         onReply={user ? setReplyTarget : undefined}
                         composer={composer}
                         replyTargetId={replyTarget?.id}
+                        highlightId={highlightId}
                       />
                     ))}
                   </div>
@@ -284,11 +289,13 @@ function OrphanBranch({
   onReply,
   composer,
   replyTargetId,
+  highlightId,
 }: {
   node: ReplyNode;
   onReply?: (event: NostrEvent) => void;
   composer?: React.ReactNode;
   replyTargetId?: string;
+  highlightId?: string;
 }) {
   return (
     <div>
@@ -297,7 +304,12 @@ function OrphanBranch({
           Replying to <AuthorName pubkey={node.parentPubkey} />
         </p>
       )}
-      <NoteCard event={node.event} onReply={onReply} replyOpen={node.event.id === replyTargetId} />
+      <NoteCard
+        event={node.event}
+        onReply={onReply}
+        replyOpen={node.event.id === replyTargetId}
+        highlighted={node.event.id === highlightId}
+      />
       {node.event.id === replyTargetId && composer}
       {node.children.length > 0 && (
         <div className="border-l-2 border-border/70 pl-2 ml-8 sm:pl-3">
@@ -308,6 +320,7 @@ function OrphanBranch({
               onReply={onReply}
               composer={composer}
               replyTargetId={replyTargetId}
+              highlightId={highlightId}
             />
           ))}
         </div>
@@ -323,12 +336,14 @@ function ThreadNode({
   onReply,
   composer,
   replyTargetId,
+  highlightId,
 }: {
   node: ReplyNode;
   depth: number;
   onReply?: (event: NostrEvent) => void;
   composer?: React.ReactNode;
   replyTargetId?: string;
+  highlightId?: string;
 }) {
   const isRootReply = depth === 1;
 
@@ -351,7 +366,12 @@ function ThreadNode({
           Replying to <AuthorName pubkey={node.parentPubkey} />
         </p>
       )}
-      <NoteCard event={node.event} onReply={onReply} replyOpen={node.event.id === replyTargetId} />
+      <NoteCard
+        event={node.event}
+        onReply={onReply}
+        replyOpen={node.event.id === replyTargetId}
+        highlighted={node.event.id === highlightId}
+      />
       {node.event.id === replyTargetId && composer}
       {node.children.length > 0 && (
         <div role="group">
@@ -363,6 +383,7 @@ function ThreadNode({
               onReply={onReply}
               composer={composer}
               replyTargetId={replyTargetId}
+              highlightId={highlightId}
             />
           ))}
         </div>
