@@ -3,7 +3,8 @@ import { createContext, useContext } from 'react';
 export interface AppFolder { id: string; name: string; appIds: string[] }
 export interface FolderState { folders: AppFolder[]; error: string | null }
 export interface FolderContextValue extends FolderState {
-  createFolder: (name: string) => string | null;
+  /** Puts both apps into a new folder and returns it, or null if that is not possible. */
+  groupApps: (targetAppId: string, appId: string) => AppFolder | null;
   renameFolder: (id: string, name: string) => boolean;
   deleteFolder: (id: string) => void;
   moveApp: (appId: string, folderId: string | null) => void;
