@@ -17,6 +17,8 @@ export interface MusicPlayerValue {
   seek: (time: number) => void;
   setVolume: (volume: number) => void;
   clear: () => void;
+  /** Registers a mounted player UI; returns the cleanup for its unmount. */
+  attach: () => () => void;
 }
 
 export const MusicPlayerContext = createContext<MusicPlayerValue | null>(null);

@@ -36,6 +36,8 @@ export default function MusicApp({ params, setParams, setTitle }: AppProps) {
   const { toast } = useToast();
   const relayHints = useRelayHints();
   const player = useMusicPlayer();
+  const { attach } = player;
+  useEffect(attach, [attach]);
   const scope = useFeedScope('music:scope');
   const tracks = useMusicTracks(scope.authors, scope.queryKey);
   const ownTracks = useMusicTracks(user ? [user.pubkey] : undefined, ['mine', user?.pubkey ?? '']);

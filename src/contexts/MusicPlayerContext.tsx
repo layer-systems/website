@@ -91,6 +91,20 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
     setVolumeState(Math.max(0, Math.min(1, value)));
   }, []);
 
+  // The player controls only exist inside Music windows. Once the last one
+  // unmounts, pause so audio never keeps playing without a way to stop it.
+  // Minimized windows stay mounted and keep playing.
+  const viewers = useRef(0);
+  const attach = useCallback(() => {
+    viewers.current += 1;
+    return () => {
+      viewers.current -= 1;
+      if (viewers.current > 0) return;
+      audio.current?.pause();
+      setWanted(false);
+    };
+  }, []);
+
   const clear = useCallback(() => {
     audio.current?.pause();
     setQueue([]);
@@ -102,8 +116,8 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<MusicPlayerValue>(() => ({
     queue, index, current, playing, time, duration, volume, error,
-    playTracks, toggle, next, previous, seek, setVolume, clear,
-  }), [queue, index, current, playing, time, duration, volume, error, playTracks, toggle, next, previous, seek, setVolume, clear]);
+    playTracks, toggle, next, previous, seek, setVolume, clear, attach,
+  }), [queue, index, current, playing, time, duration, volume, error, playTracks, toggle, next, previous, seek, setVolume, clear, attach]);
 
   return <MusicPlayerContext.Provider value={value}>
     {children}
