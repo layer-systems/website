@@ -29,8 +29,17 @@ function readFolders(key: string): FolderState {
   }
 }
 
-function FolderStateProvider({ storageKey, children }: { storageKey: string; children: ReactNode }) {
+export function AppFoldersProvider({ children }: { children: ReactNode }) {
+  const { user } = useCurrentUser();
+  const storageKey = `${STORAGE_PREFIX}${user?.pubkey ?? 'guest'}`;
   const [state, setState] = useState<FolderState>(() => readFolders(storageKey));
+  // Reload in place on account switch. Remounting via `key` would also
+  // remount the whole shell below and drop the state of every open window.
+  const [loadedKey, setLoadedKey] = useState(storageKey);
+  if (loadedKey !== storageKey) {
+    setLoadedKey(storageKey);
+    setState(readFolders(storageKey));
+  }
   const update = useCallback((change: (folders: AppFolder[]) => AppFolder[]) => {
     setState((previous) => {
       const folders = change(previous.folders);
@@ -66,10 +75,4 @@ function FolderStateProvider({ storageKey, children }: { storageKey: string; chi
     })));
   }, [update]);
   return <FolderContext.Provider value={{ ...state, createFolder, renameFolder, deleteFolder, moveApp, clearError: () => setState((current) => ({ ...current, error: null })) }}>{children}</FolderContext.Provider>;
-}
-
-export function AppFoldersProvider({ children }: { children: ReactNode }) {
-  const { user } = useCurrentUser();
-  const key = `${STORAGE_PREFIX}${user?.pubkey ?? 'guest'}`;
-  return <FolderStateProvider key={key} storageKey={key}>{children}</FolderStateProvider>;
 }

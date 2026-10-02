@@ -9,7 +9,7 @@ import {
 import { DesktopIcon } from './DesktopIcon';
 import { WindowLayer } from './WindowLayer';
 import { useWindowManager } from '@/os/useWindowManager';
-import { desktopApps } from '@/os/registry';
+import { desktopApps, getApp } from '@/os/registry';
 import { MENUBAR_HEIGHT } from '@/os/layout';
 import { swapDesktopSlots, type DesktopSlot, type GridGeometry } from '@/os/iconLayout';
 import { useIconLayout } from '@/os/useIconLayout';
@@ -43,6 +43,7 @@ export function Desktop() {
   const [pickedLayout, setPickedLayout] = useState<DesktopSlot[] | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const pointerStart = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
+  const suppressClick = useRef(false);
   const apps = desktopApps();
   const { folders, moveApp } = useAppFolders();
   const nested = new Set(folders.flatMap((folder) => folder.appIds));
@@ -51,6 +52,10 @@ export function Desktop() {
   const geometry = useMemo(() => geometryFor(surfaceSize.width, surfaceSize.height), [surfaceSize]);
   const { layout, setDesktop, reset } = useIconLayout(topIds, geometry);
   const slots = layout.desktop;
+  const labelFor = useCallback(
+    (id: string) => getApp(id)?.title ?? folders.find((folder) => folder.id === id)?.name ?? id,
+    [folders],
+  );
 
   useEffect(() => {
     const onResize = () => setSurfaceSize({ width: window.innerWidth, height: window.innerHeight - MENUBAR_HEIGHT });
@@ -66,8 +71,8 @@ export function Desktop() {
   const move = useCallback((id: string, target: { col: number; row: number }) => {
     setDesktop((current) => swapDesktopSlots(current, id, target));
     const occupied = slots.find((slot) => slot.col === target.col && slot.row === target.row && slot.id !== id);
-    setAnnouncement(occupied ? `${id} swapped positions with ${occupied.id}.` : `${id} moved to column ${target.col + 1}, row ${target.row + 1}.`);
-  }, [setDesktop, slots]);
+    setAnnouncement(occupied ? `${labelFor(id)} swapped positions with ${labelFor(occupied.id)}.` : `${labelFor(id)} moved to column ${target.col + 1}, row ${target.row + 1}.`);
+  }, [labelFor, setDesktop, slots]);
 
   const onPointerMove = useCallback((event: PointerEvent) => {
     const active = pointerStart.current;
@@ -80,18 +85,20 @@ export function Desktop() {
   const finishPointer = useCallback((event: PointerEvent) => {
     const active = pointerStart.current;
     if (active?.moved) {
+      // The click that follows a drag must not open a dragged folder.
+      suppressClick.current = active.id.startsWith('folder:');
       const target = cellAt(event.clientX, event.clientY);
       const occupant = slots.find((slot) => slot.col === target.col && slot.row === target.row && slot.id !== active.id);
       if (occupant?.id.startsWith('folder:') && !active.id.startsWith('folder:')) {
         moveApp(active.id, occupant.id);
-        setAnnouncement(`${active.id} moved into folder.`);
+        setAnnouncement(`${labelFor(active.id)} moved into ${labelFor(occupant.id)}.`);
       } else move(active.id, target);
       setSelected(active.id);
     }
     pointerStart.current = null;
     setDragging(null);
     setCandidate(null);
-  }, [cellAt, move, moveApp, slots]);
+  }, [cellAt, labelFor, move, moveApp, slots]);
 
   useEffect(() => {
     window.addEventListener('pointermove', onPointerMove);
@@ -120,11 +127,11 @@ export function Desktop() {
       if (picked === id) {
         setPicked(null);
         setPickedLayout(null);
-        setAnnouncement(`${id} dropped at column ${slot.col + 1}, row ${slot.row + 1}.`);
+        setAnnouncement(`${labelFor(id)} dropped at column ${slot.col + 1}, row ${slot.row + 1}.`);
       } else {
         setPicked(id);
         setPickedLayout(slots);
-        setAnnouncement(`${id} picked up. Use arrow keys to move, Enter to drop, Escape to cancel.`);
+        setAnnouncement(`${labelFor(id)} picked up. Use arrow keys to move, Enter to drop, Escape to cancel.`);
       }
       return;
     }
@@ -181,7 +188,26 @@ export function Desktop() {
             {folders.map((folder) => {
               const slot = slots.find((item) => item.id === folder.id);
               if (!slot) return null;
-              return <FolderTile key={folder.id} folder={folder} onOpen={() => setSelected(folder.id)} style={{ position: 'absolute', left: SURFACE_PADDING + slot.col * CELL_WIDTH, top: SURFACE_PADDING + slot.row * CELL_HEIGHT }} />;
+              const displaySlot = dragging === folder.id && candidate ? candidate : slot;
+              return (
+                <FolderTile
+                  key={folder.id}
+                  folder={folder}
+                  dragging={dragging === folder.id}
+                  pickedUp={picked === folder.id}
+                  onPointerDown={(event) => {
+                    if (event.button !== 0) return;
+                    pointerStart.current = { id: folder.id, x: event.clientX, y: event.clientY, moved: false };
+                    suppressClick.current = false;
+                  }}
+                  onKeyDown={(event) => iconKeyDown(folder.id, event)}
+                  onOpen={() => {
+                    if (suppressClick.current) { suppressClick.current = false; return; }
+                    setSelected(folder.id);
+                  }}
+                  style={{ position: 'absolute', left: SURFACE_PADDING + displaySlot.col * CELL_WIDTH, top: SURFACE_PADDING + displaySlot.row * CELL_HEIGHT, zIndex: dragging === folder.id ? 2 : 1 }}
+                />
+              );
             })}
             <AppFolderControls onOpenApp={openApp} openFolderId={selected?.startsWith('folder:') ? selected : null} onCloseFolder={() => setSelected(null)} />
           </div>

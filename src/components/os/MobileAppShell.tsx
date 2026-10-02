@@ -178,6 +178,10 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
   const { layout, setMobile } = useIconLayout(topIds, { columns, rows: Math.max(8, Math.ceil(topIds.length / columns) + 4) });
   const byId = useMemo(() => new Map(apps.map((app) => [app.id, app])), [apps]);
   const orderedIds = layout.mobile;
+  const labelFor = useCallback(
+    (id: string) => byId.get(id)?.title ?? folders.find((folder) => folder.id === id)?.name ?? id,
+    [byId, folders],
+  );
 
   useEffect(() => {
     const onResize = () => setColumns(window.innerWidth < 480 ? 3 : 4);
@@ -188,7 +192,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
   const reorder = useCallback((id: string, beforeId: string | null) => {
     if (beforeId?.startsWith('folder:') && !id.startsWith('folder:')) {
       moveApp(id, beforeId);
-      setAnnouncement(`${byId.get(id)?.title ?? id} moved into folder.`);
+      setAnnouncement(`${labelFor(id)} moved into ${labelFor(beforeId)}.`);
       return;
     }
     setMobile((order) => {
@@ -199,8 +203,8 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
       return next;
     });
     const position = beforeId ? Math.max(1, layout.mobile.indexOf(beforeId) + 1) : layout.mobile.length;
-    setAnnouncement(`${id} moved to position ${position}.`);
-  }, [byId, layout.mobile, moveApp, setMobile]);
+    setAnnouncement(`${labelFor(id)} moved to position ${position}.`);
+  }, [labelFor, layout.mobile, moveApp, setMobile]);
 
   useEffect(() => {
     const onMove = (event: PointerEvent) => {
@@ -251,11 +255,11 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
       if (picked === id) {
         setPicked(null);
         setPickedOrder(null);
-        setAnnouncement(`${id} dropped at position ${index + 1}.`);
+        setAnnouncement(`${labelFor(id)} dropped at position ${index + 1}.`);
       } else {
         setPicked(id);
         setPickedOrder(layout.mobile);
-        setAnnouncement(`${id} picked up. Use arrow keys to reorder, Enter to drop, Escape to cancel.`);
+        setAnnouncement(`${labelFor(id)} picked up. Use arrow keys to reorder, Enter to drop, Escape to cancel.`);
       }
       return;
     }
@@ -271,7 +275,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
       next.splice(targetIndex, 0, id);
       return next;
     });
-    setAnnouncement(`${id} moved to position ${nextIndex + 1}.`);
+    setAnnouncement(`${labelFor(id)} moved to position ${nextIndex + 1}.`);
   };
 
   return (
@@ -280,7 +284,30 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
       <div className="grid grid-cols-3 gap-4 min-[480px]:grid-cols-4">
         {orderedIds.map((id) => {
           const folder = folders.find((item) => item.id === id);
-          if (folder) return <FolderTile key={id} folder={folder} mobile onOpen={() => setOpenFolderId(id)} />;
+          if (folder) {
+            return (
+              <FolderTile
+                key={id}
+                folder={folder}
+                mobile
+                dragging={dragging === id}
+                pickedUp={picked === id}
+                dropTarget={target === id && dragging !== id}
+                onPointerDown={(event) => {
+                  if (event.button !== 0) return;
+                  dragStart.current = { id, x: event.clientX, y: event.clientY, moved: false };
+                }}
+                onKeyDown={(event) => onKeyDown(id, event)}
+                onOpen={() => {
+                  if (suppressClick.current) {
+                    suppressClick.current = false;
+                    return;
+                  }
+                  setOpenFolderId(id);
+                }}
+              />
+            );
+          }
           const app = byId.get(id);
           if (!app) return null;
           return <div key={app.id} className="relative">
