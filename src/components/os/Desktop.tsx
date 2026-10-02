@@ -36,6 +36,7 @@ function geometryFor(width: number, height: number): GridGeometry {
 export function Desktop() {
   const { openApp, windows, minimizeAll, closeAll } = useWindowManager();
   const [selected, setSelected] = useState<string | null>(null);
+  const [openFolder, setOpenFolder] = useState<string | null>(null);
   const [surfaceSize, setSurfaceSize] = useState(() => ({ width: window.innerWidth, height: window.innerHeight - MENUBAR_HEIGHT }));
   const [dragging, setDragging] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<{ col: number; row: number } | null>(null);
@@ -43,7 +44,6 @@ export function Desktop() {
   const [pickedLayout, setPickedLayout] = useState<DesktopSlot[] | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const pointerStart = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
-  const suppressClick = useRef(false);
   const apps = desktopApps();
   const { folders, moveApp } = useAppFolders();
   const nested = new Set(folders.flatMap((folder) => folder.appIds));
@@ -85,8 +85,6 @@ export function Desktop() {
   const finishPointer = useCallback((event: PointerEvent) => {
     const active = pointerStart.current;
     if (active?.moved) {
-      // The click that follows a drag must not open a dragged folder.
-      suppressClick.current = active.id.startsWith('folder:');
       const target = cellAt(event.clientX, event.clientY);
       const occupant = slots.find((slot) => slot.col === target.col && slot.row === target.row && slot.id !== active.id);
       if (occupant?.id.startsWith('folder:') && !active.id.startsWith('folder:')) {
@@ -195,21 +193,20 @@ export function Desktop() {
                   folder={folder}
                   dragging={dragging === folder.id}
                   pickedUp={picked === folder.id}
+                  selected={selected === folder.id}
                   onPointerDown={(event) => {
                     if (event.button !== 0) return;
                     pointerStart.current = { id: folder.id, x: event.clientX, y: event.clientY, moved: false };
-                    suppressClick.current = false;
-                  }}
-                  onKeyDown={(event) => iconKeyDown(folder.id, event)}
-                  onOpen={() => {
-                    if (suppressClick.current) { suppressClick.current = false; return; }
                     setSelected(folder.id);
                   }}
+                  onKeyDown={(event) => iconKeyDown(folder.id, event)}
+                  onSelect={() => { if (!pointerStart.current?.moved) setSelected(folder.id); }}
+                  onOpen={() => setOpenFolder(folder.id)}
                   style={{ position: 'absolute', left: SURFACE_PADDING + displaySlot.col * CELL_WIDTH, top: SURFACE_PADDING + displaySlot.row * CELL_HEIGHT, zIndex: dragging === folder.id ? 2 : 1 }}
                 />
               );
             })}
-            <AppFolderControls onOpenApp={openApp} openFolderId={selected?.startsWith('folder:') ? selected : null} onCloseFolder={() => setSelected(null)} />
+            <AppFolderControls onOpenApp={openApp} openFolderId={openFolder} onCloseFolder={() => setOpenFolder(null)} />
           </div>
 
           <WindowLayer />

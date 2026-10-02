@@ -36,6 +36,9 @@ export function MoveAppMenu({ appId, appTitle }: { appId: string; appTitle: stri
 interface FolderTileProps {
   folder: AppFolder;
   onOpen: () => void;
+  /** When set, a click only selects and a double click or Enter opens, like desktop app icons. */
+  onSelect?: () => void;
+  selected?: boolean;
   mobile?: boolean;
   style?: CSSProperties;
   onPointerDown?: (event: React.PointerEvent<HTMLButtonElement>) => void;
@@ -45,9 +48,15 @@ interface FolderTileProps {
   dropTarget?: boolean;
 }
 
-export function FolderTile({ folder, onOpen, mobile = false, style, onPointerDown, onKeyDown, dragging, pickedUp, dropTarget }: FolderTileProps) {
+export function FolderTile({ folder, onOpen, onSelect, selected, mobile = false, style, onPointerDown, onKeyDown, dragging, pickedUp, dropTarget }: FolderTileProps) {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    onKeyDown?.(event);
+    if (!onSelect || event.defaultPrevented || event.key !== 'Enter') return;
+    event.preventDefault();
+    onOpen();
+  };
   return (
-    <button type="button" style={style} data-home-icon-id={mobile ? folder.id : undefined} onPointerDown={onPointerDown} onKeyDown={onKeyDown} onClick={onOpen} aria-pressed={pickedUp || undefined} aria-label={`Open ${folder.name} folder, ${folder.appIds.length} apps`} className={cn('group flex flex-col items-center rounded-xl text-center transition-[background-color,transform,box-shadow] motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring hover:bg-foreground/5', mobile ? 'gap-2 p-2' : 'w-20 gap-1.5 p-2', (pickedUp || dragging) && 'bg-primary/15', dragging && 'scale-105 cursor-grabbing shadow-lg', dropTarget && 'bg-primary/10 ring-2 ring-primary/50')}>
+    <button type="button" style={style} data-home-icon-id={mobile ? folder.id : undefined} onPointerDown={onPointerDown} onKeyDown={handleKeyDown} onClick={onSelect ?? onOpen} onDoubleClick={onSelect ? onOpen : undefined} aria-pressed={pickedUp || undefined} aria-label={`Open ${folder.name} folder, ${folder.appIds.length} apps`} className={cn('group flex flex-col items-center rounded-xl text-center transition-[background-color,transform,box-shadow] motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring hover:bg-foreground/5', mobile ? 'gap-2 p-2' : 'w-20 gap-1.5 p-2', (pickedUp || dragging || selected) && 'bg-primary/15', dragging && 'scale-105 cursor-grabbing shadow-lg', dropTarget && 'bg-primary/10 ring-2 ring-primary/50')}>
       <span className={cn('relative flex items-center justify-center rounded-xl border border-primary/30 bg-primary/10 shadow-sm transition-transform group-hover:-translate-y-0.5', mobile ? 'size-14' : 'size-12')}>
         <Folder className={cn('text-primary', mobile ? 'size-7' : 'size-6')} aria-hidden />
         {folder.appIds.length > 0 && <span className="absolute -bottom-1 -right-1 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">{folder.appIds.length}</span>}
