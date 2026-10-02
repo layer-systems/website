@@ -12,6 +12,18 @@ import { useUploadFile } from '@/hooks/useUploadFile';
 import { generateIdentifier } from '@/lib/nip51';
 import { secureMediaUrl, TRACK_KIND, type Track } from '@/lib/music';
 
+/** Tags this form writes; anything else on an edited track is carried over. */
+const MANAGED_TAGS = new Set(['d', 'title', 'subject', 'imeta', 'url', 'media', 'image', 'duration', 'alt', 'client']);
+
+function isManagedTag([name, , role]: string[]): boolean {
+  return MANAGED_TAGS.has(name) || (name === 'c' && (role === 'artist' || role === 'album'));
+}
+
+/** The existing `imeta` tag for `url`, so edits keep its hash, size and type. */
+function existingMediaTag(track: Track | undefined, url: string): string[] | undefined {
+  return track?.event.tags.find((tag) => tag[0] === 'imeta' && tag.slice(1).some((part) => part === `url ${url}`));
+}
+
 export function PublishTrack({ existing, onPublished }: { existing?: Track; onPublished: (pubkey: string, identifier: string) => void }) {
   const { user } = useCurrentUser();
   const upload = useUploadFile();
@@ -55,7 +67,8 @@ export function PublishTrack({ existing, onPublished }: { existing?: Track; onPu
       if (parsedDuration !== undefined && (!Number.isFinite(parsedDuration) || parsedDuration <= 0)) throw new Error('Duration must be a positive number of seconds.');
 
       let url = secureMediaUrl(audioUrl.trim());
-      let mediaTag: string[] | undefined = uploadedMediaTag;
+      // A previous upload only applies while its URL is still the chosen one.
+      let mediaTag: string[] | undefined = uploadedMediaTag?.[1] === `url ${url}` ? uploadedMediaTag : undefined;
       if (file) {
         const tags = await upload.mutateAsync(file);
         url = secureMediaUrl(tags.find(([name]) => name === 'url')?.[1]);
@@ -66,7 +79,7 @@ export function PublishTrack({ existing, onPublished }: { existing?: Track; onPu
         chooseFile(null);
       }
       if (!url) throw new Error('Choose an audio file or enter an https:// audio URL.');
-      if (!mediaTag) mediaTag = ['imeta', `url ${url}`, ...(existing?.mime ? [`m ${existing.mime}`] : [])];
+      if (!mediaTag) mediaTag = existingMediaTag(existing, url) ?? ['imeta', `url ${url}`];
       const identifier = existing?.identifier ?? generateIdentifier(title.trim());
       const tags: string[][] = [
         ['d', identifier], ['title', title.trim()], ['c', artist.trim(), 'artist'], mediaTag,
@@ -75,6 +88,7 @@ export function PublishTrack({ existing, onPublished }: { existing?: Track; onPu
       if (album.trim()) tags.push(['c', album.trim(), 'album']);
       if (artwork.trim()) tags.push(['image', secureMediaUrl(artwork.trim())!]);
       if (parsedDuration) tags.push(['duration', String(Math.round(parsedDuration))]);
+      if (existing) tags.push(...existing.event.tags.filter((tag) => !isManagedTag(tag)));
       const oldCreatedAt = existing?.event.created_at ?? 0;
       await publish.mutateAsync({ kind: TRACK_KIND, content: description.trim(), tags, created_at: Math.max(Math.floor(Date.now() / 1000), oldCreatedAt + 1) });
       await queryClient.invalidateQueries({ queryKey: ['nostr', 'music'] });

@@ -60,7 +60,10 @@ export function usePlaylistTracks(list: Nip51List | undefined, relays?: string[]
     enabled: Boolean(list && addresses.length),
     queryFn: async ({ signal }) => {
       const parsed = addresses.map(parseTrackAddress).filter((address): address is { pubkey: string; identifier: string } => Boolean(address));
-      const filters = parsed.map(({ pubkey, identifier }) => ({ kinds: [TRACK_KIND], authors: [pubkey], '#d': [identifier], limit: 2 }));
+      // One filter per author keeps the REQ small for long playlists.
+      const byAuthor = new Map<string, string[]>();
+      for (const { pubkey, identifier } of parsed) byAuthor.set(pubkey, [...(byAuthor.get(pubkey) ?? []), identifier]);
+      const filters = [...byAuthor].map(([pubkey, identifiers]) => ({ kinds: [TRACK_KIND], authors: [pubkey], '#d': identifiers, limit: identifiers.length * 2 }));
       const events = await nostr.query(filters, { signal: requestSignal(signal), ...(relays?.length ? { relays } : {}) });
       const found = new Map(latestTracks(events).map((track) => [`${track.event.pubkey}:${track.identifier}`, track]));
       return parsed.map(({ pubkey, identifier }) => found.get(`${pubkey}:${identifier}`)).filter((track): track is Track => Boolean(track));

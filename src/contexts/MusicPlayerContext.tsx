@@ -14,6 +14,12 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string>();
   const current = queue[index];
 
+  // Keep the element in sync with the slider, which starts below the
+  // browser default of 1.
+  useEffect(() => {
+    if (audio.current) audio.current.volume = volume;
+  }, [volume]);
+
   const next = useCallback(() => {
     setTime(0);
     setError(undefined);
@@ -82,9 +88,7 @@ export function MusicPlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setVolume = useCallback((value: number) => {
-    const nextVolume = Math.max(0, Math.min(1, value));
-    if (audio.current) audio.current.volume = nextVolume;
-    setVolumeState(nextVolume);
+    setVolumeState(Math.max(0, Math.min(1, value)));
   }, []);
 
   const clear = useCallback(() => {
