@@ -1,4 +1,4 @@
-image: node:26
+image: node:26.12.1
 
 default:
   interruptible: true
