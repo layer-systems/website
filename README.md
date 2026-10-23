@@ -31,8 +31,15 @@ relays you use.
 
 ### Requirements
 
-- Node.js 26 or newer (`nvm use` reads `.nvmrc`)
+- Node.js 26.12.1 or newer (`nvm install` followed by `nvm use` reads `.nvmrc`)
 - npm
+
+Node.js 26.12.1 is the minimum version containing the
+[October 21, 2026 security fixes](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases).
+GitHub Actions reads the patched version from `.nvmrc`; GitLab CI uses the matching
+Node.js image. Update existing local Node.js installations before running development
+or build commands. Production serves static files on GitHub Pages and does not run
+a Node.js application server.
 
 Clone the repository, install dependencies, and start the Vite development server:
 
@@ -60,8 +67,8 @@ build is deployed as a static site.
 
 The repository includes a GitHub Actions workflow in
 [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml). It runs on pushes to
-`main` (or manually from the Actions tab), builds the app with Node.js 26, and deploys
-`dist/` to GitHub Pages.
+`main` (or manually from the Actions tab), builds the app with the Node.js version in
+`.nvmrc`, and deploys `dist/` to GitHub Pages.
 
 For another static host, run `npm run build` and publish the generated `dist/` directory.
 Configure the host to serve `dist/404.html` for unknown paths so direct NIP-19 links
