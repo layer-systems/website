@@ -57,10 +57,10 @@ export const LIST_KINDS: ListKindInfo[] = [
     kind: 30004,
     name: 'Curation sets',
     noun: 'curation set',
-    description: 'Hand-picked notes and articles to share with others.',
+    description: 'Hand-picked articles and music tracks to share with others.',
     type: 'set',
     itemTags: ['a', 'e'],
-    addressKinds: [30023],
+    addressKinds: [30023, 31337],
   },
   {
     kind: 30015,

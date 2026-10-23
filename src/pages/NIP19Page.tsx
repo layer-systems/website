@@ -16,6 +16,7 @@ function withHints(params: AppParams, relays: string[] | undefined): AppParams {
 /** The app an `naddr` opens, by the addressed event's kind. */
 function naddrApp(kind: number): string {
   if (isCalendarEventKind(kind)) return 'calendar';
+  if (kind === 31337) return 'music';
   if (SET_KINDS.includes(kind) || kind === LEGACY_GENERIC_KIND) return 'lists';
   return 'articles';
 }
@@ -51,7 +52,9 @@ export function NIP19Page() {
         break;
       case 'naddr':
         boot = {
-          appId: naddrApp(decoded.data.kind),
+          appId: decoded.data.kind === 30004 && decoded.data.identifier.startsWith('music-')
+            ? 'music'
+            : naddrApp(decoded.data.kind),
           params: withHints(
             {
               pubkey: decoded.data.pubkey,

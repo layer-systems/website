@@ -31,5 +31,23 @@ protocols:
   [Grimoire](https://github.com/purrgrammer/grimoire) client, adopted as-is for interop.
   See `docs/apps.md` ("Spells are a third-party kind") and `src/hooks/useSpells.ts`.
 
-Anything else (kinds 0, 1, 3, 5, 6, 16, 9802, 10002, 10003, 22242, 30023, 30311, 31337,
+- **Kind `31337` (music track)** — an addressable audio-track convention used by
+  existing music clients. Its [NIP proposal](https://github.com/nostr-protocol/nips/pull/1043)
+  was closed without merging, so this is an adopted third-party format, not an
+  official NIP. Music requires `d`, `title`, and a playable HTTPS audio URL in a
+  NIP-92 `imeta` tag (with `url` as a compatibility fallback). It publishes
+  `c` tags with `artist` and optional `album` roles, plus optional `image`,
+  `duration`, and `alt`. The app accepts older events with `media` or `url`
+  tags and the `subject` title fallback. A track's identity is
+  `31337:<author-pubkey>:<d>`; edits replace that same address.
+
+- **Kind `30004` (NIP-51 curation set, music extension)** — Music uses the
+  existing curation-set kind for named public playlists. Each `a` item points
+  to a kind `31337` track; item order is playback order. Playlist `d` values
+  start with `music-` so shared `naddr` links open Music, while other curation
+  sets continue to open Lists. The signed-in user's liked tracks use
+  `d=music-favorites`. Music updates lists through the shared NIP-51 mutation
+  hook, which reads the latest author-owned version before replacement.
+
+Anything else (kinds 0, 1, 3, 5, 6, 16, 9802, 10002, 10003, 22242, 30023, 30311,
 39701, …) follows the official NIPs as implemented in `src/hooks/` and `src/lib/`.
