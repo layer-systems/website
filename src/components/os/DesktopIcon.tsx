@@ -1,5 +1,7 @@
 import { cn } from '@/lib/utils';
 import type { AppDefinition } from '@/os/types';
+import { NO_TOUCH_CALLOUT } from '@/os/useIconDrag';
+import { DropHint } from './AppFolderControls';
 
 interface DesktopIconProps {
   app: AppDefinition;
@@ -11,6 +13,8 @@ interface DesktopIconProps {
   tabIndex?: number;
   dragging?: boolean;
   pickedUp?: boolean;
+  /** Another app hovers over this one and would form a folder on release. */
+  mergeTarget?: boolean;
   style?: React.CSSProperties;
 }
 
@@ -24,6 +28,7 @@ export function DesktopIcon({
   tabIndex,
   dragging,
   pickedUp,
+  mergeTarget,
   style,
 }: DesktopIconProps) {
   const Icon = app.icon;
@@ -47,19 +52,21 @@ export function DesktopIcon({
       }}
       aria-label={`${app.title} — ${app.description}`}
       className={cn(
-        'group flex w-20 flex-col items-center gap-1.5 rounded-lg p-2 text-center transition-[background-color,transform,box-shadow] motion-reduce:transition-none',
+        'group relative flex w-20 flex-col items-center gap-1.5 rounded-lg p-2 text-center transition-[background-color,opacity,box-shadow] motion-reduce:transition-none',
+        NO_TOUCH_CALLOUT,
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
         selected || pickedUp ? 'bg-primary/15' : 'hover:bg-foreground/5',
-        dragging && 'scale-105 cursor-grabbing shadow-lg',
+        dragging && 'opacity-30',
       )}
       aria-pressed={pickedUp || undefined}
       aria-describedby={pickedUp ? 'icon-layout-status' : undefined}
     >
       <span
         className={cn(
-          'flex size-12 items-center justify-center rounded-xl border bg-background/80 shadow-sm transition-transform',
+          'flex size-12 items-center justify-center rounded-xl border bg-background/80 shadow-sm transition-transform duration-150 motion-reduce:transition-none',
           'group-hover:-translate-y-0.5 group-active:translate-y-0',
           selected ? 'border-primary/40' : 'border-os-window-border',
+          mergeTarget && 'scale-115 border-primary bg-primary/10 ring-2 ring-primary/60',
         )}
       >
         <Icon className="size-6 text-primary" aria-hidden />
@@ -67,6 +74,7 @@ export function DesktopIcon({
       <span className="line-clamp-2 text-[11px] font-medium leading-tight text-foreground/80">
         {app.title}
       </span>
+      {mergeTarget && <DropHint>Create folder</DropHint>}
     </button>
   );
 }
