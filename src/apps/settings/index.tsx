@@ -16,8 +16,7 @@ import { useMuteList, useSetPubkeyMuted } from '@/hooks/useMuteList';
 import { useNwcConnection } from '@/hooks/useNwc';
 import { useRelayList } from '@/hooks/useRelayList';
 import { useWindowManager } from '@/os/useWindowManager';
-import { desktopApps } from '@/os/registry';
-import { useIconLayout } from '@/os/useIconLayout';
+import { useHomeScreen } from '@/hooks/useHomeScreen';
 import { useToast } from '@/hooks/useToast';
 import { displayName, npubOf } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
@@ -64,10 +63,10 @@ export default function SettingsApp({ setTitle }: AppProps) {
 
 function IconLayoutSection() {
   const { toast } = useToast();
-  const appIds = desktopApps().map((app) => app.id);
   // Reset uses a deterministic, measurement-free registry order. The desktop
   // clamps it to its actual surface on render; mobile reflows into its columns.
-  const { reset } = useIconLayout(appIds, { columns: 8, rows: 16 });
+  // Only positions are reset — folders and what is in them stay.
+  const { reset } = useHomeScreen({ columns: 8, rows: 16 });
 
   const resetAndToast = (profile: 'desktop' | 'mobile' | 'both') => {
     reset(profile);
@@ -77,7 +76,7 @@ function IconLayoutSection() {
   return (
     <Section
       title="Home screen layout"
-      description="Arrange icons by dragging them. On a keyboard, press Space to pick up an icon, use the arrow keys to move it, then press Enter to drop."
+      description="Arrange icons by dragging them, and drop one app onto another to make a folder. On a keyboard, press Space to pick up an icon, use the arrow keys to move it, then press Enter to drop; Shift+F10 opens an icon’s menu with the folder options. Resetting moves icons back but keeps your folders."
     >
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={() => resetAndToast('desktop')}>Reset desktop</Button>

@@ -19,6 +19,16 @@ protocols:
 - [NIP-11: Relay Information Document](https://github.com/nostr-protocol/nips/blob/master/11.md)
   — read at connect time to show relay identity in Relay Admin.
 
+- [NIP-78: Arbitrary custom app data](https://github.com/nostr-protocol/nips/blob/master/78.md)
+  — the user's home-screen app folders are one kind `30078` event with
+  `d` = `layer-systems:app-folders` and an `alt` tag, nothing else. Its `content` is the
+  folder structure as JSON, NIP-44 encrypted to the author's own pubkey:
+  `{"version":1,"folders":[{"id":"folder:<random>","name":"…","apps":["<app id>",…]}]}`.
+  App ids are this client's registry ids, so the data is not meant for other clients.
+  Queries always filter by `authors`. See `docs/nostr.md` ("App folders").
+- [NIP-44: Encrypted Payloads](https://github.com/nostr-protocol/nips/blob/master/44.md)
+  — used for the app folder event above and for private NIP-51 list items.
+
 ## Adopted third-party kinds
 
 - **Kind `1301` (NIP-101e / deployed RUNSTR fitness dialect)** — the Workouts app

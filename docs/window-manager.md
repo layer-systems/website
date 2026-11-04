@@ -132,6 +132,77 @@ Stored in `localStorage` under `nostr:os-session`, versioned (`version: 1`), deb
 
 An empty window list removes the key rather than storing `[]`.
 
+## Home screen and app folders
+
+The icons on the desktop grid and the mobile home screen are *top-level items*: apps,
+plus folders the user made. `useHomeScreen(geometry)` combines the two parts:
+
+- **Positions** — `useIconLayout` / `iconLayout.ts`, `localStorage` key
+  `nostr:icon-layout`: desktop grid cells and the mobile order. Device-local, never synced.
+- **Folders** — `useAppFolders`, `src/lib/appFolders.ts`: which apps are grouped, in what
+  order, under which name. Stored per account (`nostr:app-folders:<pubkey>`, or
+  `nostr:app-folders:signed-out`) and, when signed in, synced as an encrypted Nostr event
+  by `AppFoldersSync` — see [`nostr.md`](./nostr.md#app-folders).
+
+Folder ids carry the prefix `folder:` and live in the icon layout like app ids, so a
+folder is positioned, swapped and reordered exactly like an app.
+
+**Every folder operation edits both parts at once** (`merge`, `moveToFolder`, `moveOut`):
+a new folder takes the target icon's spot, and a folder that dissolves hands its spot to
+its last app. Each operation makes exactly *one* `setDesktop` and *one* `setMobile` call —
+their updaters reconcile against the ids of the current render, so a second call in the
+same event would drop ids the first one just introduced.
+
+**Interaction is phone style, with no extra buttons:**
+
+| Gesture | Result |
+|---|---|
+| Drop an app on another app's tile | New folder with both, named after their shared category (Social/Tools/System) or “Folder” |
+| Drop an app on a folder's tile | The app joins the folder |
+| Drop on an icon's label, beside it or on an empty cell | Move (desktop: to that cell, swapping if taken — a dashed outline previews it; mobile: in front of that icon — a bar marks the spot) |
+| Tap (mobile) / double-click or Enter (desktop) a folder | `FolderView` opens over the dimmed home screen |
+| Tap the folder title | Rename in place (Enter saves, Escape reverts) |
+| Drag an app inside the open folder | Reorder |
+| Drag an app past the folder's edge | The folder steps aside and the home screen previews the spot; releasing takes the app out there (or groups it, over another tile) |
+| Hold and release (touch) / right-click / Shift+F10 on an icon | `HomeIconMenu`: Open, Rename, Add to / Move to folder, New folder with…, Move out |
+
+A folder is never deleted explicitly: once only one app is left it dissolves.
+`reconcileFolders` enforces the same rule on load, drops unknown or duplicated apps, and
+keeps every app in at most one folder, so a new app always shows up at the top level.
+
+**Dragging.** `useIconDrag` drives all three surfaces (desktop grid, mobile home, open
+folder). The icon follows the pointer through the CSS `translate` property — not
+`transform`, which would be multiplied by the lift's `scale` and make the icon drift
+away from the pointer.
+
+Drop targets are decided by **where the dragged tile is, not where the pointer is** — the
+callbacks get the tile's centre (pointer + the grab offset). Grabbed by its label, the
+pointer sits ~45px below the tile; lining the tile up with another icon's must group
+them, which pointer-based hit-testing got wrong (it swapped them instead). Targets are
+found by geometry (`iconAtPoint`), because an open folder dialog makes the page beneath
+inert to `elementFromPoint`; a tile counts with a 12px margin so grouping is easy to hit.
+
+Once an app dragged out of an open folder has crossed the panel's edge, it stays "out"
+for the rest of that drag, so icons that sat behind the panel can be targeted too.
+
+Safety nets: the body gets `os-dragging` while dragging (window contents stop taking
+pointer events, so they can't swallow the release), a mouse move with no button held
+completes a drop whose release happened outside the page, and native HTML drag-and-drop
+is disabled on icons — it would cancel the pointer events mid-drag.
+
+**Touch is phone-style.** A mouse drags as soon as it moves. A finger has to rest on an
+icon for 400ms first — a quicker swipe scrolls. Once the icon lifts, moving drags it
+(`touchmove` is cancelled so the page stays put) and releasing in place opens the icon's
+menu. The hook owns that menu on touch: it suppresses the browser's long-press
+`contextmenu` and Radix's long-press timer, which would otherwise pop the menu up
+mid-drag, and opens it itself on release. `menuTiming.ts` keeps the click that can follow
+a long-press from also launching the app.
+
+**Keyboard.** Space picks an icon up, the arrow keys move it, Enter drops and Escape
+restores — on the desktop grid, the mobile home screen and inside an open folder. Grouping
+goes through the icon's menu (Shift+F10 or the context-menu key). Every change is
+announced in a polite live region.
+
 ## Routing and deep links
 
 The router itself is untouched: `/`, `/:nip19` and the catch-all still exist. The OS state
@@ -156,5 +227,5 @@ window the user has closed.
 
 Under 768px (`useIsMobile`) `OsShell` renders `MobileAppShell` instead of the desktop:
 the same registry and the same window state, presented as a home screen with one
-full-screen app at a time plus an app switcher. There is no dragging, no resizing and no
-geometry to persist.
+full-screen app at a time plus an app switcher. Windows are never dragged or resized
+there; the home screen's icons and folders work as described above.

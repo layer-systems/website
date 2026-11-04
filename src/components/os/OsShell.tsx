@@ -5,6 +5,7 @@ import { MenuBar } from './MenuBar';
 import { Desktop } from './Desktop';
 import { CommandPalette } from './CommandPalette';
 import { MobileAppShell } from './MobileAppShell';
+import { AppFoldersSync } from '@/components/AppFoldersSync';
 import { useWindowManager } from '@/os/useWindowManager';
 import { useOsKeyboard } from '@/os/useOsKeyboard';
 import { getApp } from '@/os/registry';
@@ -87,11 +88,17 @@ export function OsShell({ boot, syncUrl = false }: OsShellProps) {
   });
 
   if (isMobile) {
-    return <MobileAppShell />;
+    return (
+      <>
+        <AppFoldersSync />
+        <MobileAppShell />
+      </>
+    );
   }
 
   return (
     <div className="h-full overflow-hidden">
+      <AppFoldersSync />
       <MenuBar onOpenCommandPalette={openPalette} />
       <Desktop />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
