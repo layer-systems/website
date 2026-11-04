@@ -232,6 +232,8 @@ export function Desktop() {
                       dragProps.onPointerDown(event);
                     }}
                     onContextMenu={dragProps.onContextMenu}
+                    draggable={dragProps.draggable}
+                    onDragStart={dragProps.onDragStart}
                     onKeyDown={(event) => iconKeyDown(id, event)}
                     onSelect={() => {
                       if (!drag.consumeClick(id)) setSelected(id);
