@@ -157,24 +157,33 @@ same event would drop ids the first one just introduced.
 
 | Gesture | Result |
 |---|---|
-| Drop an app on the centre of another app's tile | New folder with both, named after their shared category (Social/Tools/System) or “Folder” |
+| Drop an app on another app's tile | New folder with both, named after their shared category (Social/Tools/System) or “Folder” |
 | Drop an app on a folder's tile | The app joins the folder |
-| Drop beside an icon / on an empty cell | Move or swap, as before |
+| Drop on an icon's label, beside it or on an empty cell | Move (desktop: to that cell, swapping if taken — a dashed outline previews it; mobile: in front of that icon — a bar marks the spot) |
 | Tap (mobile) / double-click or Enter (desktop) a folder | `FolderView` opens over the dimmed home screen |
 | Tap the folder title | Rename in place (Enter saves, Escape reverts) |
 | Drag an app inside the open folder | Reorder |
-| Drag an app past the folder's edge and release | It leaves the folder and lands where it was released |
-| Long-press / right-click / Shift+F10 on an icon | `HomeIconMenu`: Open, Rename, Add to / Move to folder, New folder with…, Move out |
+| Drag an app past the folder's edge | The folder steps aside and the home screen previews the spot; releasing takes the app out there (or groups it, over another tile) |
+| Hold and release (touch) / right-click / Shift+F10 on an icon | `HomeIconMenu`: Open, Rename, Add to / Move to folder, New folder with…, Move out |
 
 A folder is never deleted explicitly: once only one app is left it dissolves.
 `reconcileFolders` enforces the same rule on load, drops unknown or duplicated apps, and
 keeps every app in at most one folder, so a new app always shows up at the top level.
 
-**Touch.** `useIconDrag` (mobile home and `FolderView`) lifts an icon only after the
-finger has rested on it for 350ms; a quicker swipe scrolls. Once lifted, `touchmove` is
-cancelled so the finger moves the icon. A mouse drags as soon as it moves. Releasing a
-long-press can fire a click or open the context menu, so icons check `menuTiming.ts`
-before treating a click as “open”.
+**Dragging.** `useIconDrag` drives all three surfaces (desktop grid, mobile home, open
+folder). The icon follows the pointer through the CSS `translate` property — not
+`transform`, which would be multiplied by the lift's `scale` and make the icon drift
+away from the pointer. Drop targets are found by geometry (`iconAtPoint`), because an
+open folder dialog makes the page beneath inert to `elementFromPoint`; the tile counts
+with an 8px margin so grouping is easy to hit.
+
+**Touch is phone-style.** A mouse drags as soon as it moves. A finger has to rest on an
+icon for 400ms first — a quicker swipe scrolls. Once the icon lifts, moving drags it
+(`touchmove` is cancelled so the page stays put) and releasing in place opens the icon's
+menu. The hook owns that menu on touch: it suppresses the browser's long-press
+`contextmenu` and Radix's long-press timer, which would otherwise pop the menu up
+mid-drag, and opens it itself on release. `menuTiming.ts` keeps the click that can follow
+a long-press from also launching the app.
 
 **Keyboard.** Space picks an icon up, the arrow keys move it, Enter drops and Escape
 restores — on the desktop grid, the mobile home screen and inside an open folder. Grouping

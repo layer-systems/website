@@ -3,7 +3,7 @@ import { Dialog as DialogPrimitive } from 'radix-ui';
 import { cn } from '@/lib/utils';
 import { MAX_FOLDER_NAME_LENGTH, normalizeFolderName, type AppFolder } from '@/lib/appFolders';
 import { menuJustOpened } from '@/os/menuTiming';
-import { useIconDrag, type DragPoint } from '@/os/useIconDrag';
+import { iconAtPoint, useIconDrag, type DragPoint } from '@/os/useIconDrag';
 import type { HomeScreen } from '@/hooks/useHomeScreen';
 import { AppGlyph, type GlyphSize } from './HomeGlyph';
 import { HomeIconMenu } from './HomeIconMenu';
@@ -17,6 +17,11 @@ interface FolderViewProps {
   renaming: boolean;
   onClose: () => void;
   onOpenApp: (appId: string) => void;
+  /**
+   * An app is being dragged past the folder's edge (`point`), or back inside
+   * (`null`) — so the home screen behind can preview where it would land.
+   */
+  onDragOutside?: (appId: string, point: DragPoint | null) => void;
   /** An app was dragged past the folder's edge and released at `point`. */
   onDropOutside: (appId: string, point: DragPoint) => void;
 }
@@ -42,6 +47,7 @@ function FolderPanel({
   size,
   renaming,
   onOpenApp,
+  onDragOutside,
   onDropOutside,
 }: Omit<FolderViewProps, 'onClose'> & { folder: AppFolder }) {
   const { appsById, labelOf } = home;
@@ -60,14 +66,14 @@ function FolderPanel({
     const rect = panelRef.current?.getBoundingClientRect();
     return !rect || point.x < rect.left || point.x > rect.right || point.y < rect.top || point.y > rect.bottom;
   };
-  const appAt = (point: DragPoint) =>
-    document.elementFromPoint(point.x, point.y)?.closest<HTMLElement>('[data-folder-app-id]')?.dataset.folderAppId ?? null;
+  const appAt = (point: DragPoint, exclude: string) => iconAtPoint(point, 'data-folder-app-id', exclude)?.id ?? null;
 
   const drag = useIconDrag({
-    onMove: (_id, point) => {
+    onMove: (id, point) => {
       const out = isOutside(point);
       setOutside(out);
-      setTarget(out ? null : appAt(point));
+      setTarget(out ? null : appAt(point, id));
+      onDragOutside?.(id, out ? point : null);
     },
     onDrop: (id, point) => {
       setOutside(false);
@@ -76,15 +82,17 @@ function FolderPanel({
         onDropOutside(id, point);
         return;
       }
-      const over = appAt(point);
-      if (!over || over === id) return;
+      onDragOutside?.(id, null);
+      const over = appAt(point, id);
+      if (!over) return;
       const index = folder.apps.indexOf(over);
       home.reorderInFolder(folder.id, id, index);
       setAnnouncement(`${labelOf(id)} moved to position ${index + 1} of ${folder.apps.length}.`);
     },
-    onCancel: () => {
+    onCancel: (id) => {
       setOutside(false);
       setTarget(null);
+      onDragOutside?.(id, null);
     },
   });
 
@@ -134,8 +142,9 @@ function FolderPanel({
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay
         className={cn(
-          'fixed inset-0 z-50 backdrop-blur-sm transition-colors motion-reduce:transition-none data-[state=open]:animate-in data-[state=open]:fade-in-0',
-          outside ? 'bg-black/10' : 'bg-black/40',
+          'fixed inset-0 z-50 transition-[background-color,backdrop-filter] motion-reduce:transition-none data-[state=open]:animate-in data-[state=open]:fade-in-0',
+          // Dragging an app out: clear the view so the drop preview behind shows.
+          outside ? 'bg-black/5' : 'bg-black/40 backdrop-blur-sm',
         )}
       />
       <DialogPrimitive.Content
@@ -155,8 +164,12 @@ function FolderPanel({
         <div
           ref={panelRef}
           className={cn(
-            'rounded-3xl border border-os-window-border bg-background/85 p-4 shadow-xl backdrop-blur-xl transition-opacity motion-reduce:transition-none',
-            outside && 'opacity-60',
+            'rounded-3xl border p-4 transition-[background-color,border-color,box-shadow,backdrop-filter] motion-reduce:transition-none',
+            // Dragged past the edge, the folder steps aside like a phone's:
+            // only the app in hand stays visible over the home screen.
+            outside
+              ? 'border-transparent bg-transparent shadow-none'
+              : 'border-os-window-border bg-background/85 shadow-xl backdrop-blur-xl',
           )}
         >
           <DialogPrimitive.Title className="sr-only">{folder.name}</DialogPrimitive.Title>
@@ -187,7 +200,10 @@ function FolderPanel({
                 event.currentTarget.blur();
               }
             }}
-            className="mb-4 block w-full truncate rounded-lg bg-transparent px-2 py-1 text-center text-2xl font-semibold tracking-tight transition-colors hover:bg-foreground/5 focus:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className={cn(
+              'mb-4 block w-full truncate rounded-lg bg-transparent px-2 py-1 text-center text-2xl font-semibold tracking-tight transition-[background-color,opacity] hover:bg-foreground/5 focus:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+              outside && 'opacity-0',
+            )}
           />
 
           <div
@@ -199,6 +215,7 @@ function FolderPanel({
               const app = appsById.get(id);
               if (!app) return null;
               const isDragging = drag.dragging === id;
+              const isLifted = drag.lifted === id;
               return (
                 <div role="listitem" key={id}>
                   <HomeIconMenu id={id} home={home} onOpen={() => onOpenApp(id)} announce={setAnnouncement}>
@@ -209,22 +226,27 @@ function FolderPanel({
                       aria-label={`${app.title} — ${app.description}`}
                       aria-pressed={picked?.id === id || undefined}
                       aria-describedby={picked?.id === id ? 'folder-view-status' : undefined}
-                      onPointerDown={(event) => drag.startDrag(id, event)}
+                      {...drag.iconProps(id)}
                       onClick={() => {
                         if (drag.consumeClick(id) || menuJustOpened()) return;
                         onOpenApp(id);
                       }}
                       onKeyDown={(event) => onAppKeyDown(id, event)}
-                      style={isDragging ? { transform: `translate(${drag.offset.dx}px, ${drag.offset.dy}px)` } : undefined}
+                      style={isDragging ? { translate: `${drag.offset.dx}px ${drag.offset.dy}px` } : undefined}
                       className={cn(
                         'flex w-full touch-manipulation flex-col items-center gap-1.5 rounded-xl p-2 select-none [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-                        !isDragging && 'transition-[transform,background-color] active:scale-95 motion-reduce:transition-none',
-                        isDragging && 'pointer-events-none relative z-10 scale-105',
+                        // No transition while dragging, or the icon lags behind the finger.
+                        isDragging
+                          ? 'pointer-events-none relative z-10 scale-110'
+                          : 'transition-[scale,background-color,opacity] motion-reduce:transition-none',
+                        isLifted && !isDragging && 'scale-110',
+                        !isLifted && 'active:scale-95',
+                        outside && !isDragging && 'opacity-0',
                         target === id && !isDragging && 'bg-primary/10 ring-2 ring-primary/50',
                         picked?.id === id && 'bg-primary/15',
                       )}
                     >
-                      <AppGlyph app={app} size={size} className={isDragging ? 'shadow-lg' : undefined} />
+                      <AppGlyph app={app} size={size} className={isLifted ? 'shadow-lg' : undefined} />
                       <span className="line-clamp-2 text-center text-xs font-medium leading-tight">{app.title}</span>
                     </button>
                   </HomeIconMenu>
@@ -236,7 +258,7 @@ function FolderPanel({
           <p
             aria-hidden
             className={cn(
-              'mt-3 text-center text-xs text-muted-foreground transition-opacity motion-reduce:transition-none',
+              'mx-auto mt-3 w-fit rounded-full bg-background/90 px-3 py-1 text-xs text-muted-foreground shadow-sm transition-opacity motion-reduce:transition-none',
               outside ? 'opacity-100' : 'opacity-0',
             )}
           >

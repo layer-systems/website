@@ -11,7 +11,10 @@ type DesktopIconProps = Omit<React.ComponentProps<'button'>, 'onSelect'> & {
   selected: boolean;
   onSelect: () => void;
   onOpen: () => void;
+  /** Following the pointer. */
   dragging?: boolean;
+  /** Touch: held long enough to lift, not moved yet. */
+  lifted?: boolean;
   pickedUp?: boolean;
 };
 
@@ -28,6 +31,7 @@ export function DesktopIcon({
   onOpen,
   onKeyDown,
   dragging,
+  lifted,
   pickedUp,
   className,
   ...props
@@ -50,10 +54,14 @@ export function DesktopIcon({
         }
       }}
       className={cn(
-        'group flex w-20 flex-col items-center gap-1.5 rounded-lg p-2 text-center select-none transition-[background-color,transform,box-shadow] motion-reduce:transition-none',
+        'group flex w-20 flex-col items-center gap-1.5 rounded-lg p-2 text-center select-none [-webkit-touch-callout:none]',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
         selected || pickedUp ? 'bg-primary/15' : 'hover:bg-foreground/5',
-        dragging && 'scale-105 cursor-grabbing shadow-lg',
+        // No transition while dragging, or the icon lags behind the pointer.
+        dragging
+          ? 'pointer-events-none scale-110 cursor-grabbing opacity-90'
+          : 'transition-[background-color,scale] motion-reduce:transition-none',
+        lifted && !dragging && 'scale-110',
         className,
       )}
       aria-pressed={pickedUp || undefined}

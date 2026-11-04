@@ -17,7 +17,7 @@ import { desktopApps, getApp } from '@/os/registry';
 import { cn } from '@/lib/utils';
 import type { AppParams } from '@/os/types';
 import { useHomeScreen } from '@/hooks/useHomeScreen';
-import { useIconDrag, type DragPoint } from '@/os/useIconDrag';
+import { iconAtPoint, useIconDrag, type DragPoint } from '@/os/useIconDrag';
 import { menuJustOpened } from '@/os/menuTiming';
 import { isFolderId } from '@/lib/appFolders';
 import { FolderView } from './FolderView';
@@ -161,29 +161,16 @@ export function MobileAppShell() {
   );
 }
 
+/** What dropping a dragged app here does: join `id` into a folder, or move in front of it. */
 interface DropTarget {
   id: string;
-  /** On the icon tile itself (group into a folder) rather than beside it (reorder). */
-  onGlyph: boolean;
+  group: boolean;
 }
 
-function contains(rect: DOMRect, point: DragPoint): boolean {
-  return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
-}
-
-/**
- * Rect-based rather than `elementFromPoint`: an open folder dialog makes the
- * rest of the page inert to hit-testing, and an app dragged out of it still
- * has to find the icon it was released over.
- */
-function homeItemAt(point: DragPoint, exclude: string): DropTarget | null {
-  for (const element of document.querySelectorAll<HTMLElement>('[data-home-item-id]')) {
-    const id = element.dataset.homeItemId;
-    if (!id || id === exclude || !contains(element.getBoundingClientRect(), point)) continue;
-    const glyph = element.querySelector('[data-home-glyph]')?.getBoundingClientRect();
-    return { id, onGlyph: Boolean(glyph && contains(glyph, point)) };
-  }
-  return null;
+/** Over another icon's tile groups (apps only — folders don't nest); over its label or edge reorders. */
+function dropTargetAt(point: DragPoint, draggedId: string): DropTarget | null {
+  const hit = iconAtPoint(point, 'data-home-item-id', draggedId);
+  return hit ? { id: hit.id, group: hit.onTile && !isFolderId(draggedId) } : null;
 }
 
 function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
@@ -216,10 +203,6 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
     setAnnouncement(`${labelOf(id)} moved to position ${position}.`);
   }, [labelOf, order, setMobile]);
 
-  /** Can `draggedId` be grouped by dropping it on `target`? Folders never nest. */
-  const canGroup = (draggedId: string, drop: DropTarget | null): boolean =>
-    Boolean(drop?.onGlyph) && !isFolderId(draggedId);
-
   const group = useCallback((draggedId: string, targetId: string) => {
     const folder = home.merge(draggedId, targetId);
     if (!folder) return;
@@ -229,20 +212,21 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
   }, [home, labelOf]);
 
   const drag = useIconDrag({
-    onMove: (id, point) => setTarget(homeItemAt(point, id)),
+    onMove: (id, point) => setTarget(dropTargetAt(point, id)),
     onDrop: (id, point) => {
       setTarget(null);
-      const drop = homeItemAt(point, id);
-      if (drop && canGroup(id, drop)) group(id, drop.id);
+      const drop = dropTargetAt(point, id);
+      if (drop?.group) group(id, drop.id);
       else reorder(id, drop?.id ?? null);
     },
     onCancel: () => setTarget(null),
   });
 
   const dropOutOfFolder = (appId: string, point: DragPoint) => {
+    setTarget(null);
     setOpenFolder(null);
-    const drop = homeItemAt(point, appId);
-    if (drop && canGroup(appId, drop)) {
+    const drop = dropTargetAt(point, appId);
+    if (drop?.group) {
       group(appId, drop.id);
       return;
     }
@@ -302,8 +286,9 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
           const app = appsById.get(id);
           if (!folder && !app) return null;
           const isDragging = drag.dragging === id;
-          const isTarget = target?.id === id && Boolean(drag.dragging);
-          const merging = isTarget && drag.dragging !== null && canGroup(drag.dragging, target);
+          const isLifted = drag.lifted === id;
+          const merging = target?.id === id && target.group;
+          const insertBefore = target?.id === id && !target.group;
           return (
             <HomeIconMenu
               key={id}
@@ -321,24 +306,31 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
                   : `${app!.title} — ${app!.description}`}
                 aria-pressed={picked === id || undefined}
                 aria-describedby={picked === id ? 'mobile-icon-layout-status' : undefined}
-                onPointerDown={(event) => drag.startDrag(id, event)}
+                {...drag.iconProps(id)}
                 onClick={() => {
                   if (drag.consumeClick(id) || menuJustOpened()) return;
                   openItem(id);
                 }}
                 onKeyDown={(event) => onKeyDown(id, event)}
-                style={isDragging ? { transform: `translate(${drag.offset.dx}px, ${drag.offset.dy}px)` } : undefined}
+                style={isDragging ? { translate: `${drag.offset.dx}px ${drag.offset.dy}px` } : undefined}
                 className={cn(
-                  'flex touch-manipulation flex-col items-center gap-2 rounded-xl p-2 select-none [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-                  !isDragging && 'transition-[transform,background-color,box-shadow] active:scale-95 motion-reduce:transition-none',
-                  isDragging && 'pointer-events-none relative z-10 scale-105',
-                  isTarget && !merging && 'bg-primary/10 ring-2 ring-primary/50',
+                  'relative flex touch-manipulation flex-col items-center gap-2 rounded-xl p-2 select-none [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                  // No transition while dragging, or the icon lags behind the finger.
+                  isDragging
+                    ? 'pointer-events-none z-10 scale-110'
+                    : 'transition-[scale,background-color] motion-reduce:transition-none',
+                  isLifted && !isDragging && 'scale-110',
+                  !isLifted && 'active:scale-95',
                   picked === id && 'bg-primary/15',
                 )}
               >
+                {insertBefore && (
+                  // "It goes here": the dragged app lands in front of this one.
+                  <span aria-hidden className="absolute inset-y-2 -left-2.5 w-1 rounded-full bg-primary" />
+                )}
                 {folder
-                  ? <FolderGlyph folder={folder} appsById={appsById} size="mobile" mergeTarget={merging} className={isDragging ? 'shadow-lg' : undefined} />
-                  : <AppGlyph app={app!} size="mobile" mergeTarget={merging} className={isDragging ? 'shadow-lg' : undefined} />}
+                  ? <FolderGlyph folder={folder} appsById={appsById} size="mobile" mergeTarget={merging} className={isLifted ? 'shadow-lg' : undefined} />
+                  : <AppGlyph app={app!} size="mobile" mergeTarget={merging} className={isLifted ? 'shadow-lg' : undefined} />}
                 <span className="line-clamp-2 text-center text-xs font-medium leading-tight">{folder?.name ?? app!.title}</span>
               </button>
             </HomeIconMenu>
@@ -355,6 +347,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
           setOpenFolder(null);
           onOpen(appId);
         }}
+        onDragOutside={(appId, point) => setTarget(point ? dropTargetAt(point, appId) : null)}
         onDropOutside={dropOutOfFolder}
       />
       <span id="mobile-icon-layout-status" className="sr-only" aria-live="polite">{announcement}</span>

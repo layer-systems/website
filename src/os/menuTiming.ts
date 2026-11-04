@@ -12,7 +12,3 @@ export function markMenuOpened(): void {
 export function menuJustOpened(windowMs = 700): boolean {
   return Date.now() - menuOpenedAt < windowMs;
 }
-
-export function menuOpenedAfter(timestamp: number): boolean {
-  return menuOpenedAt >= timestamp;
-}
