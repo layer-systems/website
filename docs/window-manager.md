@@ -132,6 +132,55 @@ Stored in `localStorage` under `nostr:os-session`, versioned (`version: 1`), deb
 
 An empty window list removes the key rather than storing `[]`.
 
+## Home screen and app folders
+
+The icons on the desktop grid and the mobile home screen are *top-level items*: apps,
+plus folders the user made. `useHomeScreen(geometry)` combines the two parts:
+
+- **Positions** — `useIconLayout` / `iconLayout.ts`, `localStorage` key
+  `nostr:icon-layout`: desktop grid cells and the mobile order. Device-local, never synced.
+- **Folders** — `useAppFolders`, `src/lib/appFolders.ts`: which apps are grouped, in what
+  order, under which name. Stored per account (`nostr:app-folders:<pubkey>`, or
+  `nostr:app-folders:signed-out`) and, when signed in, synced as an encrypted Nostr event
+  by `AppFoldersSync` — see [`nostr.md`](./nostr.md#app-folders).
+
+Folder ids carry the prefix `folder:` and live in the icon layout like app ids, so a
+folder is positioned, swapped and reordered exactly like an app.
+
+**Every folder operation edits both parts at once** (`merge`, `moveToFolder`, `moveOut`):
+a new folder takes the target icon's spot, and a folder that dissolves hands its spot to
+its last app. Each operation makes exactly *one* `setDesktop` and *one* `setMobile` call —
+their updaters reconcile against the ids of the current render, so a second call in the
+same event would drop ids the first one just introduced.
+
+**Interaction is phone style, with no extra buttons:**
+
+| Gesture | Result |
+|---|---|
+| Drop an app on the centre of another app's tile | New folder with both, named after their shared category (Social/Tools/System) or “Folder” |
+| Drop an app on a folder's tile | The app joins the folder |
+| Drop beside an icon / on an empty cell | Move or swap, as before |
+| Tap (mobile) / double-click or Enter (desktop) a folder | `FolderView` opens over the dimmed home screen |
+| Tap the folder title | Rename in place (Enter saves, Escape reverts) |
+| Drag an app inside the open folder | Reorder |
+| Drag an app past the folder's edge and release | It leaves the folder and lands where it was released |
+| Long-press / right-click / Shift+F10 on an icon | `HomeIconMenu`: Open, Rename, Add to / Move to folder, New folder with…, Move out |
+
+A folder is never deleted explicitly: once only one app is left it dissolves.
+`reconcileFolders` enforces the same rule on load, drops unknown or duplicated apps, and
+keeps every app in at most one folder, so a new app always shows up at the top level.
+
+**Touch.** `useIconDrag` (mobile home and `FolderView`) lifts an icon only after the
+finger has rested on it for 350ms; a quicker swipe scrolls. Once lifted, `touchmove` is
+cancelled so the finger moves the icon. A mouse drags as soon as it moves. Releasing a
+long-press can fire a click or open the context menu, so icons check `menuTiming.ts`
+before treating a click as “open”.
+
+**Keyboard.** Space picks an icon up, the arrow keys move it, Enter drops and Escape
+restores — on the desktop grid, the mobile home screen and inside an open folder. Grouping
+goes through the icon's menu (Shift+F10 or the context-menu key). Every change is
+announced in a polite live region.
+
 ## Routing and deep links
 
 The router itself is untouched: `/`, `/:nip19` and the catch-all still exist. The OS state
@@ -156,5 +205,5 @@ window the user has closed.
 
 Under 768px (`useIsMobile`) `OsShell` renders `MobileAppShell` instead of the desktop:
 the same registry and the same window state, presented as a home screen with one
-full-screen app at a time plus an app switcher. There is no dragging, no resizing and no
-geometry to persist.
+full-screen app at a time plus an app switcher. Windows are never dragged or resized
+there; the home screen's icons and folders work as described above.

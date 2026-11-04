@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, LayoutGrid, Zap } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -16,9 +16,13 @@ import { useWindowManager } from '@/os/useWindowManager';
 import { desktopApps, getApp } from '@/os/registry';
 import { cn } from '@/lib/utils';
 import type { AppParams } from '@/os/types';
-import { useIconLayout } from '@/os/useIconLayout';
-
-const MOBILE_DRAG_THRESHOLD = 8;
+import { useHomeScreen } from '@/hooks/useHomeScreen';
+import { useIconDrag, type DragPoint } from '@/os/useIconDrag';
+import { menuJustOpened } from '@/os/menuTiming';
+import { isFolderId } from '@/lib/appFolders';
+import { FolderView } from './FolderView';
+import { AppGlyph, FolderGlyph } from './HomeGlyph';
+import { HomeIconMenu } from './HomeIconMenu';
 
 /**
  * On a phone the window metaphor only gets in the way, so the same apps and
@@ -157,20 +161,41 @@ export function MobileAppShell() {
   );
 }
 
+interface DropTarget {
+  id: string;
+  /** On the icon tile itself (group into a folder) rather than beside it (reorder). */
+  onGlyph: boolean;
+}
+
+function contains(rect: DOMRect, point: DragPoint): boolean {
+  return point.x >= rect.left && point.x <= rect.right && point.y >= rect.top && point.y <= rect.bottom;
+}
+
+/**
+ * Rect-based rather than `elementFromPoint`: an open folder dialog makes the
+ * rest of the page inert to hit-testing, and an app dragged out of it still
+ * has to find the icon it was released over.
+ */
+function homeItemAt(point: DragPoint, exclude: string): DropTarget | null {
+  for (const element of document.querySelectorAll<HTMLElement>('[data-home-item-id]')) {
+    const id = element.dataset.homeItemId;
+    if (!id || id === exclude || !contains(element.getBoundingClientRect(), point)) continue;
+    const glyph = element.querySelector('[data-home-glyph]')?.getBoundingClientRect();
+    return { id, onGlyph: Boolean(glyph && contains(glyph, point)) };
+  }
+  return null;
+}
+
 function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
-  const apps = desktopApps();
   const [columns, setColumns] = useState(() => window.innerWidth < 480 ? 3 : 4);
-  const [dragging, setDragging] = useState<string | null>(null);
-  const [target, setTarget] = useState<string | null>(null);
+  const [target, setTarget] = useState<DropTarget | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [pickedOrder, setPickedOrder] = useState<string[] | null>(null);
+  const [openFolder, setOpenFolder] = useState<{ id: string; renaming: boolean } | null>(null);
   const [announcement, setAnnouncement] = useState('');
-  const dragStart = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
-  const suppressClick = useRef(false);
-  const targetRef = useRef<string | null>(null);
-  const { layout, setMobile } = useIconLayout(apps.map((app) => app.id), { columns, rows: Math.max(8, Math.ceil(apps.length / columns) + 4) });
-  const byId = useMemo(() => new Map(apps.map((app) => [app.id, app])), [apps]);
-  const orderedApps = layout.mobile.map((id) => byId.get(id)).filter((app): app is NonNullable<typeof app> => Boolean(app));
+  const home = useHomeScreen({ columns, rows: Math.max(8, Math.ceil(desktopApps().length / columns) + 4) });
+  const { appsById, foldersById, layout, setMobile, labelOf } = home;
+  const order = layout.mobile;
 
   useEffect(() => {
     const onResize = () => setColumns(window.innerWidth < 480 ? 3 : 4);
@@ -179,53 +204,60 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
   }, []);
 
   const reorder = useCallback((id: string, beforeId: string | null) => {
-    setMobile((order) => {
-      const without = order.filter((item) => item !== id);
+    setMobile((current) => {
+      const without = current.filter((item) => item !== id);
       const index = beforeId ? without.indexOf(beforeId) : without.length;
       const next = [...without];
       next.splice(index < 0 ? next.length : index, 0, id);
       return next;
     });
-    const position = beforeId ? Math.max(1, layout.mobile.indexOf(beforeId) + 1) : layout.mobile.length;
-    setAnnouncement(`${id} moved to position ${position}.`);
-  }, [layout.mobile, setAnnouncement, setMobile]);
+    const without = order.filter((item) => item !== id);
+    const position = beforeId ? Math.max(0, without.indexOf(beforeId)) + 1 : order.length;
+    setAnnouncement(`${labelOf(id)} moved to position ${position}.`);
+  }, [labelOf, order, setMobile]);
 
-  useEffect(() => {
-    const onMove = (event: PointerEvent) => {
-      const active = dragStart.current;
-      if (!active) return;
-      if (!active.moved && Math.hypot(event.clientX - active.x, event.clientY - active.y) < MOBILE_DRAG_THRESHOLD) return;
-      active.moved = true;
-      setDragging(active.id);
-      const hit = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-home-icon-id]');
-      const nextTarget = hit?.dataset.homeIconId ?? null;
-      targetRef.current = nextTarget;
-      setTarget(nextTarget);
-    };
-    const onEnd = () => {
-      const active = dragStart.current;
-      if (active?.moved) {
-        suppressClick.current = true;
-        const target = targetRef.current;
-        reorder(active.id, target && target !== active.id ? target : null);
-      }
-      dragStart.current = null;
-      setDragging(null);
-      targetRef.current = null;
+  /** Can `draggedId` be grouped by dropping it on `target`? Folders never nest. */
+  const canGroup = (draggedId: string, drop: DropTarget | null): boolean =>
+    Boolean(drop?.onGlyph) && !isFolderId(draggedId);
+
+  const group = useCallback((draggedId: string, targetId: string) => {
+    const folder = home.merge(draggedId, targetId);
+    if (!folder) return;
+    setAnnouncement(isFolderId(targetId)
+      ? `${labelOf(draggedId)} added to ${folder.name}.`
+      : `New folder ${folder.name} with ${labelOf(targetId)} and ${labelOf(draggedId)}.`);
+  }, [home, labelOf]);
+
+  const drag = useIconDrag({
+    onMove: (id, point) => setTarget(homeItemAt(point, id)),
+    onDrop: (id, point) => {
       setTarget(null);
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onEnd);
-    window.addEventListener('pointercancel', onEnd);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onEnd);
-      window.removeEventListener('pointercancel', onEnd);
-    };
-  }, [reorder]);
+      const drop = homeItemAt(point, id);
+      if (drop && canGroup(id, drop)) group(id, drop.id);
+      else reorder(id, drop?.id ?? null);
+    },
+    onCancel: () => setTarget(null),
+  });
+
+  const dropOutOfFolder = (appId: string, point: DragPoint) => {
+    setOpenFolder(null);
+    const drop = homeItemAt(point, appId);
+    if (drop && canGroup(appId, drop)) {
+      group(appId, drop.id);
+      return;
+    }
+    const source = home.folders.find((folder) => folder.apps.includes(appId));
+    home.moveOut(appId, { before: drop?.id });
+    setAnnouncement(`${labelOf(appId)} moved out of ${source?.name ?? 'the folder'}.`);
+  };
+
+  const openItem = (id: string) => {
+    if (isFolderId(id)) setOpenFolder({ id, renaming: false });
+    else onOpen(id);
+  };
 
   const onKeyDown = (id: string, event: React.KeyboardEvent<HTMLButtonElement>) => {
-    const index = layout.mobile.indexOf(id);
+    const index = order.indexOf(id);
     if (event.key === 'Escape' && picked) {
       event.preventDefault();
       if (pickedOrder) setMobile(() => pickedOrder);
@@ -239,11 +271,11 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
       if (picked === id) {
         setPicked(null);
         setPickedOrder(null);
-        setAnnouncement(`${id} dropped at position ${index + 1}.`);
+        setAnnouncement(`${labelOf(id)} dropped at position ${index + 1}.`);
       } else {
         setPicked(id);
-        setPickedOrder(layout.mobile);
-        setAnnouncement(`${id} picked up. Use arrow keys to reorder, Enter to drop, Escape to cancel.`);
+        setPickedOrder(order);
+        setAnnouncement(`${labelOf(id)} picked up. Use arrow keys to reorder, Enter to drop, Escape to cancel. To group it into a folder, open its menu with Shift+F10.`);
       }
       return;
     }
@@ -251,53 +283,80 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
     const offset = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : event.key === 'ArrowUp' ? -columns : event.key === 'ArrowDown' ? columns : 0;
     if (!offset) return;
     event.preventDefault();
-    const nextIndex = Math.max(0, Math.min(layout.mobile.length - 1, index + offset));
-    setMobile((order) => {
-      const without = order.filter((item) => item !== id);
+    const nextIndex = Math.max(0, Math.min(order.length - 1, index + offset));
+    setMobile((current) => {
+      const without = current.filter((item) => item !== id);
       const targetIndex = Math.max(0, Math.min(without.length, nextIndex));
       const next = [...without];
       next.splice(targetIndex, 0, id);
       return next;
     });
-    setAnnouncement(`${id} moved to position ${nextIndex + 1}.`);
+    setAnnouncement(`${labelOf(id)} moved to position ${nextIndex + 1}.`);
   };
 
   return (
     <div className="os-desktop-surface h-full overflow-y-auto p-6">
       <div className="grid grid-cols-3 gap-4 min-[480px]:grid-cols-4">
-        {orderedApps.map((app) => (
-          <button
-            key={app.id}
-            type="button"
-            data-home-icon-id={app.id}
-            aria-pressed={picked === app.id || undefined}
-            aria-describedby={picked === app.id ? 'mobile-icon-layout-status' : undefined}
-            onPointerDown={(event) => {
-              if (event.button !== 0) return;
-              dragStart.current = { id: app.id, x: event.clientX, y: event.clientY, moved: false };
-            }}
-            onClick={() => {
-              if (suppressClick.current) {
-                suppressClick.current = false;
-                return;
-              }
-              onOpen(app.id);
-            }}
-            onKeyDown={(event) => onKeyDown(app.id, event)}
-            className={cn(
-              'flex flex-col items-center gap-2 rounded-xl p-2 transition-[transform,background-color,box-shadow] motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-95',
-              dragging === app.id && 'scale-105 bg-primary/15 shadow-lg',
-              target === app.id && dragging !== app.id && 'bg-primary/10 ring-2 ring-primary/50',
-              picked === app.id && 'bg-primary/15',
-            )}
-          >
-            <span className="flex size-14 items-center justify-center rounded-2xl border border-os-window-border bg-background shadow-sm">
-              <app.icon className="size-7 text-primary" aria-hidden />
-            </span>
-            <span className="text-center text-xs font-medium leading-tight">{app.title}</span>
-          </button>
-        ))}
+        {order.map((id) => {
+          const folder = foldersById.get(id);
+          const app = appsById.get(id);
+          if (!folder && !app) return null;
+          const isDragging = drag.dragging === id;
+          const isTarget = target?.id === id && Boolean(drag.dragging);
+          const merging = isTarget && drag.dragging !== null && canGroup(drag.dragging, target);
+          return (
+            <HomeIconMenu
+              key={id}
+              id={id}
+              home={home}
+              announce={setAnnouncement}
+              onOpen={() => openItem(id)}
+              onRename={folder ? () => setOpenFolder({ id, renaming: true }) : undefined}
+            >
+              <button
+                type="button"
+                data-home-item-id={id}
+                aria-label={folder
+                  ? `Folder ${folder.name}, ${folder.apps.length} apps`
+                  : `${app!.title} — ${app!.description}`}
+                aria-pressed={picked === id || undefined}
+                aria-describedby={picked === id ? 'mobile-icon-layout-status' : undefined}
+                onPointerDown={(event) => drag.startDrag(id, event)}
+                onClick={() => {
+                  if (drag.consumeClick(id) || menuJustOpened()) return;
+                  openItem(id);
+                }}
+                onKeyDown={(event) => onKeyDown(id, event)}
+                style={isDragging ? { transform: `translate(${drag.offset.dx}px, ${drag.offset.dy}px)` } : undefined}
+                className={cn(
+                  'flex touch-manipulation flex-col items-center gap-2 rounded-xl p-2 select-none [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+                  !isDragging && 'transition-[transform,background-color,box-shadow] active:scale-95 motion-reduce:transition-none',
+                  isDragging && 'pointer-events-none relative z-10 scale-105',
+                  isTarget && !merging && 'bg-primary/10 ring-2 ring-primary/50',
+                  picked === id && 'bg-primary/15',
+                )}
+              >
+                {folder
+                  ? <FolderGlyph folder={folder} appsById={appsById} size="mobile" mergeTarget={merging} className={isDragging ? 'shadow-lg' : undefined} />
+                  : <AppGlyph app={app!} size="mobile" mergeTarget={merging} className={isDragging ? 'shadow-lg' : undefined} />}
+                <span className="line-clamp-2 text-center text-xs font-medium leading-tight">{folder?.name ?? app!.title}</span>
+              </button>
+            </HomeIconMenu>
+          );
+        })}
       </div>
+      <FolderView
+        folder={openFolder ? foldersById.get(openFolder.id) : undefined}
+        home={home}
+        size="mobile"
+        renaming={openFolder?.renaming ?? false}
+        onClose={() => setOpenFolder(null)}
+        onOpenApp={(appId) => {
+          setOpenFolder(null);
+          onOpen(appId);
+        }}
+        onDropOutside={dropOutOfFolder}
+      />
       <span id="mobile-icon-layout-status" className="sr-only" aria-live="polite">{announcement}</span>
     </div>
   );

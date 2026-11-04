@@ -67,6 +67,33 @@ Through `useNostrPublish()` (kind, content, tags). Two places write events:
 
 Failures surface as a toast with the underlying message; they are never swallowed.
 
+## App folders
+
+The user's home-screen folders are stored as a **NIP-78** “arbitrary custom app data”
+event, one per user:
+
+```
+kind:    30078 (addressable)
+tags:    ["d", "layer-systems:app-folders"], ["alt", "Encrypted app folder layout for LAYER.systems"]
+content: nip44_encrypt(self, {"version":1,"folders":[{"id":"folder:…","name":"…","apps":["feed",…]}]})
+```
+
+Folder names and contents are private: the whole structure is NIP-44 encrypted to the
+user's own pubkey, and the tags carry only what addressing needs. The event is signed
+directly rather than through `useNostrPublish`, so no `client` tag is added.
+
+`AppFoldersSync` (mounted by `OsShell`) keeps it in step with the device-local copy:
+
+- Reads filter by `authors: [user.pubkey]` and re-check author, kind and `d` tag — the
+  `d` tag alone is not a trust boundary.
+- Edits are written locally first and published 1.5s after the last change. Right before
+  writing, the newest event is re-read: if it is newer than the local edit, it is adopted
+  instead (last writer wins).
+- **Never plaintext.** A signer without `nip44` keeps folders on the device and says so.
+- **Never clobber.** An event this signer cannot decrypt is not overwritten; local edits
+  stay local and the user is told why.
+- Not refetched on window focus — every fetch can mean a decrypt prompt in an extension.
+
 ## Rendering untrusted content
 
 Everything below arrived from a stranger's relay. The rules are not optional.

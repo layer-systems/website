@@ -7,17 +7,26 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { DesktopIcon } from './DesktopIcon';
+import { FolderView } from './FolderView';
+import { AppGlyph, FolderGlyph } from './HomeGlyph';
+import { HomeIconMenu } from './HomeIconMenu';
 import { WindowLayer } from './WindowLayer';
 import { useWindowManager } from '@/os/useWindowManager';
-import { desktopApps } from '@/os/registry';
 import { MENUBAR_HEIGHT } from '@/os/layout';
 import { swapDesktopSlots, type DesktopSlot, type GridGeometry } from '@/os/iconLayout';
-import { useIconLayout } from '@/os/useIconLayout';
+import { useHomeScreen } from '@/hooks/useHomeScreen';
+import { isFolderId } from '@/lib/appFolders';
+import type { DragPoint } from '@/os/useIconDrag';
 
 const CELL_WIDTH = 96;
 const CELL_HEIGHT = 92;
 const SURFACE_PADDING = 12;
 const DRAG_THRESHOLD = 6;
+/** Offsets from a cell's corner to the centre of its icon tile (button padding + half the tile). */
+const GLYPH_CENTER_X = 40;
+const GLYPH_CENTER_Y = 32;
+/** How close to an icon's centre a drop has to land to group rather than move. */
+const MERGE_RADIUS = 28;
 
 function geometryFor(width: number, height: number): GridGeometry {
   return {
@@ -27,9 +36,10 @@ function geometryFor(width: number, height: number): GridGeometry {
 }
 
 /**
- * The desktop surface: dot-grid wallpaper, the app icons, and the layer the
- * windows are positioned inside. Window coordinates are relative to this box,
- * which is why it sits below the menu bar rather than at the viewport origin.
+ * The desktop surface: dot-grid wallpaper, the app and folder icons, and the
+ * layer the windows are positioned inside. Window coordinates are relative to
+ * this box, which is why it sits below the menu bar rather than at the
+ * viewport origin.
  */
 export function Desktop() {
   const { openApp, windows, minimizeAll, closeAll } = useWindowManager();
@@ -37,13 +47,15 @@ export function Desktop() {
   const [surfaceSize, setSurfaceSize] = useState(() => ({ width: window.innerWidth, height: window.innerHeight - MENUBAR_HEIGHT }));
   const [dragging, setDragging] = useState<string | null>(null);
   const [candidate, setCandidate] = useState<{ col: number; row: number } | null>(null);
+  const [mergeTarget, setMergeTarget] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [pickedLayout, setPickedLayout] = useState<DesktopSlot[] | null>(null);
+  const [openFolder, setOpenFolder] = useState<{ id: string; renaming: boolean } | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const pointerStart = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
-  const apps = desktopApps();
   const geometry = useMemo(() => geometryFor(surfaceSize.width, surfaceSize.height), [surfaceSize]);
-  const { layout, setDesktop, reset } = useIconLayout(apps.map((app) => app.id), geometry);
+  const home = useHomeScreen(geometry);
+  const { appsById, foldersById, items, layout, setDesktop, reset, labelOf } = home;
   const slots = layout.desktop;
 
   useEffect(() => {
@@ -53,15 +65,38 @@ export function Desktop() {
   }, []);
 
   const cellAt = useCallback((clientX: number, clientY: number) => ({
-    col: Math.max(0, Math.min(geometry.columns - 1, Math.round((clientX - SURFACE_PADDING - 40) / CELL_WIDTH))),
+    col: Math.max(0, Math.min(geometry.columns - 1, Math.round((clientX - SURFACE_PADDING - GLYPH_CENTER_X) / CELL_WIDTH))),
     row: Math.max(0, Math.min(geometry.rows - 1, Math.round((clientY - MENUBAR_HEIGHT - SURFACE_PADDING - 38) / CELL_HEIGHT))),
   }), [geometry]);
+
+  /** The icon an app dragged to this point would be grouped with, if any. Folders never group. */
+  const mergeTargetAt = useCallback((point: DragPoint, draggedId: string): string | null => {
+    if (isFolderId(draggedId)) return null;
+    const cell = cellAt(point.x, point.y);
+    const occupant = slots.find((slot) => slot.col === cell.col && slot.row === cell.row && slot.id !== draggedId);
+    if (!occupant) return null;
+    const centerX = SURFACE_PADDING + cell.col * CELL_WIDTH + GLYPH_CENTER_X;
+    const centerY = MENUBAR_HEIGHT + SURFACE_PADDING + cell.row * CELL_HEIGHT + GLYPH_CENTER_Y;
+    return Math.hypot(point.x - centerX, point.y - centerY) <= MERGE_RADIUS ? occupant.id : null;
+  }, [cellAt, slots]);
 
   const move = useCallback((id: string, target: { col: number; row: number }) => {
     setDesktop((current) => swapDesktopSlots(current, id, target));
     const occupied = slots.find((slot) => slot.col === target.col && slot.row === target.row && slot.id !== id);
-    setAnnouncement(occupied ? `${id} swapped positions with ${occupied.id}.` : `${id} moved to column ${target.col + 1}, row ${target.row + 1}.`);
-  }, [setDesktop, slots]);
+    setAnnouncement(occupied
+      ? `${labelOf(id)} swapped positions with ${labelOf(occupied.id)}.`
+      : `${labelOf(id)} moved to column ${target.col + 1}, row ${target.row + 1}.`);
+  }, [labelOf, setDesktop, slots]);
+
+  /** Groups `draggedId` with `targetId` and says so. */
+  const group = useCallback((draggedId: string, targetId: string) => {
+    const folder = home.merge(draggedId, targetId);
+    if (!folder) return;
+    setSelected(folder.id);
+    setAnnouncement(isFolderId(targetId)
+      ? `${labelOf(draggedId)} added to ${folder.name}.`
+      : `New folder ${folder.name} with ${labelOf(targetId)} and ${labelOf(draggedId)}.`);
+  }, [home, labelOf]);
 
   const onPointerMove = useCallback((event: PointerEvent) => {
     const active = pointerStart.current;
@@ -69,19 +104,27 @@ export function Desktop() {
     if (!active.moved && Math.hypot(event.clientX - active.x, event.clientY - active.y) < DRAG_THRESHOLD) return;
     active.moved = true;
     setDragging(active.id);
-    setCandidate(cellAt(event.clientX, event.clientY));
-  }, [cellAt]);
+    const point = { x: event.clientX, y: event.clientY };
+    const over = mergeTargetAt(point, active.id);
+    setMergeTarget(over);
+    setCandidate(over ? null : cellAt(point.x, point.y));
+  }, [cellAt, mergeTargetAt]);
   const finishPointer = useCallback((event: PointerEvent) => {
     const active = pointerStart.current;
     if (active?.moved) {
-      const target = cellAt(event.clientX, event.clientY);
-      move(active.id, target);
-      setSelected(active.id);
+      const point = { x: event.clientX, y: event.clientY };
+      const over = event.type === 'pointerup' ? mergeTargetAt(point, active.id) : null;
+      if (over) group(active.id, over);
+      else if (event.type === 'pointerup') {
+        move(active.id, cellAt(point.x, point.y));
+        setSelected(active.id);
+      }
     }
     pointerStart.current = null;
     setDragging(null);
     setCandidate(null);
-  }, [cellAt, move]);
+    setMergeTarget(null);
+  }, [cellAt, group, mergeTargetAt, move]);
 
   useEffect(() => {
     window.addEventListener('pointermove', onPointerMove);
@@ -110,11 +153,11 @@ export function Desktop() {
       if (picked === id) {
         setPicked(null);
         setPickedLayout(null);
-        setAnnouncement(`${id} dropped at column ${slot.col + 1}, row ${slot.row + 1}.`);
+        setAnnouncement(`${labelOf(id)} dropped at column ${slot.col + 1}, row ${slot.row + 1}.`);
       } else {
         setPicked(id);
         setPickedLayout(slots);
-        setAnnouncement(`${id} picked up. Use arrow keys to move, Enter to drop, Escape to cancel.`);
+        setAnnouncement(`${labelOf(id)} picked up. Use arrow keys to move, Enter to drop, Escape to cancel. To group it into a folder, open its menu with Shift+F10.`);
       }
       return;
     }
@@ -126,6 +169,24 @@ export function Desktop() {
     event.preventDefault();
     const target = { col: Math.max(0, Math.min(geometry.columns - 1, slot.col + offset.col)), row: Math.max(0, Math.min(geometry.rows - 1, slot.row + offset.row)) };
     move(id, target);
+  };
+
+  const openItem = (id: string) => {
+    if (isFolderId(id)) setOpenFolder({ id, renaming: false });
+    else openApp(id);
+  };
+
+  const dropOutOfFolder = (appId: string, point: DragPoint) => {
+    setOpenFolder(null);
+    const over = mergeTargetAt(point, appId);
+    if (over) {
+      group(appId, over);
+      return;
+    }
+    const source = home.folders.find((folder) => folder.apps.includes(appId));
+    home.moveOut(appId, { cell: cellAt(point.x, point.y) });
+    setSelected(appId);
+    setAnnouncement(`${labelOf(appId)} moved out of ${source?.name ?? 'the folder'}.`);
   };
 
   return (
@@ -142,29 +203,47 @@ export function Desktop() {
           {/* `isolate` keeps the icons' z-indexes local so they stay beneath the
               (also isolated) window layer that follows in DOM order. */}
           <div className="absolute inset-0 isolate" aria-label="Desktop app grid">
-            {apps.map((app) => {
-              const slot = slots.find((item) => item.id === app.id);
-              if (!slot) return null;
-              const isCandidate = dragging === app.id && candidate;
+            {items.map((id) => {
+              const slot = slots.find((item) => item.id === id);
+              const folder = foldersById.get(id);
+              const app = appsById.get(id);
+              if (!slot || (!folder && !app)) return null;
+              const isCandidate = dragging === id && candidate;
               const displaySlot = isCandidate ? candidate : slot;
+              const isMergeTarget = mergeTarget === id;
               return (
-                <DesktopIcon
-                  key={app.id}
-                  app={app}
-                  selected={selected === app.id}
-                  dragging={dragging === app.id}
-                  pickedUp={picked === app.id}
-                  tabIndex={0}
-                  style={{ position: 'absolute', left: SURFACE_PADDING + displaySlot.col * CELL_WIDTH, top: SURFACE_PADDING + displaySlot.row * CELL_HEIGHT, zIndex: dragging === app.id ? 2 : 1 }}
-                  onPointerDown={(event) => {
-                    if (event.button !== 0) return;
-                    pointerStart.current = { id: app.id, x: event.clientX, y: event.clientY, moved: false };
-                    setSelected(app.id);
-                  }}
-                  onKeyDown={(event) => iconKeyDown(app.id, event)}
-                  onSelect={() => { if (!pointerStart.current?.moved) setSelected(app.id); }}
-                  onOpen={() => openApp(app.id)}
-                />
+                <HomeIconMenu
+                  key={id}
+                  id={id}
+                  home={home}
+                  announce={setAnnouncement}
+                  onOpen={() => openItem(id)}
+                  onRename={folder ? () => setOpenFolder({ id, renaming: true }) : undefined}
+                >
+                  <DesktopIcon
+                    itemId={id}
+                    label={folder?.name ?? app!.title}
+                    aria-label={folder
+                      ? `Folder ${folder.name}, ${folder.apps.length} apps`
+                      : `${app!.title} — ${app!.description}`}
+                    glyph={folder
+                      ? <FolderGlyph folder={folder} appsById={appsById} size="desktop" mergeTarget={isMergeTarget} />
+                      : <AppGlyph app={app!} size="desktop" mergeTarget={isMergeTarget} />}
+                    selected={selected === id}
+                    dragging={dragging === id}
+                    pickedUp={picked === id}
+                    tabIndex={0}
+                    style={{ position: 'absolute', left: SURFACE_PADDING + displaySlot.col * CELL_WIDTH, top: SURFACE_PADDING + displaySlot.row * CELL_HEIGHT, zIndex: dragging === id ? 2 : 1 }}
+                    onPointerDown={(event) => {
+                      if (event.button !== 0) return;
+                      pointerStart.current = { id, x: event.clientX, y: event.clientY, moved: false };
+                      setSelected(id);
+                    }}
+                    onKeyDown={(event) => iconKeyDown(id, event)}
+                    onSelect={() => { if (!pointerStart.current?.moved) setSelected(id); }}
+                    onOpen={() => openItem(id)}
+                  />
+                </HomeIconMenu>
               );
             })}
           </div>
@@ -188,6 +267,18 @@ export function Desktop() {
         </ContextMenuItem>
       </ContextMenuContent>
       </ContextMenu>
+      <FolderView
+        folder={openFolder ? foldersById.get(openFolder.id) : undefined}
+        home={home}
+        size="desktop"
+        renaming={openFolder?.renaming ?? false}
+        onClose={() => setOpenFolder(null)}
+        onOpenApp={(appId) => {
+          setOpenFolder(null);
+          openApp(appId);
+        }}
+        onDropOutside={dropOutOfFolder}
+      />
       <span id="icon-layout-status" className="sr-only" aria-live="polite">{announcement}</span>
     </>
   );

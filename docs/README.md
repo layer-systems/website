@@ -29,13 +29,20 @@ src/
     useResize.ts         # Pointer-driven resizing
     useOsKeyboard.ts     # System-wide shortcuts
     persistence.ts       # Session save / restore
+    iconLayout.ts        # Home-screen icon positions (desktop grid, mobile order)
+    useIconLayout.ts
+    useIconDrag.ts       # Phone-style icon dragging (hold to lift on touch)
+    menuTiming.ts        # Keeps a long-press menu from also launching the icon
 
   components/os/         # The shell
     OsShell.tsx          # Entry point: picks desktop or mobile, syncs the URL
     MenuBar.tsx          # macOS-style bar (app menu, Go, Window, relays, theme, login)
     MenuBarClock.tsx
     Desktop.tsx          # Wallpaper, icon grid, desktop context menu
-    DesktopIcon.tsx
+    DesktopIcon.tsx      # One app or folder icon
+    HomeGlyph.tsx        # App tile and folder preview tile
+    HomeIconMenu.tsx     # Long-press / right-click icon menu (folder actions)
+    FolderView.tsx       # An open folder: rename, reorder, drag out
     WindowLayer.tsx      # Renders every window, owns the snap preview
     WindowFrame.tsx      # Window chrome: title bar, traffic lights, resize handles
     TrafficLights.tsx
@@ -48,8 +55,14 @@ src/
 
   apps/<id>/index.tsx    # One default-exported component per app
 
+  components/AppFoldersSync.tsx  # Syncs app folders with the encrypted NIP-78 event
+
   hooks/                 # useRelayStatus, useRelayHints, useFollows (+ template hooks)
+    useHomeScreen.ts     # Top-level icons + folder operations, for both home screens
+    useAppFolders.ts     # Folder state, and reading the encrypted folder event
   lib/nostrUtils.ts      # sanitizeUrl, relay hints, tag helpers, time formatting
+  lib/appFolders.ts      # Folder model, validation and pure operations
+  lib/appFolderStore.ts  # Device-local folder copy, per account
 ```
 
 The three layers do not reach into each other: `src/os/` knows nothing about Nostr or
