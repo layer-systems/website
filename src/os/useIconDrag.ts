@@ -11,6 +11,13 @@ export interface DragPoint {
   y: number;
 }
 
+/**
+ * Callbacks receive the centre of the dragged icon's *tile*, not the raw
+ * pointer: what counts is where the user sees the icon. Grabbed by its label,
+ * the pointer sits well below the tile — lining the tile up with another
+ * icon's must still group them, not drop "below" it.
+ */
+
 interface Options {
   onMove?: (id: string, point: DragPoint) => void;
   onDrop: (id: string, point: DragPoint) => void;
@@ -22,6 +29,9 @@ interface Active {
   element: HTMLElement;
   x: number;
   y: number;
+  /** From the pointer to the centre of the icon's tile, at grab time. */
+  grab: DragPoint;
+  last: DragPoint;
   touch: boolean;
   /** Touch: the hold completed and the icon is lifted. Mouse: the drag started. */
   lifted: boolean;
@@ -64,15 +74,44 @@ export function useIconDrag({ onMove, onDrop, onCancel }: Options) {
   const clear = useCallback(() => {
     clearTimeout(active.current?.timer);
     active.current = null;
+    document.body.classList.remove('os-dragging');
     setLifted(null);
     setDragging(null);
     setOffset({ dx: 0, dy: 0 });
   }, []);
 
   useEffect(() => {
+    const tileAt = (state: Active, event: PointerEvent): DragPoint =>
+      ({ x: event.clientX + state.grab.x, y: event.clientY + state.grab.y });
+
+    const finish = (state: Active, point: DragPoint, event: PointerEvent) => {
+      clear();
+      if (state.dragging) {
+        dropped.current = { id: state.id, at: Date.now() };
+        handlers.current.onDrop(state.id, point);
+      } else if (state.touch && state.lifted) {
+        // Held and released in place: the phone's long-press menu.
+        dropped.current = { id: state.id, at: Date.now() };
+        openingMenu.current = true;
+        state.element.dispatchEvent(new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: event.clientX,
+          clientY: event.clientY,
+        }));
+        openingMenu.current = false;
+      }
+    };
+
     const onPointerMove = (event: PointerEvent) => {
       const state = active.current;
       if (!state) return;
+      // The button was released where this page couldn't hear it (another
+      // window, a browser popup): treat it as the drop it was.
+      if (!state.touch && event.buttons === 0) {
+        finish(state, state.last, event);
+        return;
+      }
       const dx = event.clientX - state.x;
       const dy = event.clientY - state.y;
       if (!state.dragging) {
@@ -87,29 +126,16 @@ export function useIconDrag({ onMove, onDrop, onCancel }: Options) {
         state.dragging = true;
         setLifted(state.id);
         setDragging(state.id);
+        // Keeps window contents (and any iframe) from swallowing the release.
+        document.body.classList.add('os-dragging');
       }
+      state.last = tileAt(state, event);
       setOffset({ dx, dy });
-      handlers.current.onMove?.(state.id, { x: event.clientX, y: event.clientY });
+      handlers.current.onMove?.(state.id, state.last);
     };
     const onPointerUp = (event: PointerEvent) => {
       const state = active.current;
-      if (!state) return;
-      clear();
-      if (state.dragging) {
-        dropped.current = { id: state.id, at: Date.now() };
-        handlers.current.onDrop(state.id, { x: event.clientX, y: event.clientY });
-      } else if (state.touch && state.lifted) {
-        // Held and released in place: the phone's long-press menu.
-        dropped.current = { id: state.id, at: Date.now() };
-        openingMenu.current = true;
-        state.element.dispatchEvent(new MouseEvent('contextmenu', {
-          bubbles: true,
-          cancelable: true,
-          clientX: event.clientX,
-          clientY: event.clientY,
-        }));
-        openingMenu.current = false;
-      }
+      if (state) finish(state, tileAt(state, event), event);
     };
     const onPointerCancel = () => {
       const state = active.current;
@@ -136,11 +162,17 @@ export function useIconDrag({ onMove, onDrop, onCancel }: Options) {
   const onPointerDown = useCallback((id: string, event: React.PointerEvent<HTMLElement>) => {
     if (event.button !== 0) return;
     clearTimeout(active.current?.timer);
+    const tile = event.currentTarget.querySelector('[data-home-glyph]')?.getBoundingClientRect();
+    const grab = tile
+      ? { x: tile.left + tile.width / 2 - event.clientX, y: tile.top + tile.height / 2 - event.clientY }
+      : { x: 0, y: 0 };
     const state: Active = {
       id,
       element: event.currentTarget,
       x: event.clientX,
       y: event.clientY,
+      grab,
+      last: { x: event.clientX + grab.x, y: event.clientY + grab.y },
       touch: event.pointerType !== 'mouse',
       lifted: false,
       dragging: false,
@@ -182,6 +214,9 @@ export function useIconDrag({ onMove, onDrop, onCancel }: Options) {
   const iconProps = useCallback((id: string) => ({
     onPointerDown: (event: React.PointerEvent<HTMLElement>) => onPointerDown(id, event),
     onContextMenu,
+    // Never let the browser start its own drag-and-drop: it cancels pointer events.
+    draggable: false,
+    onDragStart: (event: React.DragEvent<HTMLElement>) => event.preventDefault(),
   }), [onContextMenu, onPointerDown]);
 
   return { lifted, dragging, offset, iconProps, consumeClick };
@@ -192,7 +227,8 @@ export function useIconDrag({ onMove, onDrop, onCancel }: Options) {
  * an open folder dialog makes the rest of the page inert to hit-testing, and
  * an app dragged out of it still has to find what it was released over.
  *
- * `onTile` is true over the icon's tile (padded a little, so it is easy to hit)
+ * `point` is the dragged tile's centre, so `onTile` means the two tiles mostly
+ * overlap (the tile is padded a little, so it is easy to hit)
  * — the "group into a folder" zone; the label and gaps mean "move".
  */
 export function iconAtPoint(
@@ -206,7 +242,7 @@ export function iconAtPoint(
     const id = element.getAttribute(attribute);
     if (!id || id === exclude) continue;
     const tile = element.querySelector('[data-home-glyph]')?.getBoundingClientRect();
-    if (tile && inside(tile, 8)) return { id, onTile: true };
+    if (tile && inside(tile, 12)) return { id, onTile: true };
     if (inside(element.getBoundingClientRect())) return { id, onTile: false };
   }
   return null;

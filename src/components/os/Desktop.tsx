@@ -21,9 +21,9 @@ import { isFolderId } from '@/lib/appFolders';
 const CELL_WIDTH = 96;
 const CELL_HEIGHT = 92;
 const SURFACE_PADDING = 12;
-/** Offsets from a cell's corner to the centre of its icon (half the 80px button, tile centre). */
-const ICON_CENTER_X = 40;
-const ICON_CENTER_Y = 38;
+/** Offsets from a cell's corner to the centre of its icon's tile (half the 80px button; padding + half the tile). */
+const TILE_CENTER_X = 40;
+const TILE_CENTER_Y = 32;
 
 function geometryFor(width: number, height: number): GridGeometry {
   return {
@@ -64,9 +64,10 @@ export function Desktop() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  /** The cell whose tile is nearest to `point` — the dragged tile's centre. */
   const cellAt = useCallback((point: DragPoint): Cell => ({
-    col: Math.max(0, Math.min(geometry.columns - 1, Math.round((point.x - SURFACE_PADDING - ICON_CENTER_X) / CELL_WIDTH))),
-    row: Math.max(0, Math.min(geometry.rows - 1, Math.round((point.y - MENUBAR_HEIGHT - SURFACE_PADDING - ICON_CENTER_Y) / CELL_HEIGHT))),
+    col: Math.max(0, Math.min(geometry.columns - 1, Math.round((point.x - SURFACE_PADDING - TILE_CENTER_X) / CELL_WIDTH))),
+    row: Math.max(0, Math.min(geometry.rows - 1, Math.round((point.y - MENUBAR_HEIGHT - SURFACE_PADDING - TILE_CENTER_Y) / CELL_HEIGHT))),
   }), [geometry]);
 
   /** Over another icon's tile groups (apps only — folders don't nest); anywhere else moves. */

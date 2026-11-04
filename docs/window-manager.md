@@ -173,9 +173,22 @@ keeps every app in at most one folder, so a new app always shows up at the top l
 **Dragging.** `useIconDrag` drives all three surfaces (desktop grid, mobile home, open
 folder). The icon follows the pointer through the CSS `translate` property — not
 `transform`, which would be multiplied by the lift's `scale` and make the icon drift
-away from the pointer. Drop targets are found by geometry (`iconAtPoint`), because an
-open folder dialog makes the page beneath inert to `elementFromPoint`; the tile counts
-with an 8px margin so grouping is easy to hit.
+away from the pointer.
+
+Drop targets are decided by **where the dragged tile is, not where the pointer is** — the
+callbacks get the tile's centre (pointer + the grab offset). Grabbed by its label, the
+pointer sits ~45px below the tile; lining the tile up with another icon's must group
+them, which pointer-based hit-testing got wrong (it swapped them instead). Targets are
+found by geometry (`iconAtPoint`), because an open folder dialog makes the page beneath
+inert to `elementFromPoint`; a tile counts with a 12px margin so grouping is easy to hit.
+
+Once an app dragged out of an open folder has crossed the panel's edge, it stays "out"
+for the rest of that drag, so icons that sat behind the panel can be targeted too.
+
+Safety nets: the body gets `os-dragging` while dragging (window contents stop taking
+pointer events, so they can't swallow the release), a mouse move with no button held
+completes a drop whose release happened outside the page, and native HTML drag-and-drop
+is disabled on icons — it would cancel the pointer events mid-drag.
 
 **Touch is phone-style.** A mouse drags as soon as it moves. A finger has to rest on an
 icon for 400ms first — a quicker swipe scrolls. Once the icon lifts, moving drags it

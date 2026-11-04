@@ -62,11 +62,25 @@ function FolderPanel({
   const [picked, setPicked] = useState<{ id: string; index: number } | null>(null);
   const [announcement, setAnnouncement] = useState('');
 
+  /**
+   * Once a dragged app has left the panel, the folder is out of the way for
+   * the rest of that drag — like a phone's closing — so apps that sat behind
+   * the panel can be dropped onto too.
+   */
+  const leftPanel = useRef(false);
   const isOutside = (point: DragPoint) => {
+    if (leftPanel.current) return true;
     const rect = panelRef.current?.getBoundingClientRect();
-    return !rect || point.x < rect.left || point.x > rect.right || point.y < rect.top || point.y > rect.bottom;
+    leftPanel.current = !rect || point.x < rect.left || point.x > rect.right || point.y < rect.top || point.y > rect.bottom;
+    return leftPanel.current;
   };
   const appAt = (point: DragPoint, exclude: string) => iconAtPoint(point, 'data-folder-app-id', exclude)?.id ?? null;
+  const endDrag = (id: string) => {
+    leftPanel.current = false;
+    setOutside(false);
+    setTarget(null);
+    onDragOutside?.(id, null);
+  };
 
   const drag = useIconDrag({
     onMove: (id, point) => {
@@ -76,24 +90,19 @@ function FolderPanel({
       onDragOutside?.(id, out ? point : null);
     },
     onDrop: (id, point) => {
-      setOutside(false);
-      setTarget(null);
-      if (isOutside(point)) {
+      const out = isOutside(point);
+      endDrag(id);
+      if (out) {
         onDropOutside(id, point);
         return;
       }
-      onDragOutside?.(id, null);
       const over = appAt(point, id);
       if (!over) return;
       const index = folder.apps.indexOf(over);
       home.reorderInFolder(folder.id, id, index);
       setAnnouncement(`${labelOf(id)} moved to position ${index + 1} of ${folder.apps.length}.`);
     },
-    onCancel: (id) => {
-      setOutside(false);
-      setTarget(null);
-      onDragOutside?.(id, null);
-    },
+    onCancel: endDrag,
   });
 
   const commitName = () => {
