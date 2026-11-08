@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNostr } from '@nostrify/react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { NostrEvent, NostrMetadata } from '@nostrify/nostrify';
 import { nip05 } from 'nostr-tools';
 import { Hash, Loader2, Search, UserRound } from 'lucide-react';
@@ -11,11 +11,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { displayName, sanitizeUrl } from '@/lib/nostrUtils';
+import { fetchRelayInfo } from '@/lib/nip86';
+import { normalizeRelayUrl, relayInfoUrl } from '@/lib/relayList';
+import { useAppContext } from '@/hooks/useAppContext';
 import { useWindowManager } from '@/os/useWindowManager';
 import type { AppProps } from '@/os/types';
-import { parseSearchInput, type SearchInput } from './searchUtils';
+import { noteMatches, parseSearchInput, type SearchInput } from './searchUtils';
 
 const LIMIT = 50;
+// Known NIP-50 relays, used even when configured relays lack search support
+// or their NIP-11 documents cannot be read (for example, because of CORS).
+const DEFAULT_SEARCH_RELAYS = ['wss://relay.ditto.pub/', 'wss://search.nos.today/'];
 
 interface SearchResults {
   notes: NostrEvent[];
@@ -35,9 +41,12 @@ function profileMatches(event: NostrEvent, term: string): boolean {
 
 function useSearch(input: SearchInput) {
   const { nostr } = useNostr();
+  const { config } = useAppContext();
+  const queryClient = useQueryClient();
+  const readRelays = config.relayMetadata.relays.filter((relay) => relay.read).map((relay) => relay.url);
 
   return useQuery<SearchResults>({
-    queryKey: ['nostr', 'search', input],
+    queryKey: ['nostr', 'search', input, readRelays],
     enabled: input.type !== 'empty',
     queryFn: async ({ signal }) => {
       const options = { signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]) };
@@ -66,13 +75,34 @@ function useSearch(input: SearchInput) {
       }
 
       if (input.type === 'empty') return { notes: [], profiles: [] };
+      let relays: string[] | undefined;
+      if (input.type === 'text') {
+        const candidates = [...new Set(readRelays.flatMap((url) => {
+          const normalized = normalizeRelayUrl(url);
+          return normalized.ok ? [normalized.url] : [];
+        }))].filter((url) => !DEFAULT_SEARCH_RELAYS.includes(url));
+        const supported = await Promise.all(candidates.map(async (url) => {
+          const { info } = await queryClient.fetchQuery({
+            queryKey: ['search-relay-info', url],
+            queryFn: async ({ signal: infoSignal }) => ({
+              info: await fetchRelayInfo(relayInfoUrl(url), {
+                signal: AbortSignal.any([infoSignal, AbortSignal.timeout(1500)]),
+              }),
+            }),
+            staleTime: 5 * 60_000,
+          });
+          return info?.supported_nips?.includes(50) ? [url] : [];
+        }));
+        signal.throwIfAborted();
+        relays = [...DEFAULT_SEARCH_RELAYS, ...supported.flat()];
+      }
       const filters = input.type === 'hashtag'
         ? [{ kinds: [1], '#t': [input.value], limit: LIMIT }]
         : [{ kinds: [1], search: input.value, limit: LIMIT }, { kinds: [0], search: input.value, limit: LIMIT }];
-      const events = await nostr.query(filters, options);
+      const events = await nostr.query(filters, { ...options, relays });
       const profiles = events.filter((event) => event.kind === 0);
       return {
-        notes: events.filter((event) => event.kind === 1),
+        notes: events.filter((event) => event.kind === 1 && (input.type !== 'text' || noteMatches(event.content, input.value))),
         profiles: input.type === 'text' ? profiles.filter((event) => profileMatches(event, input.value)) : profiles,
       };
     },
