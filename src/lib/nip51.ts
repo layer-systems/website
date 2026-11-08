@@ -273,6 +273,8 @@ export async function encryptPrivateItems(signer: ListSigner, pubkey: string, ta
 
 /** A parsed NIP-51 list: metadata plus public and private item tags. */
 export interface Nip51List {
+  /** Original ciphertext, retained when only public items change. */
+  sourceContent?: string;
   kind: number;
   pubkey: string;
   /** The `d` tag for sets; undefined for standard lists. */
@@ -332,6 +334,7 @@ export function parseList(event: NostrEvent, privateItems: PrivateItems): Nip51L
     legacyEncryption: privateItems.legacyEncryption,
     createdAt: event.created_at,
     eventId: event.id,
+    sourceContent: event.content,
   };
 }
 

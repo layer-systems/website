@@ -1,3 +1,5 @@
+import type { NostrEvent } from '@nostrify/nostrify';
+import { newestEvent, queryBeforeWrite } from '@/lib/replaceableLists';
 import { useMemo } from 'react';
 import { useNostr } from '@nostrify/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -98,19 +100,30 @@ export function useBlockPubkey() {
 
       await setMuted.mutateAsync({ pubkey, muted: true });
 
-      const [followEvent] = await nostr.query(
+      const events = await queryBeforeWrite(nostr,
         [{ kinds: [3], authors: [user.pubkey], limit: 1 }],
-        { signal: AbortSignal.timeout(6000) },
+        AbortSignal.timeout(6000),
       );
+      const key = ['nostr', 'follow-event', user.pubkey];
+      const cached = queryClient.getQueryData<NostrEvent>(key);
+      const fetched = newestEvent(events.filter((event) => event.kind === 3 && event.pubkey === user.pubkey));
+      // The follows query key also carries the relay config, so match by prefix.
+      const knownFollows = queryClient.getQueriesData<string[]>({ queryKey: ['nostr', 'follows', user.pubkey] });
+      if (!fetched && (cached || knownFollows.some(([, follows]) => follows?.length))) {
+        throw new Error('Your existing follow list could not be loaded. Please retry.');
+      }
+      const followEvent = newestEvent([fetched, cached].filter((event): event is NostrEvent => Boolean(event)));
       const followTags = followEvent?.tags ?? [];
       const isFollowing = followTags.some(([name, value]) => name === 'p' && value === pubkey);
 
       if (isFollowing) {
-        await publish.mutateAsync({
+        const published = await publish.mutateAsync({
           kind: 3,
+          created_at: Math.max(Math.floor(Date.now() / 1000), (followEvent?.created_at ?? 0) + 1),
           content: followEvent?.content ?? '',
           tags: followTags.filter(([name, value]) => !(name === 'p' && value === pubkey)),
         });
+        queryClient.setQueryData(key, published);
         await queryClient.invalidateQueries({ queryKey: ['nostr', 'follows'] });
       }
     },

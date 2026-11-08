@@ -1,13 +1,15 @@
 import { useNostr } from '@nostrify/react';
-import { useQuery } from '@tanstack/react-query';
-import type { NPool } from '@nostrify/nostrify';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { NostrEvent, NPool } from '@nostrify/nostrify';
 import { useAppContext } from '@/hooks/useAppContext';
 import { FOLLOW_INDEXERS, queryFollowList } from '@/lib/queryFollowList';
+import { newestEvent } from '@/lib/replaceableLists';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 /** The pubkeys in a user's kind 3 contact list. */
 export function useFollows(pubkey: string | undefined) {
   const { nostr } = useNostr();
+  const queryClient = useQueryClient();
 
   const { config } = useAppContext();
   const configured = config.relayMetadata.relays;
@@ -30,13 +32,20 @@ export function useFollows(pubkey: string | undefined) {
       const writeRelays = (relayList?.tags ?? [])
         .filter(([name, url, marker]) => name === 'r' && url && (!marker || marker === 'write'))
         .map(([, url]) => url);
-      const event = await queryFollowList(
+      const fetched = await queryFollowList(
         pool,
         [...writeRelays, ...configured.filter((relay) => relay.write).map((relay) => relay.url), ...FOLLOW_INDEXERS],
         { kinds: [3], authors: [pubkey!], limit: 1 },
         signal,
         [...writeRelays, ...FOLLOW_INDEXERS],
       );
+
+      // Relays can lag behind a kind 3 this app just published: keep whichever
+      // of the fetched and cached versions is newer.
+      const key = ['nostr', 'follow-event', pubkey];
+      const cached = queryClient.getQueryData<NostrEvent>(key);
+      const event = newestEvent([fetched, cached].filter((candidate): candidate is NostrEvent => Boolean(candidate)));
+      if (event) queryClient.setQueryData(key, event);
 
       if (!event) {
         if (discoveryFailed) throw new Error('Could not discover the account’s write relays');
