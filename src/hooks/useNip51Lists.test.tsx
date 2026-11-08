@@ -51,6 +51,13 @@ describe('safe NIP-51 writes', () => {
     await act(async () => { await expect(result.current.mutateAsync(edit)).rejects.toThrow('complete list'); });
     expect(mocks.publish).not.toHaveBeenCalled();
   });
+  it('recreates a deleted set when relays no longer return it', async () => {
+    mocks.req.mockImplementation(stream([]));
+    const { client, result } = setup();
+    client.setQueryData(nip51ListKey('owner', 30000, 'friends', true), { ...emptyList(30000, 'owner', 'friends'), createdAt: 4_000_000_000 });
+    await act(async () => { await result.current.mutateAsync({ kind: 30000, identifier: 'friends', ops: [], create: true }); });
+    expect(mocks.publish).toHaveBeenCalledWith(expect.objectContaining({ kind: 30000, created_at: 4_000_000_001 }));
+  });
   it('allows a first list only after a complete empty read', async () => {
     mocks.req.mockImplementation(stream([]));
     const { client, result } = setup();

@@ -249,7 +249,8 @@ export function useNip51ListMutation() {
   const queryClient = useQueryClient();
 
   return useMutation<Nip51List, Error, ListMutationInput>({
-    scope: { id: `nip51-edit:${user?.pubkey ?? "anonymous"}` },
+    // Serialized per account, so each edit builds on the previous one's result.
+    scope: { id: `nip51-edit:${user?.pubkey ?? 'anonymous'}` },
     mutationFn: async ({ kind, identifier, ops, create }) => {
       if (!user) throw new Error('Sign in to edit your lists.');
       const info = listKindInfo(kind);
@@ -261,7 +262,16 @@ export function useNip51ListMutation() {
         }
       }
 
-      await queryClient.cancelQueries({ queryKey: ['nostr', 'nip51'] });
+      // Stop in-flight reads of this list from landing after the write with an
+      // older version. Only queries that already hold data: cancelling a first
+      // load would leave it stuck pending.
+      for (const queryKey of [
+        nip51ListKey(user.pubkey, kind, identifier, true),
+        nip51SetsKey(user.pubkey, kind, true),
+        nip51OverviewKey(user.pubkey, true),
+      ]) {
+        await queryClient.cancelQueries({ queryKey, exact: true, predicate: (query) => query.state.data !== undefined });
+      }
       const latestEvent = await fetchLatestEvent(nostr, user.pubkey, kind, identifier, undefined, true);
       const candidates = [
         queryClient.getQueryData<Nip51List>(nip51ListKey(user.pubkey, kind, identifier, true)),
@@ -269,7 +279,9 @@ export function useNip51ListMutation() {
         ...(queryClient.getQueryData<Nip51List[]>(nip51OverviewKey(user.pubkey, true)) ?? []),
       ].filter((list): list is Nip51List => Boolean(list && list.pubkey === user.pubkey && list.kind === kind && list.identifier === (isSetKind(kind) ? identifier ?? '' : undefined)));
       const cached = candidates.sort((a, b) => b.createdAt - a.createdAt)[0];
-      if (!latestEvent && cached && (cached.eventId || cached.createdAt > 0)) {
+      // An empty read while the cache shows the list exists is a relay gap, not
+      // an empty list. A deleted set's placeholder has nothing to lose.
+      if (!latestEvent && cached && (cached.eventId || cached.createdAt > 0) && !isDeletedPlaceholder(cached)) {
         throw new Error('Your existing list could not be loaded. Please retry before editing it.');
       }
       const fetched = latestEvent ? await parseWithDecryption(latestEvent, user) : emptyList(kind, user.pubkey, identifier);

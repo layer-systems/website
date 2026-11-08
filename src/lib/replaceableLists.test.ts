@@ -9,7 +9,14 @@ describe('queryBeforeWrite', () => {
       controller.abort(new Error('timeout'));
       yield ['EOSE', 'sub'];
     } };
-    await expect(queryBeforeWrite(transport, [], controller.signal)).rejects.toThrow('timeout');
+    await expect(queryBeforeWrite(transport, [], controller.signal)).rejects.toThrow('complete list');
+  });
+  it('turns a transport abort error into a readable failure', async () => {
+    const transport = { async *req(): AsyncGenerator<NostrRelayEOSE> {
+      yield* [];
+      throw new DOMException('The signal has been aborted', 'AbortError');
+    } };
+    await expect(queryBeforeWrite(transport, [])).rejects.toThrow('complete list');
   });
   it('waits for EOSE rather than stopping at the filter limit', async () => {
     const transport = { async *req(): AsyncGenerator<NostrRelayEVENT | NostrRelayEOSE> {

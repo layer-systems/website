@@ -1,7 +1,6 @@
 import { useNostr } from '@nostrify/react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { NostrEvent } from '@nostrify/nostrify';
-import { useQueryClient } from '@tanstack/react-query';
 import { newestEvent } from '@/lib/replaceableLists';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 
