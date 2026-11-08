@@ -30,6 +30,9 @@ function isFeedScope(value: unknown): value is FeedScope {
 export interface FeedScopeState {
   /** The effective scope: falls back to Global when signed out and to Following when the chosen list is gone. */
   scope: FeedScope;
+  followsError: boolean;
+  followsFetching: boolean;
+  refetchFollows: () => Promise<unknown>;
   setScope: (scope: FeedScope) => void;
   isList: boolean;
   /** The follow set behind a list scope, once lists have loaded. */
@@ -78,11 +81,9 @@ export function useFeedScope(storageKey: string): FeedScopeState {
   const authors = useMemo(() => {
     if (scope === 'global') return null;
     if (isList) return selectedList?.pubkeys.slice(0, MAX_AUTHORS);
-    // A failed contact list lookup counts as "follows nobody" rather than
-    // leaving the feed loading forever.
     if (follows.data) return follows.data.slice(0, MAX_AUTHORS);
-    return follows.isError ? [] : undefined;
-  }, [scope, isList, selectedList, follows.data, follows.isError]);
+    return undefined;
+  }, [scope, isList, selectedList, follows.data]);
 
   const queryKey = useMemo(
     () => [scope, authors ? authorsFingerprint(authors) : authors ?? null] as const,
@@ -91,5 +92,5 @@ export function useFeedScope(storageKey: string): FeedScopeState {
 
   const label = scope === 'following' ? 'Following' : scope === 'global' ? 'Global' : selectedList?.title ?? 'List';
 
-  return { scope, setScope, isList, selectedList, followSets: followSets.data, label, authors, queryKey };
+  return { followsError: scope === 'following' && follows.isError && !follows.data, followsFetching: follows.isFetching, refetchFollows: follows.refetch, scope, setScope, isList, selectedList, followSets: followSets.data, label, authors, queryKey };
 }

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAppContext } from '@/hooks/useAppContext';
@@ -14,6 +15,7 @@ import { parseBlossomServerList } from '@/lib/appBlossom';
  */
 export function NostrSync() {
   const { nostr } = useNostr();
+  const queryClient = useQueryClient();
   const { user } = useCurrentUser();
   const { config, updateConfig } = useAppContext();
 
@@ -54,11 +56,13 @@ export function NostrSync() {
         }
       } catch (error) {
         console.error('Failed to sync relays from Nostr:', error);
+      } finally {
+        void queryClient.invalidateQueries({ queryKey: ['nostr', 'follows', user.pubkey] });
       }
     };
 
     syncRelaysFromNostr();
-  }, [user, config.relayMetadata.updatedAt, nostr, updateConfig]);
+  }, [user, config.relayMetadata.updatedAt, nostr, updateConfig, queryClient]);
 
   useEffect(() => {
     if (!user) return;
