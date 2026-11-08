@@ -4,6 +4,7 @@ import { buildReplyTags, isExpired, isReply, replyReference, rootReference } fro
 import { newestEvent } from '@/lib/replaceableLists';
 import { eventPow, getPow, mineChunk } from '@/lib/pow';
 import { clientTags } from '@/lib/clientTags';
+import { buildRepost, isRepostOf } from '@/lib/reposts';
 import { AUTHOR, OTHER_AUTHOR, ROOT_ID, PARENT_ID, event } from './fixtures';
 
 describe('NIP-01 — selecting a revision within one replaceable coordinate', () => {
@@ -119,5 +120,47 @@ describe('NIP-89 — optional client attribution only', () => {
     for (const kind of [4, 1059, 10000, 24133, 65535]) {
       expect(clientTags(kind, [], true)).toEqual([]);
     }
+  });
+});
+
+describe('NIP-18 — reposts', () => {
+  const RELAY = 'wss://relay.example.com';
+
+  it('18-KIND: kind 1 notes get a kind 6 repost; every other kind a kind 16 generic repost with a k tag', () => {
+    const note = event({ id: ROOT_ID, kind: 1 });
+    const noteRepost = buildRepost(note, RELAY);
+    expect(noteRepost.kind).toBe(6);
+    expect(noteRepost.tags.some(([name]) => name === 'k')).toBe(false);
+
+    const picture = event({ id: ROOT_ID, kind: 20, tags: [['imeta', 'url https://images.example/a.jpg']] });
+    const pictureRepost = buildRepost(picture, RELAY);
+    expect(pictureRepost.kind).toBe(16);
+    expect(pictureRepost.tags).toContainEqual(['k', '20']);
+  });
+
+  it('18-REF: e tag carries the id and a relay URL third; p tag names the author; content is the stringified event', () => {
+    const picture = event({ id: ROOT_ID, kind: 20, pubkey: OTHER_AUTHOR, content: 'sunset' });
+    const repost = buildRepost(picture, RELAY);
+    expect(repost.tags[0]).toEqual(['e', ROOT_ID, RELAY]);
+    expect(repost.tags).toContainEqual(['p', OTHER_AUTHOR]);
+    expect(JSON.parse(repost.content)).toEqual(picture);
+  });
+
+  it('18-ADDRESS: addressable targets also get an a tag with their coordinate', () => {
+    const article = event({ id: ROOT_ID, kind: 30023, tags: [['d', 'my-article']] });
+    expect(buildRepost(article, RELAY).tags).toContainEqual(['a', `30023:${AUTHOR}:my-article`, RELAY]);
+  });
+
+  it('18-PROTECTED: reposts of NIP-70 protected events leave content empty', () => {
+    expect(buildRepost(event({ id: ROOT_ID, tags: [['-']] }), RELAY).content).toBe('');
+  });
+
+  it('18-MATCH: only counts reposts whose kind and k tag fit the target (app policy)', () => {
+    const generic = event({ kind: 16, tags: [['e', ROOT_ID, RELAY], ['k', '20']] });
+    expect(isRepostOf(generic, ROOT_ID, 20)).toBe(true);
+    expect(isRepostOf(generic, PARENT_ID, 20)).toBe(false);
+    expect(isRepostOf(event({ kind: 6, tags: [['e', ROOT_ID, RELAY]] }), ROOT_ID, 20)).toBe(false);
+    expect(isRepostOf(event({ kind: 16, tags: [['e', ROOT_ID, RELAY], ['k', '1']] }), ROOT_ID, 20)).toBe(false);
+    expect(isRepostOf(event({ kind: 7, tags: [['e', ROOT_ID]] }), ROOT_ID, 20)).toBe(false);
   });
 });
