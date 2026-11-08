@@ -5,6 +5,7 @@ import { isReply } from '@/lib/nostrUtils';
 import { notificationParentId } from '@/lib/notifications';
 import { useCurrentUser } from './useCurrentUser';
 import { useLocalStorage } from './useLocalStorage';
+import { useMutedPubkeys } from './useMuteList';
 import { mergeEvents, useLiveEvents } from './useLiveEvents';
 
 /**
@@ -50,9 +51,11 @@ export function useNotifications() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
 
+  const mutedPubkeys = useMutedPubkeys();
   const live = useLiveEvents(
     [{ kinds: [...NOTIFICATION_KINDS], '#p': [user?.pubkey ?? ''] }],
     Boolean(user),
+    { excludeAuthors: [...mutedPubkeys, ...(user ? [user.pubkey] : [])] },
   );
   const query = useQuery<Notification[]>({
     queryKey: ['nostr', 'notifications', user?.pubkey ?? ''],
@@ -88,9 +91,9 @@ export function useNotifications() {
 
   return {
     ...query,
-    data: query.data || live.length > 0
+    data: query.data || live.events.length > 0
       ? mergeEvents([
-          ...live.filter((event) => event.pubkey !== user?.pubkey),
+          ...live.events,
           ...(query.data ?? []).map(({ event }) => event),
         ], 100).map((event) => ({ event, kind: notificationKind(event) }))
       : undefined,

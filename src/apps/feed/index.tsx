@@ -71,21 +71,19 @@ export default function FeedApp({ setTitle }: AppProps) {
 
   const query = useFeed(feedScope);
   const client = useQueryClient();
+  const mutedPubkeys = useMutedPubkeys();
   const live = useLiveEvents(
     [authors ? { kinds: [1], authors } : { kinds: [1] }],
     authors === null || (authors?.length ?? 0) > 0,
+    { rootNotesOnly: true, excludeAuthors: mutedPubkeys },
   );
-  const mutedPubkeys = useMutedPubkeys();
   const visibleNotes = useMemo(
     () => (query.data ?? []).filter((event) => !mutedPubkeys.includes(event.pubkey)),
     [query.data, mutedPubkeys],
   );
 
   const knownIds = new Set((query.data ?? []).map((event) => event.id));
-  const newestVisibleAt = query.data?.[0]?.created_at ?? 0;
-  const pending = live.filter((event) =>
-    event.created_at >= newestVisibleAt && isRenderableNote(event) && !knownIds.has(event.id) && !mutedPubkeys.includes(event.pubkey),
-  );
+  const pending = live.events.filter((event) => !knownIds.has(event.id));
 
   // A disabled query (authors still resolving) is pending, not loading.
   const isLoading = query.isPending;
@@ -124,12 +122,16 @@ export default function FeedApp({ setTitle }: AppProps) {
           <Button
             variant="secondary"
             className="m-4"
-            onClick={() => client.setQueryData<NostrEvent[]>(
-              ['nostr', 'feed', ...feedScope.queryKey],
-              (previous = []) => mergeEvents([...pending, ...previous], PAGE_SIZE + 100),
-            )}
+            onClick={async () => {
+              await client.cancelQueries({ queryKey: ['nostr', 'feed', ...feedScope.queryKey], exact: true });
+              client.setQueryData<NostrEvent[]>(
+                ['nostr', 'feed', ...feedScope.queryKey],
+                (previous = []) => mergeEvents([...pending, ...previous], PAGE_SIZE + 100),
+              );
+              live.dismiss(live.events.map((event) => event.id));
+            }}
           >
-            Show {pending.length} new {pending.length === 1 ? 'post' : 'posts'}
+            Show {live.overflow ? 'latest ' : ''}{pending.length} new {pending.length === 1 ? 'post' : 'posts'}
           </Button>
         )}
         {user && <Composer onPublished={() => query.refetch()} />}
