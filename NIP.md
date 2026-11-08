@@ -19,6 +19,30 @@ protocols:
 - [NIP-11: Relay Information Document](https://github.com/nostr-protocol/nips/blob/master/11.md)
   — read at connect time to show relay identity in Relay Admin.
 
+- [NIP-F4: Podcasts](https://github.com/nostr-protocol/nips/blob/master/F4.md) (draft,
+  optional) — the Podcasts app (`src/apps/podcasts/`, parsing in `src/lib/podcasts.ts`)
+  reads and publishes show metadata (kind 10154) and episodes (kind 54). The show's
+  public key **is** the show identity: metadata and episode queries always constrain
+  `authors` to that key, and publishing always signs as the active account. Episodes
+  require a `title` and at least one `audio` tag with an `https://` URL (other schemes
+  are dropped); the optional third `audio` element is the media type. A
+  `content-warning` tag (NIP-36) is honoured and may be set when publishing. Episodes
+  and metadata carry a NIP-31 `alt` tag. No tags are added beyond the NIP.
+- [NIP-51: Lists](https://github.com/nostr-protocol/nips/blob/master/51.md) — favorite
+  podcasts (kind 10054, `p` items) are edited as a whole-list replacement through the
+  shared list mutation: the newest list is read from every read relay first, writes are
+  refused after an incomplete read, and `url` entries, other tags and private items are
+  preserved. Authored podcasts (kind 10064) confirm `p`-tag host claims.
+
+### NIP-F4 authored-podcasts kind: 10064, not 10164
+
+NIP-F4's prose (at the time of writing) says the authored-podcasts counter-claim "is
+the `kind:10164` event", but the NIP's own example event, NIP-51's standard-list table
+and the NIP index all define **kind 10064** ("Authored podcasts"). This client reads and
+writes **10064** only. A `p` tag in kind 10154 is displayed as a confirmed host/editor
+only when that person's newest, self-signed kind 10064 lists the show's key; otherwise
+it is shown as an unconfirmed claim.
+
 ## Adopted third-party kinds
 
 - **Kind `1301` (NIP-101e / deployed RUNSTR fitness dialect)** — the Workouts app

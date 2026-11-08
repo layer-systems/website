@@ -4,6 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LoginArea } from '@/components/auth/LoginArea';
 import { NotificationsSheet } from '@/components/nostr/NotificationsCenter';
+import { NowPlaying } from './NowPlaying';
 import {
   Sheet,
   SheetContent,
@@ -83,6 +84,7 @@ export function MobileAppShell() {
 
         <span className="mx-auto truncate text-sm font-medium">{active?.title}</span>
 
+        <NowPlaying compact />
         <NotificationsSheet />
 
         {windows.length > 0 ? (

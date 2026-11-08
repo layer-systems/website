@@ -5,6 +5,7 @@ import NotFound from './NotFound';
 import { isCalendarEventKind } from '@/lib/calendarEvents';
 import { encodeRelayHints } from '@/lib/nostrUtils';
 import { LEGACY_GENERIC_KIND, SET_KINDS } from '@/lib/nip51';
+import { PODCAST_EPISODE_KIND, isHexPubkey } from '@/lib/podcasts';
 import type { AppParams } from '@/os/types';
 
 /** Attaches any relay hints the identifier carried to the app's parameters. */
@@ -47,7 +48,19 @@ export function NIP19Page() {
         boot = { appId: 'notes', params: { id: decoded.data } };
         break;
       case 'nevent':
-        boot = { appId: 'notes', params: withHints({ id: decoded.data.id }, decoded.data.relays) };
+        // A NIP-F4 episode link carries kind 54 and its show key: open the
+        // episode itself. Anything else (or no kind) is a note.
+        boot = decoded.data.kind === PODCAST_EPISODE_KIND
+          ? {
+            appId: 'podcasts',
+            params: withHints(
+              isHexPubkey(decoded.data.author)
+                ? { episode: decoded.data.id, show: decoded.data.author }
+                : { episode: decoded.data.id },
+              decoded.data.relays,
+            ),
+          }
+          : { appId: 'notes', params: withHints({ id: decoded.data.id }, decoded.data.relays) };
         break;
       case 'naddr':
         boot = {
