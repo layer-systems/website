@@ -14,6 +14,7 @@ import { displayName, sanitizeUrl } from '@/lib/nostrUtils';
 import { fetchRelayInfo } from '@/lib/nip86';
 import { normalizeRelayUrl, relayInfoUrl } from '@/lib/relayList';
 import { useAppContext } from '@/hooks/useAppContext';
+import { useNip05 } from '@/hooks/useNip05';
 import { useWindowManager } from '@/os/useWindowManager';
 import type { AppProps } from '@/os/types';
 import { noteMatches, parseSearchInput, type SearchInput } from './searchUtils';
@@ -179,12 +180,13 @@ function ProfileResult({ event }: { event: NostrEvent }) {
   const { openApp } = useWindowManager();
   let metadata: NostrMetadata | undefined;
   try { metadata = JSON.parse(event.content) as NostrMetadata; } catch { /* invalid metadata is rendered safely with a fallback */ }
+  const { data: verifiedNip05 } = useNip05(event.pubkey, metadata?.nip05);
   const name = displayName(event.pubkey, metadata);
   const picture = sanitizeUrl(metadata?.picture);
   return (
     <button type="button" onClick={() => openApp('profile', { pubkey: event.pubkey })} className="flex w-full items-center gap-3 border-b border-border px-4 py-3 text-left hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-ring">
       <Avatar className="size-10"><AvatarImage src={picture} alt="" /><AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
-      <span className="min-w-0"><span className="block truncate text-sm font-semibold">{name}</span>{metadata?.nip05 && <span className="block truncate text-xs text-muted-foreground">{metadata.nip05}</span>}</span>
+      <span className="min-w-0"><span className="block truncate text-sm font-semibold">{name}</span>{verifiedNip05 && <span className="block truncate text-xs text-muted-foreground">{verifiedNip05}</span>}</span>
     </button>
   );
 }

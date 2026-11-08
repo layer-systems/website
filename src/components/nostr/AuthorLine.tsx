@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useNip05 } from '@/hooks/useNip05';
 import { useWindowManager } from '@/os/useWindowManager';
 import { absoluteTime, displayName, relativeTime, sanitizeUrl } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
@@ -20,7 +21,7 @@ export function AuthorLine({ pubkey, createdAt, badges, size = 'md', className }
   const { data } = useAuthor(pubkey);
   const name = displayName(pubkey, data?.metadata);
   const picture = sanitizeUrl(data?.metadata?.picture);
-  const nip05 = data?.metadata?.nip05;
+  const { data: nip05 } = useNip05(pubkey, data?.metadata?.nip05);
 
   return (
     <div className={cn('flex min-w-0 items-center gap-2', className)}>
