@@ -249,3 +249,13 @@ export function buildReplyTree(rootId: string, events: NostrEvent[]): ReplyNode[
 
   return roots;
 }
+
+/** NIP-40: ignore expired events, including those still served by relays. */
+export function isExpired(event: Pick<NostrEvent, 'tags'>): boolean {
+  const now = Math.floor(Date.now() / 1000);
+  return event.tags.some(([name, value]) => {
+    if (name !== 'expiration' || !value || !/^\d+$/.test(value)) return false;
+    const timestamp = Number(value);
+    return Number.isSafeInteger(timestamp) && timestamp <= now;
+  });
+}
