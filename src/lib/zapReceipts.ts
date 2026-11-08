@@ -1,6 +1,6 @@
 import type { NostrEvent } from '@nostrify/nostrify';
 import { nip57 } from 'nostr-tools';
-import { decodeBolt11 } from './bolt11';
+import { decodeBolt11, type DecodedBolt11 } from './bolt11';
 
 export const ZAP_RECEIPT_KIND = 9735;
 const ZAP_REQUEST_KIND = 9734;
@@ -110,8 +110,13 @@ export async function validateZapReceipt(
   if (senders.length > 1 || (senders.length === 1 && senders[0] !== request.pubkey)) return null;
 
   // Amount: the invoice must be for exactly what the sender asked to pay.
-  const invoice = decodeBolt11(bolt11);
-  if (!invoice?.amountMsats || invoice.amountMsats <= 0n) return null;
+  let invoice: DecodedBolt11;
+  try {
+    invoice = decodeBolt11(bolt11);
+  } catch {
+    return null;
+  }
+  if (invoice.amountMsats === null || invoice.amountMsats <= 0n) return null;
   const requestedAmounts = values(request, 'amount');
   if (requestedAmounts.length > 1) return null;
   if (requestedAmounts.length === 1) {
@@ -119,7 +124,7 @@ export async function validateZapReceipt(
   }
   if (invoice.amountMsats > BigInt(Number.MAX_SAFE_INTEGER)) return null;
 
-  if (invoice.descriptionHash !== undefined && invoice.descriptionHash !== await sha256Hex(description)) {
+  if (invoice.descriptionHash !== null && invoice.descriptionHash !== await sha256Hex(description)) {
     return null;
   }
 

@@ -6,6 +6,13 @@ import { eventAddress, validateZapReceipts, ZAP_RECEIPT_KIND, type ValidZapRecei
 import { useCurrentUser } from './useCurrentUser';
 import { useAppContext } from './useAppContext';
 import { useZapperPubkey } from './useZapperPubkey';
+import {
+  checkZapAgainstLnurlLimits,
+  parseLnurlPayParams,
+  resolveLnurlPayUrl,
+  verifyZapInvoice,
+  type LnurlPayParams,
+} from '@/lib/zapInvoice';
 
 function zapReceiptsQueryKey(eventId: string, zapperPubkey: string | null | undefined) {
   return ['nostr', 'zap-receipts', eventId, zapperPubkey ?? ''] as const;
@@ -104,12 +111,20 @@ export interface CreateZapInvoiceInput {
 export interface ZapInvoice {
   invoice: string;
   amountSats: number;
+  /** Hex payment hash of `invoice`, for checking a wallet's preimage after paying. */
+  paymentHash: string;
 }
 
 /**
  * Builds and signs a NIP-57 zap request, then asks the recipient's LNURL
  * callback for an invoice. This never touches a wallet — it only produces a
  * bolt11 for the caller to pay, manually or via NWC.
+ *
+ * The recipient's LNURL server is untrusted: before the invoice is returned
+ * (and possibly auto-paid over NWC) its amount must equal the requested
+ * millisats and its description hash must commit to the exact zap request
+ * JSON that was sent. The LNURL `minSendable`/`maxSendable` and
+ * `commentAllowed` limits are checked before anything is signed.
  */
 export function useCreateZapInvoice() {
   const { user } = useCurrentUser();
@@ -118,41 +133,57 @@ export function useCreateZapInvoice() {
   return useMutation<ZapInvoice, Error, CreateZapInvoiceInput>({
     mutationFn: async ({ target, recipientMetadata, amountSats, comment }) => {
       if (!user) throw new Error('Sign in to zap');
-      if (!Number.isFinite(amountSats) || amountSats <= 0) {
-        throw new Error('Enter an amount greater than zero.');
+      if (!Number.isSafeInteger(amountSats) || amountSats <= 0) {
+        throw new Error('Enter a whole number of sats greater than zero.');
       }
 
-      const endpoint = await nip57.getZapEndpoint(recipientMetadata);
-      if (!endpoint) {
+      const payUrl = resolveLnurlPayUrl(recipientMetadata.content);
+      if (!payUrl) {
         throw new Error('This person has not set up zaps on their Nostr profile.');
       }
-      if (!endpoint.startsWith('https://')) {
-        throw new Error('This person\'s zap endpoint is not secure.');
+
+      let params: LnurlPayParams | null = null;
+      try {
+        const response = await fetch(payUrl, { signal: AbortSignal.timeout(10_000) });
+        if (response.ok) params = parseLnurlPayParams(await response.json());
+      } catch {
+        params = null;
+      }
+      if (!params) {
+        throw new Error('This person\'s Lightning wallet does not support zaps.');
       }
 
+      const amountMsats = amountSats * 1000;
+      const zapComment = comment ?? '';
+      const limitError = checkZapAgainstLnurlLimits(params, amountMsats, zapComment);
+      if (limitError) throw new Error(limitError);
+
       const relays = config.relayMetadata.relays.filter((relay) => relay.read).map((relay) => relay.url);
-      const amountMsats = Math.round(amountSats * 1000);
 
       const template = nip57.makeZapRequest({
         event: target,
         amount: amountMsats,
-        comment: comment ?? '',
+        comment: zapComment,
         relays: relays.length > 0 ? relays : config.relayMetadata.relays.map((relay) => relay.url),
       });
       const signed = await user.signer.signEvent(template);
+      // The exact string sent is what the invoice's description hash must commit to.
+      const zapRequestJson = JSON.stringify(signed);
 
-      const url = new URL(endpoint);
+      const url = new URL(params.callback);
       url.searchParams.set('amount', String(amountMsats));
-      url.searchParams.set('nostr', JSON.stringify(signed));
+      url.searchParams.set('nostr', zapRequestJson);
 
       const response = await fetch(url.toString(), { signal: AbortSignal.timeout(10_000) });
       const body: { status?: string; reason?: string; pr?: string } = await response.json().catch(() => ({}));
 
-      if (!response.ok || body.status === 'ERROR' || !body.pr) {
+      if (!response.ok || body.status === 'ERROR' || typeof body.pr !== 'string' || !body.pr) {
         throw new Error(body.reason || 'The recipient\'s Lightning wallet declined the request.');
       }
 
-      return { invoice: body.pr, amountSats };
+      const paymentHash = verifyZapInvoice(body.pr, amountMsats, zapRequestJson);
+
+      return { invoice: body.pr, amountSats, paymentHash };
     },
   });
 }

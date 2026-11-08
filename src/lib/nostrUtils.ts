@@ -250,6 +250,124 @@ export function buildReplyTree(rootId: string, events: NostrEvent[]): ReplyNode[
   return roots;
 }
 
+/**
+ * The id of the thread an event belongs to: its NIP-10 root reference, or the
+ * event itself when it is a thread root. Opening a reply must not make that
+ * reply the root of new answers.
+ */
+export function threadRootId(event: NostrEvent): string {
+  return rootReference(event) ?? event.id;
+}
+
+/** The pubkey a NIP-10 `e` tag carries for the referenced event, if any. */
+function referencedPubkey(event: NostrEvent, id: string): string | undefined {
+  const tag = event.tags.find(([name, value, , , pubkey]) => name === 'e' && value === id && pubkey);
+  return tag?.[4];
+}
+
+/**
+ * NIP-10 tags for a kind-1 reply to `parent`.
+ *
+ * - The `root` marker always points at the real thread root, even when
+ *   `parent` is itself a reply; the `reply` marker is added only when the
+ *   parent is not the root.
+ * - `p` tags carry the parent's author plus all of the parent's `p` tags,
+ *   deduplicated and without `ownPubkey` (no need to notify yourself).
+ *
+ * `root` is the loaded root event when available, so its author can be added
+ * to the root `e` tag; otherwise the pubkey falls back to the parent's tags.
+ */
+export function buildReplyTags(
+  parent: NostrEvent,
+  ownPubkey?: string,
+  root?: Pick<NostrEvent, 'id' | 'pubkey'>,
+): string[][] {
+  const rootId = threadRootId(parent);
+  const isTopLevel = rootId === parent.id;
+  const rootPubkey = isTopLevel
+    ? parent.pubkey
+    : root?.id === rootId
+      ? root.pubkey
+      : referencedPubkey(parent, rootId);
+
+  const tags: string[][] = [['e', rootId, '', 'root', ...(rootPubkey ? [rootPubkey] : [])]];
+  if (!isTopLevel) tags.push(['e', parent.id, '', 'reply', parent.pubkey]);
+
+  const pubkeys = new Set<string>();
+  for (const pubkey of [parent.pubkey, ...tagValues(parent, 'p')]) {
+    if (pubkey !== ownPubkey) pubkeys.add(pubkey);
+  }
+  for (const pubkey of pubkeys) tags.push(['p', pubkey]);
+
+  return tags;
+}
+
+/**
+ * The ancestors of `opened`, root first, walking NIP-10 parent references
+ * through `events`. When a link is missing (not fetched yet, or broken) the
+ * walk stops: `missing` names the first unknown parent so it can be fetched,
+ * and `gap` is true when the chain no longer connects to the root. The root
+ * is still listed first whenever it is loaded, so the conversation's start is
+ * always visible.
+ */
+export function ancestorChain(
+  opened: NostrEvent,
+  events: Iterable<NostrEvent>,
+): { root?: NostrEvent; chain: NostrEvent[]; gap: boolean; missing?: string } {
+  const rootId = threadRootId(opened);
+  if (rootId === opened.id) return { chain: [], gap: false };
+
+  const byId = new Map<string, NostrEvent>();
+  for (const event of events) byId.set(event.id, event);
+  const root = byId.get(rootId);
+
+  const chain: NostrEvent[] = [];
+  const seen = new Set<string>([opened.id]);
+  let cursor = replyReference(opened);
+  while (cursor && cursor !== rootId && !seen.has(cursor)) {
+    seen.add(cursor);
+    const parent = byId.get(cursor);
+    if (!parent) return { root, chain: chain.reverse(), gap: true, missing: cursor };
+    chain.push(parent);
+    cursor = replyReference(parent);
+  }
+
+  return {
+    root,
+    chain: chain.reverse(),
+    gap: cursor !== rootId,
+    missing: cursor === rootId && !root ? rootId : undefined,
+  };
+}
+
+/**
+ * The replies to show beneath `openedId` in a thread rooted at `rootId`:
+ * the opened note's own subtree. When the opened note is the root, replies
+ * whose parent could not be resolved are returned separately as `orphaned`.
+ */
+export function threadReplies(
+  rootId: string,
+  openedId: string,
+  events: NostrEvent[],
+): { replies: ReplyNode[]; orphaned: ReplyNode[] } {
+  const tree = buildReplyTree(rootId, events);
+  if (rootId === openedId) {
+    return {
+      replies: tree.filter((node) => !node.misplaced),
+      orphaned: tree.filter((node) => node.misplaced),
+    };
+  }
+
+  const stack = [...tree];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) break;
+    if (node.event.id === openedId) return { replies: node.children, orphaned: [] };
+    stack.push(...node.children);
+  }
+  return { replies: [], orphaned: [] };
+}
+
 /** NIP-40: ignore expired events, including those still served by relays. */
 export function isExpired(event: Pick<NostrEvent, 'tags'>): boolean {
   const now = Math.floor(Date.now() / 1000);

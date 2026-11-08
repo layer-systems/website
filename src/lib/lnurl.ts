@@ -1,7 +1,7 @@
 import type { NostrMetadata } from '@nostrify/nostrify';
-import { bech32Decode, wordsToBytes } from './bolt11';
+import { bech32 } from '@scure/base';
 
-const HEX_PUBKEY = /^[0-9a-f]{64}$/;
+export const HEX_PUBKEY = /^[0-9a-f]{64}$/;
 const LUD16_NAME = /^[a-z0-9._+-]+$/i;
 const HOSTNAME = /^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9-]{2,63}$/i;
 
@@ -23,11 +23,13 @@ export function lnurlPayUrl(metadata: Pick<NostrMetadata, 'lud06' | 'lud16'> | u
 
   const lud06 = metadata?.lud06?.trim();
   if (lud06) {
-    const decoded = bech32Decode(lud06);
-    if (!decoded || decoded.hrp !== 'lnurl') return null;
     try {
-      const url = new URL(new TextDecoder().decode(wordsToBytes(decoded.words)));
-      return url.protocol === 'https:' ? url.href : null;
+      // `false` lifts BIP-173's 90-character limit; LNURLs are routinely longer.
+      // Mixed case and bad checksums throw.
+      const { prefix, words } = bech32.decode(lud06 as `${string}1${string}`, false);
+      if (prefix !== 'lnurl') return null;
+      const url = new URL(new TextDecoder('utf-8', { fatal: true }).decode(bech32.fromWords(words)));
+      return url.protocol === 'https:' && !url.username && !url.password ? url.href : null;
     } catch {
       return null;
     }

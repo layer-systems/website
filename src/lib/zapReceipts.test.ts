@@ -21,23 +21,23 @@ describe('decodeBolt11', () => {
   it('decodes the amount and description hash of a real-shaped invoice', () => {
     const invoice = makeBolt11({ amountMsats: 21_000, description: 'hello' });
     const decoded = decodeBolt11(invoice);
-    expect(decoded?.amountMsats).toBe(21_000n);
-    expect(decoded?.descriptionHash).toBe(sha256Hex('hello'));
+    expect(decoded.amountMsats).toBe(21_000n);
+    expect(decoded.descriptionHash).toBe(sha256Hex('hello'));
   });
 
   it('rejects invoices with a broken checksum or non-lightning prefix', () => {
     const invoice = makeBolt11({ amountMsats: 21_000, description: 'hello' });
     const flipped = invoice.slice(0, -1) + (invoice.endsWith('q') ? 'p' : 'q');
-    expect(decodeBolt11(flipped)).toBeNull();
-    expect(decodeBolt11(`lnbc210n1${'p'.repeat(45)}`)).toBeNull();
-    expect(decodeBolt11(bech32Encode('npub', new Array(120).fill(0)))).toBeNull();
+    expect(() => decodeBolt11(flipped)).toThrow();
+    expect(() => decodeBolt11(`lnbc210n1${'p'.repeat(45)}`)).toThrow();
+    expect(() => decodeBolt11(bech32Encode('npub', new Array(120).fill(0)))).toThrow();
   });
 
   it('decodes the NIP-57 example receipt invoice (10u = 1000 sats)', () => {
     const invoice = 'lnbc10u1p3unwfusp5t9r3yymhpfqculx78u027lxspgxcr2n2987mx2j55nnfs95nxnzqpp5jmrh92pfld78spqs78v9euf2385t83uvpwk9ldrlvf6ch7tpascqhp5zvkrmemgth3tufcvflmzjzfvjt023nazlhljz2n9hattj4f8jq8qxqyjw5qcqpjrzjqtc4fc44feggv7065fqe5m4ytjarg3repr5j9el35xhmtfexc42yczarjuqqfzqqqqqqqqlgqqqqqqgq9q9qxpqysgq079nkq507a5tw7xgttmj4u990j7wfggtrasah5gd4ywfr2pjcn29383tphp4t48gquelz9z78p4cq7ml3nrrphw5w6eckhjwmhezhnqpy6gyf0';
     const decoded = decodeBolt11(invoice);
-    expect(decoded?.amountMsats).toBe(1_000_000n);
-    expect(decoded?.descriptionHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(decoded.amountMsats).toBe(1_000_000n);
+    expect(decoded.descriptionHash).toMatch(/^[0-9a-f]{64}$/);
   });
 });
 
@@ -57,6 +57,10 @@ describe('lnurlPayUrl', () => {
     const encode = (url: string) => bech32Encode('lnurl', bytesToWords(new TextEncoder().encode(url)));
     expect(lnurlPayUrl({ lud06: encode('https://example.com/lnurlp/alice') })).toBe('https://example.com/lnurlp/alice');
     expect(lnurlPayUrl({ lud06: encode('http://example.com/lnurlp/alice') })).toBeNull();
+    // LNURLs are commonly shared uppercase (QR alphanumeric mode).
+    expect(lnurlPayUrl({ lud06: encode('https://example.com/lnurlp/alice').toUpperCase() })).toBe('https://example.com/lnurlp/alice');
+    expect(lnurlPayUrl({ lud06: bech32Encode('npub', bytesToWords(new TextEncoder().encode('https://example.com/x'))) })).toBeNull();
+    expect(lnurlPayUrl({ lud06: encode('https://user:pass@example.com/lnurlp/alice') })).toBeNull();
   });
 });
 

@@ -9,6 +9,7 @@ import { QRCodeCanvas } from '@/components/ui/qrcode';
 import { useToast } from '@/hooks/useToast';
 import { useCreateZapInvoice, useZapReceipts, hasValidReceiptForInvoice, formatSats } from '@/hooks/useZaps';
 import { useNwcConnection, usePayWithNwc } from '@/hooks/useNwc';
+import { preimageMatchesPaymentHash } from '@/lib/zapInvoice';
 import { cn } from '@/lib/utils';
 
 const PRESET_AMOUNTS = [21, 100, 500, 1_000, 5_000, 21_000];
@@ -50,7 +51,7 @@ export function ZapDialog({ open, onClose, target, recipientMetadata, recipientM
   const effectiveStage: Stage = manualPaymentConfirmed ? 'paid' : stage;
 
   const resolvedAmount = customAmount.trim() ? Number(customAmount) : amount;
-  const canSubmit = Boolean(recipientMetadata) && Number.isFinite(resolvedAmount) && (resolvedAmount ?? 0) > 0;
+  const canSubmit = Boolean(recipientMetadata) && Number.isSafeInteger(resolvedAmount) && (resolvedAmount ?? 0) > 0;
 
   const handleSubmit = async () => {
     if (!recipientMetadata || !resolvedAmount || resolvedAmount <= 0) return;
@@ -69,12 +70,21 @@ export function ZapDialog({ open, onClose, target, recipientMetadata, recipientM
 
       if (connection) {
         setStage('paying');
+        let preimage: string;
         try {
-          await payWithNwc.mutateAsync({ connection, invoice: result.invoice });
-          setStage('paid');
+          preimage = await payWithNwc.mutateAsync({ connection, invoice: result.invoice });
         } catch (error) {
           setErrorMessage(error instanceof Error ? error.message : 'Your wallet did not complete the payment.');
           setStage('manual');
+          return;
+        }
+        if (preimageMatchesPaymentHash(preimage, result.paymentHash)) {
+          setStage('paid');
+        } else {
+          // The wallet claims success but its proof doesn't match this
+          // invoice. Don't offer the invoice again — that could double-pay.
+          setErrorMessage('Your wallet reported a payment, but its proof did not match this invoice. Check your wallet before trying again.');
+          setStage('failed');
         }
       } else {
         setStage('manual');
