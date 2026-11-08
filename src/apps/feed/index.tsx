@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useNostr } from '@nostrify/react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileText, Loader2 } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { AppBody, AppLayout, AppToolbar, EmptyState } from '@/components/os/AppChrome';
@@ -13,6 +13,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { type FeedScopeState, useFeedScope } from '@/hooks/useFeedScope';
 import { useMutedPubkeys } from '@/hooks/useMuteList';
 import { useWindowManager } from '@/os/useWindowManager';
+import { mergeEvents, useLiveEvents } from '@/hooks/useLiveEvents';
 import { isReply } from '@/lib/nostrUtils';
 import type { AppProps } from '@/os/types';
 
@@ -69,10 +70,21 @@ export default function FeedApp({ setTitle }: AppProps) {
   }, [label, setTitle]);
 
   const query = useFeed(feedScope);
+  const client = useQueryClient();
+  const live = useLiveEvents(
+    [authors ? { kinds: [1], authors } : { kinds: [1] }],
+    authors === null || (authors?.length ?? 0) > 0,
+  );
   const mutedPubkeys = useMutedPubkeys();
   const visibleNotes = useMemo(
     () => (query.data ?? []).filter((event) => !mutedPubkeys.includes(event.pubkey)),
     [query.data, mutedPubkeys],
+  );
+
+  const knownIds = new Set((query.data ?? []).map((event) => event.id));
+  const newestVisibleAt = query.data?.[0]?.created_at ?? 0;
+  const pending = live.filter((event) =>
+    event.created_at >= newestVisibleAt && isRenderableNote(event) && !knownIds.has(event.id) && !mutedPubkeys.includes(event.pubkey),
   );
 
   // A disabled query (authors still resolving) is pending, not loading.
@@ -108,6 +120,18 @@ export default function FeedApp({ setTitle }: AppProps) {
       </AppToolbar>
 
       <AppBody>
+        {query.isSuccess && pending.length > 0 && (
+          <Button
+            variant="secondary"
+            className="m-4"
+            onClick={() => client.setQueryData<NostrEvent[]>(
+              ['nostr', 'feed', ...feedScope.queryKey],
+              (previous = []) => mergeEvents([...pending, ...previous], PAGE_SIZE + 100),
+            )}
+          >
+            Show {pending.length} new {pending.length === 1 ? 'post' : 'posts'}
+          </Button>
+        )}
         {user && <Composer onPublished={() => query.refetch()} />}
 
         {hasNoFollows ? (

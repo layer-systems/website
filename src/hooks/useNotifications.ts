@@ -5,6 +5,7 @@ import { isReply } from '@/lib/nostrUtils';
 import { notificationParentId } from '@/lib/notifications';
 import { useCurrentUser } from './useCurrentUser';
 import { useLocalStorage } from './useLocalStorage';
+import { mergeEvents, useLiveEvents } from './useLiveEvents';
 
 /**
  * Nostr event kinds that commonly represent activity directed at a person.
@@ -49,7 +50,11 @@ export function useNotifications() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
 
-  return useQuery<Notification[]>({
+  const live = useLiveEvents(
+    [{ kinds: [...NOTIFICATION_KINDS], '#p': [user?.pubkey ?? ''] }],
+    Boolean(user),
+  );
+  const query = useQuery<Notification[]>({
     queryKey: ['nostr', 'notifications', user?.pubkey ?? ''],
     enabled: Boolean(user),
     queryFn: async ({ signal }) => {
@@ -80,6 +85,16 @@ export function useNotifications() {
     },
     staleTime: 30_000,
   });
+
+  return {
+    ...query,
+    data: query.data || live.length > 0
+      ? mergeEvents([
+          ...live.filter((event) => event.pubkey !== user?.pubkey),
+          ...(query.data ?? []).map(({ event }) => event),
+        ], 100).map((event) => ({ event, kind: notificationKind(event) }))
+      : undefined,
+  };
 }
 
 /** Persists the most recent timestamp the account has explicitly acknowledged. */
