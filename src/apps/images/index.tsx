@@ -6,7 +6,7 @@ import type { NostrEvent } from '@nostrify/nostrify';
 import { AppBody, AppLayout, AppToolbar, EmptyState } from '@/components/os/AppChrome';
 import { AuthorLine } from '@/components/nostr/AuthorLine';
 import { FeedScopeSelect } from '@/components/nostr/FeedScopeSelect';
-import { Composer } from '@/apps/feed/Composer';
+import { EventComments } from '@/components/nostr/EventComments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -57,33 +57,17 @@ function usePicture(id: string | undefined) {
   });
 }
 
-function useReplies(id: string | undefined) {
-  const { nostr } = useNostr();
-  return useQuery<NostrEvent[]>({
-    queryKey: ['nostr', 'image-replies', id ?? ''],
-    enabled: Boolean(id),
-    queryFn: async ({ signal }) => {
-      const events = await nostr.query([{ kinds: [1], '#e': [id!], limit: 100 }], {
-        signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]),
-      });
-      return events.filter((event) => event.content.trim()).sort((a, b) => a.created_at - b.created_at);
-    },
-    staleTime: 30_000,
-  });
-}
-
 export default function ImagesApp({ params, setParams, setTitle }: AppProps) {
   const [search, setSearch] = useState('');
   const [tag, setTag] = useState('');
   const selected = usePicture(params.id);
-  const replies = useReplies(params.id);
 
   const feedScope = useFeedScope('images:scope');
 
   useEffect(() => { setTitle(params.id ? 'Image' : `Images — ${feedScope.label}`); }, [params.id, feedScope.label, setTitle]);
 
   if (params.id) {
-    return <PictureDetail event={selected.data} loading={selected.isLoading} replies={replies.data ?? []} onBack={() => setParams({})} onRefresh={() => replies.refetch()} />;
+    return <PictureDetail event={selected.data} loading={selected.isLoading} onBack={() => setParams({})} />;
   }
 
   return <PictureFeed
@@ -149,20 +133,17 @@ function PictureTile({ event, onOpen }: { event: NostrEvent; onOpen: (id: string
   </button>;
 }
 
-function PictureDetail({ event, loading, replies, onBack, onRefresh }: { event: NostrEvent | null | undefined; loading: boolean; replies: NostrEvent[]; onBack: () => void; onRefresh: () => void }) {
-  const { user } = useCurrentUser();
+function PictureDetail({ event, loading, onBack }: { event: NostrEvent | null | undefined; loading: boolean; onBack: () => void }) {
   if (loading) return <AppLayout><AppToolbar><Button variant="ghost" size="sm" onClick={onBack}>All images</Button></AppToolbar><AppBody><PictureSkeleton /></AppBody></AppLayout>;
   if (!event) return <AppLayout><AppToolbar><Button variant="ghost" size="sm" onClick={onBack}>All images</Button></AppToolbar><EmptyState title="Picture not found" hint="None of your relays returned this picture post." /></AppLayout>;
   const images = pictureImages(event);
-  const replyTags = [['e', event.id, '', 'root'], ['p', event.pubkey]];
   return <AppLayout><AppToolbar><Button variant="ghost" size="sm" onClick={onBack}>All images</Button></AppToolbar><AppBody>
     <article className="mx-auto max-w-3xl">
       <div className="grid gap-2">{images.map((image, index) => <img key={index} src={image.url} alt={image.alt} className="max-h-[65vh] w-full bg-muted object-contain" />)}</div>
       <div className="space-y-3 p-4"><AuthorLine pubkey={event.pubkey} createdAt={event.created_at} /><p className="whitespace-pre-wrap text-sm">{event.content}</p><p className="text-xs text-muted-foreground">{absoluteTime(event.created_at)}</p>
         {pictureTags(event).length > 0 && <div className="flex flex-wrap gap-1">{pictureTags(event).map((tag) => <span key={tag} className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">#{tag}</span>)}</div>}
       </div>
-      {user && <Composer replyTags={replyTags} placeholder="Write a reply…" onPublished={onRefresh} />}
-      {replies.length ? <div>{replies.map((reply) => <div key={reply.id} className="border-t border-border px-4 py-3"><AuthorLine pubkey={reply.pubkey} createdAt={reply.created_at} /><p className="mt-2 pl-9 text-sm whitespace-pre-wrap">{reply.content}</p></div>)}</div> : <EmptyState title="No replies yet" hint={user ? 'Be the first to reply.' : 'Sign in to reply.'} />}
+      <EventComments event={event} />
     </article>
   </AppBody></AppLayout>;
 }
