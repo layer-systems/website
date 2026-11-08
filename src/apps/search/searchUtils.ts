@@ -10,6 +10,13 @@ export type SearchInput =
 const NIP05_RE = /^(?:[a-z0-9._-]+)@(?:[a-z0-9-]+(?:\.[a-z0-9-]+)+)$/i;
 const HASHTAG_RE = /^#([\p{L}\p{N}_-]+)$/u;
 
+/** Require every query term, ignoring case and whitespace, even if a relay ignores search. */
+export function noteMatches(content: string, query: string): boolean {
+  const terms = query.trim().toLowerCase().split(/\s+/u).filter(Boolean);
+  const text = content.toLowerCase();
+  return terms.length > 0 && terms.every((term) => text.includes(term));
+}
+
 export function parseSearchInput(input: string): SearchInput {
   const value = input.trim();
   if (!value) return { type: 'empty' };
