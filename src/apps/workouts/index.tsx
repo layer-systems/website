@@ -76,7 +76,9 @@ export default function WorkoutsApp({ setTitle }: AppProps) {
         <Input value={topic} onChange={(event) => setTopic(event.target.value.replace(/^#/, ''))} aria-label="Filter workouts by topic" placeholder="Filter #topic" className="h-8 max-w-52 text-sm" />
         {workouts.isFetching && <Loader2 className="ml-auto size-4 animate-spin text-muted-foreground" aria-label="Loading workouts" />}
       </div>
-      {effectiveScope === 'following' && follows.isLoading ? <WorkoutSkeleton /> : effectiveScope === 'following' && !follows.data?.length ? (
+      {effectiveScope === 'following' && follows.isLoading ? <WorkoutSkeleton /> : effectiveScope === 'following' && follows.isError && !follows.data ? (
+        <EmptyState title="Couldn’t load your follow list" hint="Check your relay connections and try again." action={<Button size="sm" onClick={() => void follows.refetch()} disabled={follows.isFetching}><RotateCw className="size-3.5" aria-hidden /> Retry</Button>} />
+      ) : effectiveScope === 'following' && !follows.data?.length ? (
         <EmptyState title="Your follow list is empty" hint="Follow a few Nostr accounts, then their workouts will appear here." />
       ) : workouts.isLoading ? <WorkoutSkeleton /> : workouts.isError ? (
         <EmptyState title="Couldn’t load workouts" hint="Your relays could not complete this request." action={<Button size="sm" onClick={() => workouts.refetch()}><RotateCw className="size-3.5" aria-hidden /> Try again</Button>} />

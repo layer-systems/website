@@ -107,8 +107,9 @@ export function useBlockPubkey() {
       const key = ['nostr', 'follow-event', user.pubkey];
       const cached = queryClient.getQueryData<NostrEvent>(key);
       const fetched = newestEvent(events.filter((event) => event.kind === 3 && event.pubkey === user.pubkey));
-      const knownFollows = queryClient.getQueryData<string[]>(['nostr', 'follows', user.pubkey]);
-      if (!fetched && (cached || knownFollows?.length)) {
+      // The follows query key also carries the relay config, so match by prefix.
+      const knownFollows = queryClient.getQueriesData<string[]>({ queryKey: ['nostr', 'follows', user.pubkey] });
+      if (!fetched && (cached || knownFollows.some(([, follows]) => follows?.length))) {
         throw new Error('Your existing follow list could not be loaded. Please retry.');
       }
       const followEvent = newestEvent([fetched, cached].filter((event): event is NostrEvent => Boolean(event)));

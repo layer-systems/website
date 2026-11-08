@@ -31,7 +31,7 @@ it('blocks using the newer cached follow event without losing other follows or m
 });
 it('refuses an empty fetch when a cached follow list exists', async () => {
   const { client, result } = setup([]);
-  client.setQueryData(['nostr', 'follows', 'owner'], ['blocked', 'new-follow']);
+  client.setQueryData(['nostr', 'follows', 'owner', [{ url: 'wss://relay.example/', read: true, write: true }]], ['blocked', 'new-follow']);
   await act(async () => { await expect(result.current.mutateAsync('blocked')).rejects.toThrow('could not be loaded'); });
   expect(mocks.publish).not.toHaveBeenCalled();
 });

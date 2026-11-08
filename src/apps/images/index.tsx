@@ -111,7 +111,9 @@ function PictureFeed({ feedScope, tag, search, onTagChange, onSearchChange, onOp
           {tag && <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => onTagChange('')}><X className="size-3" aria-hidden /> Clear filter</Button>}
           {query.isFetching && <Loader2 className="ml-auto size-3.5 animate-spin text-muted-foreground" aria-label="Loading pictures" />}
         </div>
-        {hasNoFollows ? (
+        {feedScope.followsError ? (
+          <EmptyState title="Couldn't load your follow list" hint="Check your relay connections and try again." action={<Button size="sm" onClick={() => void feedScope.refetchFollows()} disabled={feedScope.followsFetching}>Retry</Button>} />
+        ) : hasNoFollows ? (
           <EmptyState title="You are not following anyone yet" hint="Switch to Global to discover pictures, then follow people from their profile." action={<Button size="sm" onClick={() => setScope('global')}>Browse Global</Button>} />
         ) : query.isPending ? <PictureSkeleton /> : query.isError ? (
           <EmptyState title="Couldn’t load pictures" hint="Check your relays and try again." action={<Button size="sm" onClick={() => query.refetch()}>Try again</Button>} />
