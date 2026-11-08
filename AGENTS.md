@@ -347,3 +347,12 @@ For font installation, color-scheme changes, light/dark theming, or the `isolate
 Use `git status` / `git diff` to review changes and `git log` to learn project conventions. If you make a mistake, `git checkout` restores files.
 
 **Always commit when you are finished.** Non-negotiable — every completed task ends with a commit. Don't wait for the user to ask.
+
+### Pull Requests
+
+Every pull request description must include the following sections, in this order:
+
+- **Description**
+- **Why**
+- **What**
+- **Risk**
