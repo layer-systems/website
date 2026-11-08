@@ -2,6 +2,8 @@ import { useNostr } from "@nostrify/react";
 import { useMutation, type UseMutationResult } from "@tanstack/react-query";
 
 import { useCurrentUser } from "./useCurrentUser";
+import { useAppContext } from "./useAppContext";
+import { clientTags } from "@/lib/clientTags";
 import { getPow } from "@/lib/pow";
 import { minePowInWorker } from "@/lib/powMiner";
 
@@ -26,16 +28,12 @@ export function useNostrPublish(): UseMutationResult<
 > {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
+  const { config } = useAppContext();
 
   return useMutation({
     mutationFn: async (t: EventTemplate) => {
       if (user) {
-        const tags = t.tags ?? [];
-
-        // Add the client tag if it doesn't exist
-        if (location.protocol === "https:" && !tags.some(([name]) => name === "client")) {
-          tags.push(["client", location.hostname]);
-        }
+        const tags = clientTags(t.kind, t.tags ?? [], config.publishClientTag !== false);
 
         let template = {
           kind: t.kind,

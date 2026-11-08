@@ -29,6 +29,7 @@ const BlossomServerMetadataSchema = z.object({
 
 // Zod schema for AppConfig validation
 const AppConfigSchema = z.object({
+  publishClientTag: z.boolean().optional(),
   theme: z.enum(['dark', 'light', 'system']),
   relayMetadata: RelayMetadataSchema,
   blossomServerMetadata: BlossomServerMetadataSchema,

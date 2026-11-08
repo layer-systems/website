@@ -18,6 +18,8 @@ export interface BlossomServerMetadata {
 }
 
 export interface AppConfig {
+  /** Whether public content identifies this client. Defaults to true. */
+  publishClientTag?: boolean;
   /** Current theme */
   theme: Theme;
   /** NIP-65 relay list metadata */
