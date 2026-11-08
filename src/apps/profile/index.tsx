@@ -1,3 +1,4 @@
+import { EditProfileDialog } from '@/components/nostr/EditProfileDialog';
 import { useEffect } from 'react';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
@@ -73,6 +74,7 @@ export default function ProfileApp({ params, setTitle }: AppProps) {
       <AppToolbar>
         <span className="truncate text-[13px] font-medium">{name}</span>
         <div className="ml-auto flex items-center gap-1.5">
+          {pubkey === user?.pubkey && <EditProfileDialog />}
           <ListsButton pubkey={pubkey} />
           <ProfileRelaysDialog pubkey={pubkey} />
           <CopyNpubButton pubkey={pubkey} />
