@@ -1,3 +1,4 @@
+import { queryBeforeWrite } from '@/lib/replaceableLists';
 import { useNostr } from '@nostrify/react';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import type { NostrEvent, NostrFilter } from '@nostrify/nostrify';
@@ -95,8 +96,12 @@ async function fetchLatestEvent(
   kind: number,
   identifier: string | undefined,
   signal?: AbortSignal,
+  forWrite = false,
 ): Promise<NostrEvent | undefined> {
-  const events = await nostr.query([listFilter(pubkey, kind, identifier)], { signal: timeout(signal) });
+  const filters = [listFilter(pubkey, kind, identifier)];
+  const events = forWrite
+    ? await queryBeforeWrite(nostr, filters, timeout(signal))
+    : await nostr.query(filters, { signal: timeout(signal) });
   return newestPerList(
     events.filter((event) => event.kind === kind && eventIdentifier(event) === (isSetKind(kind) ? (identifier ?? '') : undefined)),
     pubkey,
@@ -228,14 +233,9 @@ export interface ListMutationInput {
   create?: boolean;
 }
 
-interface ListMutationContext {
-  snapshots: [readonly unknown[], unknown][];
-}
-
 /**
- * Edits one of the signed-in user's lists. The edit is shown immediately
- * (and rolled back if publishing fails), but what gets published is the edit
- * replayed on a fresh copy of the list fetched right before signing: lists
+ * Edits one of the signed-in user's lists. What gets published is the edit
+ * replayed on the newest known copy of the list fetched right before signing: lists
  * are replaced whole, so writing a stale copy would silently drop anything
  * changed from another client in the meantime.
  *
@@ -248,23 +248,8 @@ export function useNip51ListMutation() {
   const publish = useNostrPublish();
   const queryClient = useQueryClient();
 
-  return useMutation<Nip51List, Error, ListMutationInput, ListMutationContext>({
-    onMutate: async ({ kind, identifier, ops }) => {
-      if (!user) return { snapshots: [] };
-      const key = nip51ListKey(user.pubkey, kind, identifier, true);
-      await queryClient.cancelQueries({ queryKey: key });
-      const snapshots: [readonly unknown[], unknown][] = [
-        key,
-        nip51SetsKey(user.pubkey, kind, true),
-        nip51OverviewKey(user.pubkey, true),
-      ].map((snapshotKey) => [snapshotKey, queryClient.getQueryData(snapshotKey)]);
-
-      const cached = queryClient.getQueryData<Nip51List>(key);
-      if (cached && cached.privateStatus !== 'locked') {
-        writeListToCache(queryClient, ops.reduce(applyListOperation, cached), true);
-      }
-      return { snapshots };
-    },
+  return useMutation<Nip51List, Error, ListMutationInput>({
+    scope: { id: `nip51-edit:${user?.pubkey ?? "anonymous"}` },
     mutationFn: async ({ kind, identifier, ops, create }) => {
       if (!user) throw new Error('Sign in to edit your lists.');
       const info = listKindInfo(kind);
@@ -276,9 +261,20 @@ export function useNip51ListMutation() {
         }
       }
 
-      const latestEvent = await fetchLatestEvent(nostr, user.pubkey, kind, identifier);
-      const latest = latestEvent ? await parseWithDecryption(latestEvent, user) : emptyList(kind, user.pubkey, identifier);
-      if (create && latestEvent && !isDeletedPlaceholder(latest)) {
+      await queryClient.cancelQueries({ queryKey: ['nostr', 'nip51'] });
+      const latestEvent = await fetchLatestEvent(nostr, user.pubkey, kind, identifier, undefined, true);
+      const candidates = [
+        queryClient.getQueryData<Nip51List>(nip51ListKey(user.pubkey, kind, identifier, true)),
+        ...(queryClient.getQueryData<Nip51List[]>(nip51SetsKey(user.pubkey, kind, true)) ?? []),
+        ...(queryClient.getQueryData<Nip51List[]>(nip51OverviewKey(user.pubkey, true)) ?? []),
+      ].filter((list): list is Nip51List => Boolean(list && list.pubkey === user.pubkey && list.kind === kind && list.identifier === (isSetKind(kind) ? identifier ?? '' : undefined)));
+      const cached = candidates.sort((a, b) => b.createdAt - a.createdAt)[0];
+      if (!latestEvent && cached && (cached.eventId || cached.createdAt > 0)) {
+        throw new Error('Your existing list could not be loaded. Please retry before editing it.');
+      }
+      const fetched = latestEvent ? await parseWithDecryption(latestEvent, user) : emptyList(kind, user.pubkey, identifier);
+      const latest = cached && cached.createdAt > fetched.createdAt ? cached : fetched;
+      if (create && (latest.eventId || latest.createdAt > 0) && !isDeletedPlaceholder(latest)) {
         throw new Error('You already have a list with this identifier. Pick another one.');
       }
       if (latest.privateStatus === 'locked') {
@@ -294,13 +290,13 @@ export function useNip51ListMutation() {
       // Reuse the existing ciphertext when the private items didn't change,
       // unless it's legacy NIP-04, which is upgraded on every save.
       const content =
-        latestEvent && !privateChanged && !latest.legacyEncryption
-          ? latestEvent.content
+        latest.sourceContent !== undefined && !privateChanged && !latest.legacyEncryption
+          ? latest.sourceContent
           : await encryptPrivateItems(user.signer, user.pubkey, next.privateItems);
 
       const template = listEventTemplate(next, content);
       // A replacement must be strictly newer than what relays hold, even if clocks disagree.
-      const createdAt = Math.max(Math.floor(Date.now() / 1000), (latestEvent?.created_at ?? 0) + 1);
+      const createdAt = Math.max(Math.floor(Date.now() / 1000), latest.createdAt + 1);
       const event = await publish.mutateAsync({ ...template, created_at: createdAt });
 
       return {
@@ -309,10 +305,8 @@ export function useNip51ListMutation() {
         legacyEncryption: false,
         createdAt: event.created_at,
         eventId: event.id,
+        sourceContent: event.content,
       };
-    },
-    onError: (_error, _input, context) => {
-      for (const [key, data] of context?.snapshots ?? []) queryClient.setQueryData(key, data);
     },
     // Written straight into the cache rather than invalidated: right after
     // publishing, the pool's read relay may still serve the previous version,

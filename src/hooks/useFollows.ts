@@ -1,10 +1,14 @@
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
+import type { NostrEvent } from '@nostrify/nostrify';
+import { useQueryClient } from '@tanstack/react-query';
+import { newestEvent } from '@/lib/replaceableLists';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 /** The pubkeys in a user's kind 3 contact list. */
 export function useFollows(pubkey: string | undefined) {
   const { nostr } = useNostr();
+  const queryClient = useQueryClient();
 
   return useQuery<string[]>({
     queryKey: ['nostr', 'follows', pubkey ?? ''],
@@ -17,9 +21,12 @@ export function useFollows(pubkey: string | undefined) {
 
       // The follow list is replaceable: retain only the newest event authored
       // by this account, rather than trusting relay response ordering.
-      const event = events
-        .filter((candidate) => candidate.pubkey === pubkey && candidate.kind === 3)
-        .sort((a, b) => b.created_at - a.created_at)[0];
+      const key = ['nostr', 'follow-event', pubkey];
+      const event = newestEvent([
+        ...events,
+        ...[queryClient.getQueryData<NostrEvent>(key)].filter((value): value is NostrEvent => Boolean(value)),
+      ].filter((candidate) => candidate.pubkey === pubkey && candidate.kind === 3));
+      if (event) queryClient.setQueryData(key, event);
 
       if (!event) return [];
 
