@@ -34,24 +34,28 @@ function ProfileForm({ pubkey, onSaved }: { pubkey: string; onSaved: () => void 
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   async function readLatest() {
-    const urls = [...new Set(config.relayMetadata.relays.filter(r => r.read || r.write).map(r => r.url))];
-    if (!urls.length) throw new Error('Configure a relay before editing your profile.');
+    const urls = [...new Set(config.relayMetadata.relays.filter(r => r.read).map(r => r.url))];
+    if (!urls.length) throw new Error('Enable a read relay in Relays before editing your profile.');
     const results = await Promise.all(urls.map(async url => {
+      try {
       const events: NostrEvent[] = [];
       for await (const msg of nostr.relay(url).req([{ kinds: [0], authors: [pubkey], limit: 1 }], { signal: AbortSignal.timeout(10000) })) {
         if (msg[0] === 'EVENT') events.push(msg[2]);
         if (msg[0] === 'EOSE') return events;
       }
-      throw new Error(`Could not finish reading ${url}. Profile was not saved.`);
+      throw new Error('Subscription closed before the relay finished answering.');
+      } catch (cause) {
+        throw new Error(`Could not read ${url}: ${cause instanceof Error ? cause.message : 'Connection failed'}. Check this relay in the Relays app, then retry. No profile changes were published.`, { cause });
+      }
     }));
     const latest = results.flat().sort((a, b) => b.created_at - a.created_at || a.id.localeCompare(b.id))[0];
     const parsed: unknown = latest ? JSON.parse(latest.content) : {};
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Existing profile metadata is invalid. Refusing to overwrite it.');
     return { metadata: parsed as Record<string, unknown>, event: latest };
   }
-  const profile = useQuery({ queryKey: ['profile-editor', pubkey], queryFn: readLatest, retry: false, staleTime: 0 });
+  const profile = useQuery({ queryKey: ['profile-editor', pubkey, config.relayMetadata.relays.filter(r => r.read).map(r => r.url)], queryFn: readLatest, retry: false, staleTime: 0 });
   if (profile.isPending) return <Skeleton className="h-64 w-full" />;
-  if (profile.isError) return <div role="alert">Unable to read your complete profile. <Button onClick={() => profile.refetch()}>Retry</Button></div>;
+  if (profile.isError) return <div role="alert"><p>Unable to read your complete profile.</p><p className="my-4 break-words text-sm text-muted-foreground">{profile.error.message}</p><Button onClick={() => profile.refetch()}>Retry</Button></div>;
   return <form className="space-y-4" onSubmit={async e => {
     e.preventDefault(); setError(''); setBusy(true);
     try {
