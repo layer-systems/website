@@ -44,7 +44,6 @@ export function useRelayList() {
       if (!user) return;
       try {
         const tags = relayListTags(next.relays);
-        if (location.protocol === 'https:') tags.push(['client', location.hostname]);
         const event = await user.signer.signEvent({
           kind: RELAY_LIST_KIND,
           content: '',

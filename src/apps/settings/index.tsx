@@ -43,6 +43,8 @@ export default function SettingsApp({ setTitle }: AppProps) {
         <div className="mx-auto max-w-xl space-y-8">
           <AccountSection />
           <Separator />
+          <PrivacySection />
+          <Separator />
           <ModerationSection />
           <Separator />
           <AppearanceSection />
@@ -398,6 +400,26 @@ function SessionSection() {
       >
         Close everything and forget the layout
       </Button>
+    </Section>
+  );
+}
+
+function PrivacySection() {
+  const { config, updateConfig } = useAppContext();
+  return (
+    <Section title="Privacy" description="Client attribution is public and reveals which app you use. This preference is saved in this browser.">
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-3">
+        <div className="space-y-0.5">
+          <Label htmlFor="publish-client-tag">Identify LAYER.systems on public posts</Label>
+          <p id="client-tag-description" className="text-xs text-muted-foreground">
+            Adds a client tag to notes, reposts, reactions, photos, and articles. Lists and private events are never tagged automatically.
+          </p>
+        </div>
+        <Switch id="publish-client-tag" aria-describedby="client-tag-description"
+          checked={config.publishClientTag !== false}
+          onCheckedChange={(checked) => updateConfig((current) => ({ ...current, publishClientTag: checked }))}
+        />
+      </div>
     </Section>
   );
 }
