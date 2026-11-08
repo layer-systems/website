@@ -23,9 +23,12 @@ type Feedback =
 export function AddRelayForm({
   onAdd,
   existing,
+  disabled = false,
 }: {
   onAdd: (url: string) => RelayListResult;
   existing: string[];
+  /** Adding is paused, e.g. until the published relay list is known. */
+  disabled?: boolean;
 }) {
   const id = useId();
   const [open, setOpen] = useState(true);
@@ -103,10 +106,10 @@ export function AddRelayForm({
               inputMode="url"
               aria-invalid={invalid || undefined}
               aria-describedby={`${id}-feedback`}
-              disabled={testing}
+              disabled={testing || disabled}
               autoFocus
             />
-            <Button type="submit" size="sm" className="h-8 shrink-0 gap-1.5" disabled={testing || !draft.trim()}>
+            <Button type="submit" size="sm" className="h-8 shrink-0 gap-1.5" disabled={testing || disabled || !draft.trim()}>
               {testing ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Plus className="size-4" aria-hidden />}
               {testing ? 'Testing…' : 'Add'}
             </Button>
@@ -138,6 +141,7 @@ export function AddRelayForm({
                   size="sm"
                   className="h-7 px-2 text-xs"
                   onClick={() => commit(feedback.url)}
+                  disabled={disabled}
                 >
                   Add anyway
                 </Button>
