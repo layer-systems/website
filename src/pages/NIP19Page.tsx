@@ -5,6 +5,7 @@ import NotFound from './NotFound';
 import { isCalendarEventKind } from '@/lib/calendarEvents';
 import { encodeRelayHints } from '@/lib/nostrUtils';
 import { LEGACY_GENERIC_KIND, SET_KINDS } from '@/lib/nip51';
+import { POLL_KIND } from '@/lib/polls';
 import type { AppParams } from '@/os/types';
 
 /** Attaches any relay hints the identifier carried to the app's parameters. */
@@ -47,7 +48,11 @@ export function NIP19Page() {
         boot = { appId: 'notes', params: { id: decoded.data } };
         break;
       case 'nevent':
-        boot = { appId: 'notes', params: withHints({ id: decoded.data.id }, decoded.data.relays) };
+        // A poll link names its kind, so it can open straight in Polls.
+        boot = {
+          appId: decoded.data.kind === POLL_KIND ? 'polls' : 'notes',
+          params: withHints({ id: decoded.data.id }, decoded.data.relays),
+        };
         break;
       case 'naddr':
         boot = {

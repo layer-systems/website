@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, Bike, Bookmark, BookOpen, CalendarDays, FileText, FolderOpen, Image, Info, Link2, ListChecks, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, Store, User } from 'lucide-react';
+import { Activity, BarChart3, Bike, Bookmark, BookOpen, CalendarDays, FileText, FolderOpen, Image, Info, Link2, ListChecks, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, Store, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -123,6 +123,16 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/calendar')),
     defaultSize: { width: 900, height: 700 },
     minSize: { width: 420, height: 420 },
+  },
+  {
+    id: 'polls',
+    title: 'Polls',
+    description: 'Create, vote on and follow public NIP-88 polls',
+    icon: BarChart3,
+    category: 'social',
+    component: lazy(() => import('@/apps/polls')),
+    defaultSize: { width: 640, height: 720 },
+    minSize: { width: 340, height: 360 },
   },
   {
     id: 'workouts',

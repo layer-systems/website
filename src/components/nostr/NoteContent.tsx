@@ -2,7 +2,8 @@ import { Fragment, useMemo } from 'react';
 import { nip19 } from 'nostr-tools';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useWindowManager } from '@/os/useWindowManager';
-import { displayName, sanitizeUrl } from '@/lib/nostrUtils';
+import { displayName, encodeRelayHints, sanitizeUrl } from '@/lib/nostrUtils';
+import { POLL_KIND } from '@/lib/polls';
 import { cn } from '@/lib/utils';
 
 /** URLs and bare `nostr:`/bech32 references, in one pass. */
@@ -136,6 +137,20 @@ function RefToken({ value }: { value: string }) {
         className="font-medium text-primary hover:underline"
       >
         @{displayName(pubkey, author.data?.metadata)}
+      </button>
+    );
+  }
+
+  if (decoded.type === 'nevent' && decoded.data.kind === POLL_KIND) {
+    const { id, relays } = decoded.data;
+    const hints = encodeRelayHints(relays);
+    return (
+      <button
+        type="button"
+        onClick={() => openApp('polls', { id, ...(hints ? { relays: hints } : {}) })}
+        className="font-medium text-primary hover:underline"
+      >
+        poll:{id.slice(0, 8)}
       </button>
     );
   }

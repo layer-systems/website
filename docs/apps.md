@@ -125,6 +125,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Bookmarks | `bookmarks` | — | NIP-51 kind 10003 list — bookmarked notes and articles |
 | Web Bookmarks | `web-bookmarks` | — | NIP-B0 kind 39701 — one addressable event per saved URL |
 | Live | `live` | `pubkey?`, `identifier?` | NIP-53 kind 30311 live events + kind 1311 chat |
+| Polls | `polls` | `id?`, `relays?` | NIP-88 kind 1068 polls and kind 1018 responses. A `nevent` with kind 1068 opens here |
 | Spells | `spells` | `id?` | Saved/shareable REQ filters — kind 777, a third-party draft NIP |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Relay Admin | `relay-admin` | `relay?` | NIP-86 management console for relays you operate |
@@ -142,6 +143,33 @@ timestamp grammar) rather than inventing an incompatible shape, so a spell saved
 readable by Grimoire and vice versa. Only the "Spell" half (kind `777`, a saved query) is
 implemented; "Spellbook" (kind `30777`, a saved window layout) is not — see the app's
 tracking issue for that as a possible follow-up.
+
+### Polls count what reached the client, and say how much that was
+
+NIP-88 (`src/lib/polls.ts`, `src/apps/polls`) has no authority that holds the real
+result: responses live on the relays the poll names, and each voter's latest one wins.
+The app therefore:
+
+- **Asks each poll relay separately** (`usePollResponses`) and shows which ones answered,
+  how many responses each returned and whether any hit the fetch limit. "0 votes" is only
+  shown as a result when at least one poll relay answered; a poll that names no relays
+  falls back to the reader's own relays and says so.
+- **Counts one vote per pubkey: the latest *valid* response within the poll's limits**
+  (after the poll's `created_at`, at or before `endsAt`, and not more than 10 minutes in
+  the future). Invalid responses are dropped *before* the latest is chosen, so they can
+  neither add a vote nor erase an earlier valid one. Ties go to the lowest id (NIP-01).
+- **Single choice uses only the first `response` tag**; if it names an unknown option the
+  response is invalid — a later tag is never promoted. **Multiple choice** counts each
+  distinct valid option once, regardless of order or repetition.
+- **Publishes responses to the poll's relays** (or the voter's write relays if it names
+  none) one relay at a time, reporting how many accepted. Polls go to the author's write
+  relays *and* the poll relays. A changed vote is dated at least one second after the
+  previous one, so it cannot lose the tie-break.
+- **Says votes are public.** Every detail view explains that a vote is a signed event
+  naming its choice, and that results are neither anonymous nor tamper-proof.
+
+`PollCard` (`src/components/nostr/PollCard.tsx`) is the reusable row for a kind 1068 event;
+the Note app uses it when a `note1` link turns out to be a poll.
 
 ### Live only links out to playback, it doesn't embed a player
 
