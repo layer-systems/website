@@ -57,6 +57,7 @@ Useful commands:
 
 ```bash
 npm run test   # Type-check, lint, run Vitest, and create a production build
+npm run test:nips # Run the focused NIP conformance checks with requirement IDs
 npm run build  # Create the production bundle in dist/
 ```
 
@@ -107,6 +108,7 @@ require changing the router. Read [the app guide](./docs/apps.md) before adding 
 - [Window manager](./docs/window-manager.md)
 - [App development](./docs/apps.md)
 - [Nostr data access and safety](./docs/nostr.md)
+- [NIP compatibility coverage and test methodology](./docs/nip-compatibility.md)
 - [Style guide](./docs/styleguide.md)
 - [Project architecture and design decisions](./PLAN.md)
 - [Versioning and release workflow](./docs/versioning.md)
