@@ -82,6 +82,7 @@ These tests run with `npm run test`, not the focused `test:nips` command.
 | 65 relay lookup | `src/lib/relayListSync.test.ts`, `src/hooks/useRelayList.test.tsx` | Regression only beyond focused parser/serializer checks: safe relay-list editing; independent lookup/routing tests remain open. |
 | 84 highlights | `src/hooks/useHighlights.ts` | Open: excerpt and source tags. |
 | 86 / 98 relay management and HTTP auth | `src/lib/nip86.test.ts`, `src/hooks/useNip86.test.tsx` | Regression only: request/auth payload, capability gating, response validation; independent signed auth vectors remain open. |
+| 88 polls | `src/lib/polls.ts`, `src/hooks/usePolls.ts` | Open: no dedicated tests yet for first-tag single choice, distinct multiple choice, latest valid in-range response per pubkey, or relay targeting. |
 | 92 / 68 images | `src/lib/picturePosts.test.ts` | Regression only: imeta image order and safe URLs; full kind-20 schema remains open. |
 | B0 web bookmarks | `src/hooks/useWebBookmarks.test.ts` | Regression only: URL-based identifiers; complete NIP-B0 schema remains open. |
 | Third-party workouts and Spells | `src/lib/workouts.test.ts`, `src/hooks/useSpells.test.ts` | Separate regression coverage; see [NIP.md](../NIP.md). Outside this official-NIP baseline. |

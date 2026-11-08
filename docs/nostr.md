@@ -59,11 +59,15 @@ The flow is symmetric:
 
 ## Publishing
 
-Through `useNostrPublish()` (kind, content, tags). Two places write events:
+Through `useNostrPublish()` (kind, content, tags). The main places that write events:
 
 - **`Composer`** — kind 1. Replies carry NIP-10 tags: `['e', id, '', 'root']` plus
   `['p', authorPubkey]`.
 - **Follow button** — kind 3, the complete list, read back before writing.
+- **Polls** — kind 1068 polls and kind 1018 responses (NIP-88). These bypass the pool's
+  write router: `useVote`/`useCreatePoll` sign once and send to each target relay with
+  `pool.relay(url).event()`, because NIP-88 says where responses go and the UI reports
+  how many relays accepted them.
 
 Failures surface as a toast with the underlying message; they are never swallowed.
 

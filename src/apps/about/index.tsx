@@ -99,7 +99,7 @@ export default function AboutApp({ setTitle }: AppProps) {
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
               Built on Nostr. Notes are kind 1, profiles kind 0, follow lists kind 3, relay lists
-              NIP-65, and long-form articles NIP-23. Nothing is stored on a server we control —
+              NIP-65, long-form articles NIP-23 and polls NIP-88. Nothing is stored on a server we control —
               your relays hold everything, and this desktop only reads and writes to them.
             </p>
           </section>
