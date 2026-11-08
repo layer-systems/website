@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useNostr } from '@nostrify/react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { NPool, NRelay1 } from '@nostrify/nostrify';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { relayListSyncKey } from '@/hooks/useRelayListSync';
 import { useToast } from '@/hooks/useToast';
 import type { RelayMetadata } from '@/contexts/AppContext';
-import { APP_RELAYS } from '@/lib/appRelays';
+import { APP_RELAYS, INDEXER_RELAYS } from '@/lib/appRelays';
 import {
   modeBlocker,
   normalizeRelayUrl,
@@ -31,6 +33,7 @@ export function useRelayList() {
   const { config, updateConfig } = useAppContext();
   const { user } = useCurrentUser();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Undo actions fire after later edits may have landed, so commits read the
   // freshest list from here rather than from a render-time closure.
@@ -51,10 +54,23 @@ export function useRelayList() {
           created_at: next.updatedAt,
         });
         // Announce the new list on the old write relays too, so readers that
-        // still follow the previous list learn about the move.
-        const targets = [...new Set([...previous, ...next.relays].filter((r) => r.write).map((r) => r.url))];
+        // still follow the previous list learn about the move, and on the
+        // indexer relays other clients (and new devices) bootstrap from.
+        const targets = [
+          ...new Set([
+            ...[...previous, ...next.relays].filter((r) => r.write).map((r) => r.url),
+            ...INDEXER_RELAYS,
+          ]),
+        ];
         const pool = nostr as NPool<NRelay1>;
-        await pool.group(targets).event(event, { signal: AbortSignal.timeout(5000) });
+        // Wait for every relay, not just the first to accept, so the sync
+        // status refreshed below reflects where the list actually landed.
+        const signal = AbortSignal.timeout(5000);
+        const results = await Promise.allSettled(targets.map((url) => pool.relay(url).event(event, { signal })));
+        void queryClient.invalidateQueries({ queryKey: relayListSyncKey(user.pubkey) });
+        if (!results.some((result) => result.status === 'fulfilled')) {
+          throw new Error('No relay accepted the updated relay list.');
+        }
       } catch (error) {
         toast({
           title: 'Saved here, but not published',
@@ -63,7 +79,7 @@ export function useRelayList() {
         });
       }
     },
-    [nostr, toast, user],
+    [nostr, queryClient, toast, user],
   );
 
   const commit = useCallback(
@@ -132,8 +148,14 @@ export function useRelayList() {
     commit(APP_RELAYS.relays.map((relay) => ({ ...relay })));
   }, [commit]);
 
+  /** Publishes the current list unchanged, e.g. when none is published yet. */
+  const publishCurrent = useCallback(() => {
+    commit(latest.current.relays);
+  }, [commit]);
+
   return {
     relays: config.relayMetadata.relays,
+    publishCurrent,
     add,
     remove,
     restore,

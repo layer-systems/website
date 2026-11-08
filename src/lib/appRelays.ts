@@ -14,3 +14,15 @@ export const APP_RELAYS: RelayMetadata = {
   ],
   updatedAt: 0,
 };
+
+/**
+ * Indexer ("purple pages") relays that collect profile, contact-list and
+ * NIP-65 relay-list events from across the network. A new device only knows
+ * the app defaults, so these are where it looks up the user's relay list, and
+ * where the app announces it.
+ */
+export const INDEXER_RELAYS = [
+  'wss://purplepag.es/',
+  'wss://user.kindpag.es/',
+  'wss://indexer.coracle.social/',
+];

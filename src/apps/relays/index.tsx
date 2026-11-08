@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import type { AppProps } from '@/os/types';
 import { AddRelayForm } from './AddRelayForm';
 import { RelayDetailsDialog } from './RelayDetailsDialog';
+import { SyncStatus } from './SyncStatus';
 import { measureLatency } from './latency';
 
 const STATE_LABEL: Record<RelayConnectionState, string> = {
@@ -138,6 +139,7 @@ export default function RelaysApp({ setTitle }: AppProps) {
       </AppToolbar>
 
       <AppBody>
+        <SyncStatus onPublish={relayList.publishCurrent} />
         <AddRelayForm onAdd={relayList.add} existing={relayList.relays.map((r) => r.url)} />
 
         {relays.length === 0 ? (
