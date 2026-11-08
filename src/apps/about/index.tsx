@@ -3,7 +3,7 @@ import { Zap } from 'lucide-react';
 import { AppBody, AppLayout } from '@/components/os/AppChrome';
 import { Button } from '@/components/ui/button';
 import { useWindowManager } from '@/os/useWindowManager';
-import { APPS } from '@/os/registry';
+import { useEnabledApps } from '@/os/useEnabledApps';
 import type { AppProps } from '@/os/types';
 import { APP_NAME, APP_VERSION } from '@/lib/appMetadata';
 
@@ -17,6 +17,7 @@ const SHORTCUTS: [keys: string, action: string][] = [
 
 export default function AboutApp({ setTitle }: AppProps) {
   const { openApp } = useWindowManager();
+  const { apps } = useEnabledApps();
 
   useEffect(() => setTitle('About'), [setTitle]);
 
@@ -42,7 +43,7 @@ export default function AboutApp({ setTitle }: AppProps) {
               Apps
             </h2>
             <ul className="divide-y divide-border rounded-lg border border-border">
-              {APPS.map((app) => (
+              {apps.map((app) => (
                 <li key={app.id} className="flex items-center gap-3 px-3 py-2.5">
                   <app.icon className="size-4 shrink-0 text-primary" aria-hidden />
                   <div className="min-w-0 flex-1">
@@ -60,6 +61,17 @@ export default function AboutApp({ setTitle }: AppProps) {
                 </li>
               ))}
             </ul>
+            <p className="text-xs text-muted-foreground">
+              Looking for more? Switch apps on or off in the{' '}
+              <button
+                type="button"
+                className="underline underline-offset-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                onClick={() => openApp('app-store')}
+              >
+                App Store
+              </button>
+              .
+            </p>
           </section>
 
           <section className="space-y-2">

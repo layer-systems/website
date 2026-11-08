@@ -9,7 +9,7 @@ import {
 import { DesktopIcon } from './DesktopIcon';
 import { WindowLayer } from './WindowLayer';
 import { useWindowManager } from '@/os/useWindowManager';
-import { desktopApps } from '@/os/registry';
+import { useEnabledApps } from '@/os/useEnabledApps';
 import { MENUBAR_HEIGHT } from '@/os/layout';
 import { swapDesktopSlots, type DesktopSlot, type GridGeometry } from '@/os/iconLayout';
 import { useIconLayout } from '@/os/useIconLayout';
@@ -41,7 +41,7 @@ export function Desktop() {
   const [pickedLayout, setPickedLayout] = useState<DesktopSlot[] | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const pointerStart = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
-  const apps = desktopApps();
+  const { desktopApps: apps } = useEnabledApps();
   const geometry = useMemo(() => geometryFor(surfaceSize.width, surfaceSize.height), [surfaceSize]);
   const { layout, setDesktop, reset } = useIconLayout(apps.map((app) => app.id), geometry);
   const slots = layout.desktop;
@@ -175,6 +175,7 @@ export function Desktop() {
 
       <ContextMenuContent className="w-52">
         <ContextMenuItem onSelect={() => openApp('feed')}>Open Feed</ContextMenuItem>
+        <ContextMenuItem onSelect={() => openApp('app-store')}>Open App Store</ContextMenuItem>
         <ContextMenuItem onSelect={() => openApp('settings')}>Open Settings</ContextMenuItem>
         <ContextMenuItem onSelect={() => { reset('desktop'); setAnnouncement('Desktop icon layout reset.'); }}>
           Reset desktop icon layout

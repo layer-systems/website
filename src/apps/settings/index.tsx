@@ -16,7 +16,7 @@ import { useMuteList, useSetPubkeyMuted } from '@/hooks/useMuteList';
 import { useNwcConnection } from '@/hooks/useNwc';
 import { useRelayList } from '@/hooks/useRelayList';
 import { useWindowManager } from '@/os/useWindowManager';
-import { desktopApps } from '@/os/registry';
+import { useEnabledApps } from '@/os/useEnabledApps';
 import { useIconLayout } from '@/os/useIconLayout';
 import { useToast } from '@/hooks/useToast';
 import { displayName, npubOf } from '@/lib/nostrUtils';
@@ -64,7 +64,7 @@ export default function SettingsApp({ setTitle }: AppProps) {
 
 function IconLayoutSection() {
   const { toast } = useToast();
-  const appIds = desktopApps().map((app) => app.id);
+  const appIds = useEnabledApps().desktopApps.map((app) => app.id);
   // Reset uses a deterministic, measurement-free registry order. The desktop
   // clamps it to its actual surface on render; mobile reflows into its columns.
   const { reset } = useIconLayout(appIds, { columns: 8, rows: 16 });
