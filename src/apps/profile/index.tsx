@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useNip05 } from '@/hooks/useNip05';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/hooks/useToast';
 import { useWindowManager } from '@/os/useWindowManager';
@@ -47,6 +48,7 @@ export default function ProfileApp({ params, setTitle }: AppProps) {
   const pubkey = params.pubkey || user?.pubkey;
 
   const author = useAuthor(pubkey);
+  const { data: nip05 } = useNip05(pubkey, author.data?.metadata?.nip05);
   const notes = useAuthorNotes(pubkey, decodeRelayHints(params.relays));
   const name = pubkey ? displayName(pubkey, author.data?.metadata) : '';
 
@@ -95,10 +97,10 @@ export default function ProfileApp({ params, setTitle }: AppProps) {
 
           <div className="mt-3 space-y-1">
             <h1 className="text-xl font-semibold tracking-tight">{name}</h1>
-            {metadata?.nip05 && (
-              <p className="flex items-center gap-1 text-sm text-muted-foreground">
+            {nip05 && (
+              <p className="flex items-center gap-1 text-sm text-muted-foreground" title="Domain confirms this public key">
                 <Check className="size-3.5 text-primary" aria-hidden />
-                {metadata.nip05}
+                {nip05}
               </p>
             )}
             <p className="font-mono text-xs text-muted-foreground break-all">{npubOf(pubkey)}</p>
