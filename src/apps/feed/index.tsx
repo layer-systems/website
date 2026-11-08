@@ -99,8 +99,11 @@ export default function FeedApp({ setTitle }: AppProps) {
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-xs"
-            onClick={() => query.refetch()}
-            disabled={query.isFetching}
+            onClick={() => {
+              if (scope === 'following') void feedScope.refetchFollows();
+              void query.refetch();
+            }}
+            disabled={query.isFetching || (scope === 'following' && feedScope.followsFetching)}
           >
             Refresh
           </Button>
@@ -110,7 +113,13 @@ export default function FeedApp({ setTitle }: AppProps) {
       <AppBody>
         {user && <Composer onPublished={() => query.refetch()} />}
 
-        {hasNoFollows ? (
+        {feedScope.followsError ? (
+          <EmptyState
+            title="Couldn't load your follow list"
+            hint="Check your relay connections and try again."
+            action={<Button size="sm" onClick={() => void feedScope.refetchFollows()} disabled={feedScope.followsFetching}>Retry</Button>}
+          />
+        ) : hasNoFollows ? (
           <EmptyState
             title="You are not following anyone yet"
             hint="Switch to Global to find people, then follow them from their profile."
