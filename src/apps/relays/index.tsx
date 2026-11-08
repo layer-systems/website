@@ -90,7 +90,10 @@ export default function RelaysApp({ setTitle }: AppProps) {
       title: 'Relay removed',
       description: relayLabel(url),
       action: (
-        <ToastAction altText={`Undo removing ${relayLabel(url)}`} onClick={() => relayList.restore(entry, index)}>
+        <ToastAction altText={`Undo removing ${relayLabel(url)}`} onClick={() => {
+            const restored = relayList.restore(entry, index);
+            if (!restored.ok) refuse(restored.error);
+          }}>
           Undo
         </ToastAction>
       ),
@@ -139,8 +142,17 @@ export default function RelaysApp({ setTitle }: AppProps) {
       </AppToolbar>
 
       <AppBody>
-        <SyncStatus onPublish={relayList.publishCurrent} />
-        <AddRelayForm onAdd={relayList.add} existing={relayList.relays.map((r) => r.url)} />
+        <SyncStatus
+          onPublish={() => {
+            const result = relayList.publishCurrent();
+            if (!result.ok) refuse(result.error);
+          }}
+        />
+        <AddRelayForm
+          onAdd={relayList.add}
+          existing={relayList.relays.map((r) => r.url)}
+          disabled={relayList.blocked !== null}
+        />
 
         {relays.length === 0 ? (
           <EmptyState title="No relays configured" hint="Add a relay above to start receiving events." />
@@ -165,6 +177,7 @@ export default function RelaysApp({ setTitle }: AppProps) {
                   key={relay.url}
                   relay={relay}
                   configured={relayList.relays.some((r) => r.url === relay.url)}
+                  locked={relayList.blocked !== null}
                   latency={latency[relay.url]}
                   onDetails={() => setDetails(relay.url)}
                   onMode={(mode) => setMode(relay.url, mode)}
@@ -184,16 +197,18 @@ export default function RelaysApp({ setTitle }: AppProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Reset relays to the defaults?</AlertDialogTitle>
             <AlertDialogDescription>
-              Your relay list is replaced with this app's default relays. When you are signed in, the new list is
-              published to Nostr as well.
+              Your relay list is replaced with this app's default relays. When you are signed in, the defaults are
+              published to Nostr too and replace your published relay list on every app and device, even if it
+              couldn't be loaded yet.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                relayList.resetToDefaults();
-                toast({ title: 'Relays reset to defaults' });
+                const result = relayList.resetToDefaults();
+                if (result.ok) toast({ title: 'Relays reset to defaults' });
+                else refuse(result.error);
               }}
             >
               Reset
@@ -208,6 +223,7 @@ export default function RelaysApp({ setTitle }: AppProps) {
 function RelayRow({
   relay,
   configured,
+  locked,
   latency,
   onDetails,
   onMode,
@@ -216,6 +232,8 @@ function RelayRow({
 }: {
   relay: RelayStatus;
   configured: boolean;
+  /** Edits are paused until the published relay list is known. */
+  locked: boolean;
   latency: number | null | undefined;
   onDetails: () => void;
   onMode: (mode: RelayMode) => void;
@@ -252,6 +270,7 @@ function RelayRow({
             <Switch
               checked={relay.read}
               onCheckedChange={(checked) => onMode({ read: checked })}
+              disabled={locked}
               aria-label={`Read from ${label}`}
             />
           </TableCell>
@@ -259,11 +278,15 @@ function RelayRow({
             <Switch
               checked={relay.write}
               onCheckedChange={(checked) => onMode({ write: checked })}
+              disabled={locked}
               aria-label={`Write to ${label}`}
             />
           </TableCell>
           <TableCell>
-            <Button variant="ghost" size="icon" className="size-7" onClick={onRemove} aria-label={`Remove ${label}`}>
+            <Button variant="ghost" size="icon" className="size-7" onClick={onRemove}
+              disabled={locked}
+              aria-label={`Remove ${label}`}
+            >
               <Trash2 className="size-3.5" aria-hidden />
             </Button>
           </TableCell>
@@ -279,6 +302,7 @@ function RelayRow({
               size="icon"
               className="size-7"
               onClick={onAdd}
+              disabled={locked}
               aria-label={`Add ${label} to your relays`}
             >
               <Plus className="size-3.5" aria-hidden />

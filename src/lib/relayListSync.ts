@@ -1,5 +1,6 @@
 import type { NostrEvent, NostrSigner, NPool } from '@nostrify/nostrify';
 import type { NLoginType } from '@nostrify/react/login';
+import type { RelayMetadata } from '@/contexts/AppContext';
 import { INDEXER_RELAYS } from '@/lib/appRelays';
 import { isConclusive, lookupOnRelays } from '@/lib/queryFollowList';
 import { newestEvent } from '@/lib/replaceableLists';
@@ -92,4 +93,71 @@ export async function lookupRelayList(
     checked: [...lookup.completed],
     queried: lookup.relays,
   };
+}
+
+/** What is known about the signed-in user's published relay list. */
+export type RemoteRelayListState =
+  | { status: 'signed-out' }
+  | { status: 'pending' }
+  | { status: 'error' }
+  | { status: 'success'; event: NostrEvent | null };
+
+/**
+ * How an edit to the relay list may proceed: which list it is applied to, and
+ * whether the result may be published automatically. Edits are refused while
+ * the published list is unknown, because publishing then would replace it
+ * with whatever this device happens to hold (often the app defaults).
+ */
+export type RelayListEditPlan =
+  | { ok: true; base: RelayMetadata; publish: boolean; reason?: string }
+  | { ok: false; error: string };
+
+export const RELAY_LIST_PENDING =
+  'Still looking for your published relay list. Try again in a moment.';
+export const RELAY_LIST_UNKNOWN =
+  "Your published relay list couldn't be checked, so changes are paused to avoid overwriting it. Check again first.";
+export const RELAY_LIST_LOCAL_ONLY =
+  'Saved on this device only. Publish the list when you want it to replace your published relay list.';
+
+/** Whether a relay list can be used: NIP-65 needs at least one read and one write relay. */
+function usable(relays: RelayEntry[]): boolean {
+  return relays.some((relay) => relay.read) && relays.some((relay) => relay.write);
+}
+
+/**
+ * Decides how to apply an edit to the relay list.
+ *
+ * - Signed out: local only.
+ * - Lookup pending or failed: refused.
+ * - The published list is newer than the local one: the edit is applied to
+ *   the published list, and published.
+ * - The local list is the published one (same `created_at`), or descends from
+ *   it or from an explicit publish on this device (`trustedUpdatedAt`): edit
+ *   and publish.
+ * - Otherwise (nothing published, or local changes that never came from the
+ *   published list, such as the app defaults): local only, until the user
+ *   publishes explicitly.
+ */
+export function planRelayListEdit(
+  local: RelayMetadata,
+  remote: RemoteRelayListState,
+  trustedUpdatedAt: number | null,
+): RelayListEditPlan {
+  if (remote.status === 'signed-out') return { ok: true, base: local, publish: false };
+  if (remote.status === 'pending') return { ok: false, error: RELAY_LIST_PENDING };
+  if (remote.status === 'error') return { ok: false, error: RELAY_LIST_UNKNOWN };
+
+  const { event } = remote;
+  if (event && event.created_at > local.updatedAt) {
+    const relays = parseRelayList(event);
+    if (usable(relays)) {
+      return { ok: true, base: { relays, updatedAt: event.created_at }, publish: true };
+    }
+  }
+
+  const trusted = (event !== null && local.updatedAt === event.created_at) ||
+    (trustedUpdatedAt !== null && local.updatedAt === trustedUpdatedAt &&
+      (event === null || local.updatedAt >= event.created_at));
+  if (trusted) return { ok: true, base: local, publish: true };
+  return { ok: true, base: local, publish: false, reason: RELAY_LIST_LOCAL_ONLY };
 }

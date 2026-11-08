@@ -73,6 +73,7 @@ export function SyncStatus({ onPublish }: { onPublish: () => void }) {
     return (
       <StatusBar icon={<Loader2 className="size-4 text-muted-foreground motion-safe:animate-spin" aria-hidden />}>
         <p>Looking for your published relay list…</p>
+        <p className="text-muted-foreground">Editing is paused until the lookup finishes.</p>
       </StatusBar>
     );
   }
@@ -81,7 +82,10 @@ export function SyncStatus({ onPublish }: { onPublish: () => void }) {
     return (
       <StatusBar icon={<AlertTriangle className="size-4 text-warning" aria-hidden />} actions={retry}>
         <p className="font-medium">Couldn't check your published relay list</p>
-        <p className="text-muted-foreground">None of the indexer relays answered. Your relays may be out of date.</p>
+        <p className="text-muted-foreground">
+          None of the indexer relays answered. Your relays may be out of date, so editing is paused to avoid
+          overwriting your published list.
+        </p>
       </StatusBar>
     );
   }
@@ -125,7 +129,7 @@ export function SyncStatus({ onPublish }: { onPublish: () => void }) {
       <StatusBar icon={<CloudOff className="size-4 text-warning" aria-hidden />} actions={<>{publish}{retry}</>}>
         <p className="font-medium">No published relay list found</p>
         <p className="text-muted-foreground">
-          Other apps and your other devices can't find your relays. Publish this list so they can.
+          Other apps and your other devices can't find your relays. Changes stay on this device until you publish this list.
         </p>
         {details}
       </StatusBar>
