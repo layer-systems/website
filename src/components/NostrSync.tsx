@@ -57,7 +57,12 @@ export function NostrSync() {
       } catch (error) {
         console.error('Failed to sync relays from Nostr:', error);
       } finally {
-        void queryClient.invalidateQueries({ queryKey: ['nostr', 'follows', user.pubkey] });
+        // Don't cancel a follow lookup already in flight from login; only
+        // refresh a list that has finished loading.
+        void queryClient.invalidateQueries(
+          { queryKey: ['nostr', 'follows', user.pubkey] },
+          { cancelRefetch: false },
+        );
       }
     };
 

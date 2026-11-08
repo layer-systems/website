@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import type { NPool } from '@nostrify/nostrify';
 import { useAppContext } from '@/hooks/useAppContext';
 import { FOLLOW_INDEXERS, queryFollowList } from '@/lib/queryFollowList';
-import { normalizeRelayUrl } from '@/lib/relayList';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 /** The pubkeys in a user's kind 3 contact list. */
@@ -27,17 +26,16 @@ export function useFollows(pubkey: string | undefined) {
         discoveryFailed = true;
         return undefined;
       });
+      // NIP-65: an account's own events live on its write relays.
       const writeRelays = (relayList?.tags ?? [])
-        .filter(([name, , marker]) => name === 'r' && (!marker || marker === 'write'))
-        .flatMap(([, url]) => {
-          const parsed = normalizeRelayUrl(url ?? '');
-          return parsed.ok ? [parsed.url] : [];
-        });
+        .filter(([name, url, marker]) => name === 'r' && url && (!marker || marker === 'write'))
+        .map(([, url]) => url);
       const event = await queryFollowList(
         pool,
         [...writeRelays, ...configured.filter((relay) => relay.write).map((relay) => relay.url), ...FOLLOW_INDEXERS],
         { kinds: [3], authors: [pubkey!], limit: 1 },
         signal,
+        [...writeRelays, ...FOLLOW_INDEXERS],
       );
 
       if (!event) {
