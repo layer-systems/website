@@ -17,7 +17,7 @@ import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { absoluteTime } from '@/lib/nostrUtils';
-import { isPicturePost, pictureTags, pictureUrl } from '@/lib/picturePosts';
+import { isPicturePost, pictureTags, pictureImages } from '@/lib/picturePosts';
 import { cn } from '@/lib/utils';
 import type { AppProps } from '@/os/types';
 
@@ -142,9 +142,9 @@ function PictureFeed({ feedScope, tag, search, onTagChange, onSearchChange, onOp
 }
 
 function PictureTile({ event, onOpen }: { event: NostrEvent; onOpen: (id: string) => void }) {
-  const url = pictureUrl(event)!;
+  const images = pictureImages(event);
   return <button type="button" onClick={() => onOpen(event.id)} className="group mb-2 block w-full break-inside-avoid overflow-hidden rounded-lg bg-muted text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-    <img src={url} alt={event.content || 'Picture post'} loading="lazy" className="w-full object-cover transition duration-300 motion-safe:group-hover:scale-[1.02]" />
+    <div className={cn("grid gap-1", images.length > 1 && "grid-cols-2")}>{images.map((image, index) => <img key={index} src={image.url} alt={image.alt} loading="lazy" className="w-full object-cover transition duration-300 motion-safe:group-hover:scale-[1.02]" />)}</div>
     <div className="space-y-1 px-2.5 py-2"><AuthorLine pubkey={event.pubkey} createdAt={event.created_at} size="sm" /></div>
   </button>;
 }
@@ -153,11 +153,11 @@ function PictureDetail({ event, loading, replies, onBack, onRefresh }: { event: 
   const { user } = useCurrentUser();
   if (loading) return <AppLayout><AppToolbar><Button variant="ghost" size="sm" onClick={onBack}>All images</Button></AppToolbar><AppBody><PictureSkeleton /></AppBody></AppLayout>;
   if (!event) return <AppLayout><AppToolbar><Button variant="ghost" size="sm" onClick={onBack}>All images</Button></AppToolbar><EmptyState title="Picture not found" hint="None of your relays returned this picture post." /></AppLayout>;
-  const url = pictureUrl(event)!;
+  const images = pictureImages(event);
   const replyTags = [['e', event.id, '', 'root'], ['p', event.pubkey]];
   return <AppLayout><AppToolbar><Button variant="ghost" size="sm" onClick={onBack}>All images</Button></AppToolbar><AppBody>
     <article className="mx-auto max-w-3xl">
-      <img src={url} alt={event.content || 'Picture post'} className="max-h-[65vh] w-full bg-muted object-contain" />
+      <div className="grid gap-2">{images.map((image, index) => <img key={index} src={image.url} alt={image.alt} className="max-h-[65vh] w-full bg-muted object-contain" />)}</div>
       <div className="space-y-3 p-4"><AuthorLine pubkey={event.pubkey} createdAt={event.created_at} /><p className="whitespace-pre-wrap text-sm">{event.content}</p><p className="text-xs text-muted-foreground">{absoluteTime(event.created_at)}</p>
         {pictureTags(event).length > 0 && <div className="flex flex-wrap gap-1">{pictureTags(event).map((tag) => <span key={tag} className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">#{tag}</span>)}</div>}
       </div>
@@ -173,23 +173,30 @@ function PictureComposer({ onPublished }: { onPublished: () => void }) {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [description, setDescription] = useState('');
+  const [title, setPictureTitle] = useState('');
+  const [alt, setAlt] = useState('');
   const publishPicture = async () => {
     if (!file) return;
     try {
       const uploadTags = await upload.mutateAsync(file);
       const url = uploadTags.find(([name, value]) => name === 'url' && value)?.[1];
       if (!url) throw new Error('Upload did not return a URL.');
-      const imeta = ['imeta', `url ${url}`, ...uploadTags
-        .filter(([name, value]) => name !== 'url' && value)
+      const pictureTitle = title.trim() || file.name;
+      const imageAlt = alt.trim() || description.trim() || pictureTitle;
+      const mediaType = uploadTags.find(([name]) => name === 'm')?.[1] || file.type;
+      const hash = uploadTags.find(([name]) => name === 'x')?.[1]
+        || Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', await file.arrayBuffer())), (byte) => byte.toString(16).padStart(2, '0')).join('');
+      const imeta = ['imeta', `alt ${imageAlt}`, `m ${mediaType}`, `x ${hash}`, `url ${url}`, ...uploadTags
+        .filter(([name, value]) => !['url', 'alt', 'm', 'x'].includes(name) && value)
         .map(([name, value]) => `${name} ${value}`)];
-      await publish.mutateAsync({ kind: 20, content: description.trim(), tags: [imeta] });
-      setFile(null); setDescription(''); toast({ title: 'Picture published' }); onPublished();
+      await publish.mutateAsync({ kind: 20, content: description.trim(), tags: [['title', pictureTitle], ['alt', `Picture post: ${imageAlt}`], ['m', mediaType], ['x', hash], imeta] });
+      setFile(null); setDescription(''); setPictureTitle(''); setAlt(''); toast({ title: 'Picture published' }); onPublished();
     } catch (error) { toast({ title: 'Could not publish picture', description: error instanceof Error ? error.message : 'Upload failed.', variant: 'destructive' }); }
   };
   return <div className="space-y-2 border-b border-border p-3">
     <input id="image-upload" type="file" accept="image/*" className="sr-only" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
     <div className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{file?.name ?? 'Choose an image to share'}</span><Button variant="outline" size="sm" onClick={() => document.getElementById('image-upload')?.click()}>Choose image</Button></div>
-    {file && <><Textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe your picture (optional)" rows={2} className="resize-none text-sm" /><Button size="sm" onClick={() => void publishPicture()} disabled={upload.isPending || publish.isPending}>{upload.isPending || publish.isPending ? <Loader2 className="animate-spin" aria-label="Publishing picture" /> : 'Publish picture'}</Button></>}
+    {file && <><Input aria-label="Picture title" value={title} onChange={(event) => setPictureTitle(event.target.value)} placeholder="Picture title (defaults to filename)" /><Input aria-label="Image alternative text" value={alt} onChange={(event) => setAlt(event.target.value)} placeholder="Alternative text: describe what is visible" /><Textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe your picture (optional)" rows={2} className="resize-none text-sm" /><Button size="sm" onClick={() => void publishPicture()} disabled={upload.isPending || publish.isPending}>{upload.isPending || publish.isPending ? <Loader2 className="animate-spin" aria-label="Publishing picture" /> : 'Publish picture'}</Button></>}
   </div>;
 }
 
