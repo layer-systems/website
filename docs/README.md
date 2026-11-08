@@ -10,6 +10,7 @@ decisions were taken; these documents describe how it actually works.
 | [`window-manager.md`](./window-manager.md) | The OS core: state, geometry, gestures, persistence, routing |
 | [`apps.md`](./apps.md) | The app registry, the contract every app implements, and how to add one |
 | [`nostr.md`](./nostr.md) | Data access, relay hints, and the rules for rendering untrusted content |
+| [`nip-compatibility.md`](./nip-compatibility.md) | NIP requirements, automated coverage, limitations, and pinned specifications |
 | [`styleguide.md`](./styleguide.md) | Design tokens, materials, typography, motion, and the layout rules for app content |
 | [`versioning.md`](./versioning.md) | The package version source and release workflow |
 
