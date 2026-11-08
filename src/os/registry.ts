@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, BarChart3, Bike, Bookmark, BookOpen, CalendarDays, FileText, FolderOpen, Image, Info, Link2, ListChecks, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, Store, User } from 'lucide-react';
+import { Activity, BarChart3, Bike, Bookmark, BookOpen, CalendarDays, FileText, FolderOpen, Image, Info, Link2, ListChecks, Podcast, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, Store, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -113,6 +113,16 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/live')),
     defaultSize: { width: 780, height: 720 },
     minSize: { width: 360, height: 320 },
+  },
+  {
+    id: 'podcasts',
+    title: 'Podcasts',
+    description: 'Discover, play and publish Nostr-native podcasts (NIP-F4)',
+    icon: Podcast,
+    category: 'social',
+    component: lazy(() => import('@/apps/podcasts')),
+    defaultSize: { width: 760, height: 760 },
+    minSize: { width: 360, height: 420 },
   },
   {
     id: 'calendar',

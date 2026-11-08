@@ -5,6 +5,7 @@ import NotFound from './NotFound';
 import { isCalendarEventKind } from '@/lib/calendarEvents';
 import { encodeRelayHints } from '@/lib/nostrUtils';
 import { LEGACY_GENERIC_KIND, SET_KINDS } from '@/lib/nip51';
+import { PODCAST_EPISODE_KIND, isHexPubkey } from '@/lib/podcasts';
 import { POLL_KIND } from '@/lib/polls';
 import type { AppParams } from '@/os/types';
 
@@ -48,11 +49,22 @@ export function NIP19Page() {
         boot = { appId: 'notes', params: { id: decoded.data } };
         break;
       case 'nevent':
-        // A poll link names its kind, so it can open straight in Polls.
-        boot = {
-          appId: decoded.data.kind === POLL_KIND ? 'polls' : 'notes',
-          params: withHints({ id: decoded.data.id }, decoded.data.relays),
-        };
+        // A NIP-F4 episode link carries kind 54 and its show key: open the
+        // episode itself. Poll links open in Polls; other events open in Notes.
+        boot = decoded.data.kind === PODCAST_EPISODE_KIND
+          ? {
+            appId: 'podcasts',
+            params: withHints(
+              isHexPubkey(decoded.data.author)
+                ? { episode: decoded.data.id, show: decoded.data.author }
+                : { episode: decoded.data.id },
+              decoded.data.relays,
+            ),
+          }
+          : {
+            appId: decoded.data.kind === POLL_KIND ? 'polls' : 'notes',
+            params: withHints({ id: decoded.data.id }, decoded.data.relays),
+          };
         break;
       case 'naddr':
         boot = {

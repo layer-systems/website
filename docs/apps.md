@@ -124,6 +124,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Reader | `articles` | `pubkey?`, `identifier?`, `kind?`, `relays?` | NIP-23 long-form, `react-markdown`, NIP-84 highlights |
 | Bookmarks | `bookmarks` | — | NIP-51 kind 10003 list — bookmarked notes and articles |
 | Web Bookmarks | `web-bookmarks` | — | NIP-B0 kind 39701 — one addressable event per saved URL |
+| Podcasts | `podcasts` | `view?`, `show?`, `episode?`, `relays?` | NIP-F4 shows (10154) and episodes (54), shared player and queue, NIP-51 favorites (10054), publishing as the active show key |
 | Live | `live` | `pubkey?`, `identifier?` | NIP-53 kind 30311 live events + kind 1311 chat |
 | Polls | `polls` | `id?`, `relays?` | NIP-88 kind 1068 polls and kind 1018 responses. A `nevent` with kind 1068 opens here |
 | Spells | `spells` | `id?` | Saved/shareable REQ filters — kind 777, a third-party draft NIP |
@@ -178,6 +179,29 @@ without a library like hls.js. Rather than pull that dependency in for a first c
 app (`src/apps/live`) shows the stream's metadata and chat and opens `streaming` (or
 `recording`, once `status` is `ended`) in a new tab. Spaces/interactive rooms (kind
 30312/30313) are a separate, larger effort — see the tracking issue.
+
+### Podcasts: the account is the show, and the player lives outside the window
+
+NIP-F4 makes every podcast its own key pair, so the Podcasts app (`src/apps/podcasts`)
+never accepts a show identity from a tag: show metadata (kind 10154) and episode feeds
+(kind 54) are always queried with `authors: [showPubkey]`, and publishing signs as
+whatever account is active. The Publish view says so plainly — to run a show, sign in
+with that show's key. Episodes are regular events, so there is no in-place editing.
+
+`p` tags in show metadata are only claims. They are displayed as confirmed only when the
+named person's own kind 10064 (authored podcasts) lists the show back; a signed-in person
+who is named can confirm from the show page. See [`NIP.md`](../NIP.md) for why 10064
+and not the 10164 mentioned in NIP-F4's prose.
+
+Playback is held by `src/lib/podcastPlayer.ts`: a single `HTMLAudioElement` created on
+first use and never attached to the DOM, with a `useSyncExternalStore` hook for the UI.
+Windows remount on a desktop↔mobile switch and the mobile shell unmounts apps that lose
+the screen, so the player must not belong to any component. `NowPlaying` in the menu bar
+and the mobile header keeps play/pause and a way back reachable after the window closes.
+Multiple `audio` sources are tried in order (types the browser reports it can play
+first); when all fail the player offers retry, another source and skip. Listening
+progress is stored only in `localStorage`, keyed by account; nothing about listening is
+published. Favorites (kind 10054) are public and the UI says so.
 
 ### Web bookmarks are one event per URL, not a list
 

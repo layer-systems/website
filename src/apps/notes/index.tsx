@@ -23,6 +23,7 @@ import {
   ancestorChain,
   buildReplyTags,
   decodeRelayHints,
+  encodeRelayHints,
   displayName,
   threadReplies,
   threadRootId,
@@ -30,6 +31,8 @@ import {
 } from '@/lib/nostrUtils';
 import { isPoll, POLL_KIND } from '@/lib/polls';
 import { cn } from '@/lib/utils';
+import { PODCAST_EPISODE_KIND } from '@/lib/podcasts';
+import { useWindowManager } from '@/os/useWindowManager';
 import type { AppProps } from '@/os/types';
 
 function useNote(id: string | undefined, relays: string[] | undefined) {
@@ -194,6 +197,7 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
     return <AppLayout><AppBody>
       <div className="space-y-3 p-4">
         <p className="text-sm text-muted-foreground">Event kind {event.kind} — Notes only supports kind 1 threads.</p>
+        {event.kind === PODCAST_EPISODE_KIND && <OpenInPodcasts event={event} relays={relays} />}
         <AuthorLine pubkey={event.pubkey} createdAt={event.created_at} />
         <p className="whitespace-pre-wrap break-words">{event.content}</p>
       </div>
@@ -467,5 +471,16 @@ function ThreadNode({
         </div>
       )}
     </div>
+  );
+}
+
+/** A podcast episode reached through a plain `note`/`nevent` link belongs in the Podcasts app. */
+function OpenInPodcasts({ event, relays }: { event: NostrEvent; relays: string[] | undefined }) {
+  const { openApp } = useWindowManager();
+  const hints = encodeRelayHints(relays);
+  return (
+    <Button size="sm" onClick={() => openApp('podcasts', { episode: event.id, show: event.pubkey, ...(hints ? { relays: hints } : {}) })}>
+      Open in Podcasts
+    </Button>
   );
 }

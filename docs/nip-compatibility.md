@@ -84,6 +84,7 @@ These tests run with `npm run test`, not the focused `test:nips` command.
 | 86 / 98 relay management and HTTP auth | `src/lib/nip86.test.ts`, `src/hooks/useNip86.test.tsx` | Regression only: request/auth payload, capability gating, response validation; independent signed auth vectors remain open. |
 | 88 polls | `src/lib/polls.ts`, `src/hooks/usePolls.ts` | Open: no dedicated tests yet for first-tag single choice, distinct multiple choice, latest valid in-range response per pubkey, or relay targeting. |
 | 92 / 68 images | `src/lib/picturePosts.test.ts` | Regression only: imeta image order and safe URLs; full kind-20 schema remains open. |
+| F4 podcasts / 51 podcast lists | `src/lib/podcasts.ts`, `src/apps/podcasts/`, `nevent` kind-54 route in [routing](../src/test/nips/routing.test.tsx) | Open: no dedicated parser tests yet for kind 10154/54 validation, newest-metadata selection or 10064 attribution. 10064 is used over the 10164 in F4's prose; see [NIP.md](../NIP.md). |
 | B0 web bookmarks | `src/hooks/useWebBookmarks.test.ts` | Regression only: URL-based identifiers; complete NIP-B0 schema remains open. |
 | Third-party workouts and Spells | `src/lib/workouts.test.ts`, `src/hooks/useSpells.test.ts` | Separate regression coverage; see [NIP.md](../NIP.md). Outside this official-NIP baseline. |
 

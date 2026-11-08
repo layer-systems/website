@@ -34,6 +34,7 @@ describe('NIP-19 — root identifier routes', () => {
     [nip19.noteEncode(ROOT_ID), 'notes', { id: ROOT_ID }],
     [nip19.nprofileEncode({ pubkey: AUTHOR, relays: ['wss://relay.example.com'] }), 'profile', { pubkey: AUTHOR, relays: 'wss://relay.example.com' }],
     [nip19.neventEncode({ id: ROOT_ID, relays: ['wss://relay.example.com'] }), 'notes', { id: ROOT_ID, relays: 'wss://relay.example.com' }],
+    [nip19.neventEncode({ id: ROOT_ID, author: AUTHOR, kind: 54, relays: ['wss://relay.example.com'] }), 'podcasts', { episode: ROOT_ID, show: AUTHOR, relays: 'wss://relay.example.com' }],
     [nip19.naddrEncode({ kind: 30023, pubkey: AUTHOR, identifier: 'article', relays: ['wss://relay.example.com'] }), 'articles', { kind: '30023', pubkey: AUTHOR, identifier: 'article', relays: 'wss://relay.example.com' }],
     [nip19.naddrEncode({ kind: 30000, pubkey: AUTHOR, identifier: 'friends' }), 'lists', { kind: '30000', pubkey: AUTHOR, identifier: 'friends' }],
     [nip19.naddrEncode({ kind: 31922, pubkey: AUTHOR, identifier: 'meetup' }), 'calendar', { kind: '31922', pubkey: AUTHOR, identifier: 'meetup' }],
