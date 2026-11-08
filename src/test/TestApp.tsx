@@ -37,17 +37,17 @@ export function TestApp({ children }: TestAppProps) {
 
   return (
     <UnheadProvider head={head}>
-      <AppProvider storageKey='test-app-config' defaultConfig={defaultConfig}>
-        <QueryClientProvider client={queryClient}>
-          <NostrLoginProvider storageKey='test-login'>
+      <NostrLoginProvider storageKey='test-login'>
+        <AppProvider storageKey='test-app-config' defaultConfig={defaultConfig}>
+          <QueryClientProvider client={queryClient}>
             <NostrProvider>
               <BrowserRouter>
                 {children}
               </BrowserRouter>
             </NostrProvider>
-          </NostrLoginProvider>
-        </QueryClientProvider>
-      </AppProvider>
+          </QueryClientProvider>
+        </AppProvider>
+      </NostrLoginProvider>
     </UnheadProvider>
   );
 }

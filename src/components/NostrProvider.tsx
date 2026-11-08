@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { type NostrSigner, NostrEvent, NostrFilter, NPool, NRelay1 } from '@nostrify/nostrify';
 import { getEventHash, verifyEvent } from 'nostr-tools';
 import { NostrContext } from '@nostrify/react';
@@ -124,9 +124,15 @@ const NostrProvider: React.FC<NostrProviderProps> = (props) => {
     signerRef.current = currentSigner;
   }, [currentSigner]);
 
+  // Route through the new relays before any query effect runs. Layout effects
+  // all run before passive ones, so queries that start when the account (and
+  // with it the relay list) changes never go to the previous account's relays.
+  useLayoutEffect(() => {
+    relayMetadataRef.current = config.relayMetadata;
+  }, [config.relayMetadata]);
+
   // Invalidate Nostr queries when relay metadata changes.
   useEffect(() => {
-    relayMetadataRef.current = config.relayMetadata;
     queryClient.invalidateQueries({ queryKey: ['nostr'] });
   }, [config.relayMetadata, queryClient]);
 

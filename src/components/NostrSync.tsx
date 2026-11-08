@@ -25,9 +25,14 @@ export function NostrSync() {
   const syncedEvent = relayListSync.data?.event;
   const relayListUpdatedAt = config.relayMetadata.updatedAt;
 
+  const pubkey = user?.pubkey;
+
   // Adopt the published relay list when it is newer than the local one.
+  // `config` and `updateConfig` are scoped to the active account (see
+  // AppProvider), and the lookup is keyed by pubkey, but never adopt a list
+  // signed by anyone other than the active account.
   useEffect(() => {
-    if (!syncedEvent || syncedEvent.created_at <= relayListUpdatedAt) return;
+    if (!syncedEvent || syncedEvent.pubkey !== pubkey || syncedEvent.created_at <= relayListUpdatedAt) return;
     const fetchedRelays = parseRelayList(syncedEvent);
     if (!fetchedRelays.some((relay) => relay.read) || !fetchedRelays.some((relay) => relay.write)) return;
     updateConfig((current) => ({
@@ -37,7 +42,7 @@ export function NostrSync() {
         updatedAt: syncedEvent.created_at,
       },
     }));
-  }, [syncedEvent, relayListUpdatedAt, updateConfig]);
+  }, [syncedEvent, pubkey, relayListUpdatedAt, updateConfig]);
 
   // Once the lookup settles, refresh a follow list loaded before it. Don't
   // cancel a follow lookup already in flight from login.
@@ -50,42 +55,50 @@ export function NostrSync() {
     );
   }, [user, relayListSettled, relayListSync.dataUpdatedAt, queryClient]);
 
+  // Adopt the published Blossom server list (BUD-03) when it is newer than the
+  // local one. Re-runs whenever the active account changes; a lookup still in
+  // flight for the previous account is cancelled and its result discarded.
+  const blossomUpdatedAt = config.blossomServerMetadata.updatedAt;
   useEffect(() => {
-    if (!user) return;
+    if (!pubkey) return;
+
+    const controller = new AbortController();
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]);
 
     const syncBlossomServersFromNostr = async () => {
       try {
         const events = await nostr.query(
-          [{ kinds: [10063], authors: [user.pubkey], limit: 1 }],
-          { signal: AbortSignal.timeout(5000) }
+          [{ kinds: [10063], authors: [pubkey], limit: 1 }],
+          { signal },
         );
+        if (controller.signal.aborted) return;
 
-        if (events.length > 0) {
-          const event = events[0];
+        const event = events.find((candidate) => candidate.pubkey === pubkey);
+        if (!event || event.created_at <= blossomUpdatedAt) return;
 
-          // Only update if the event is newer than our stored data
-          if (event.created_at > config.blossomServerMetadata.updatedAt) {
-            const fetchedServers = parseBlossomServerList(event);
+        const fetchedServers = parseBlossomServerList(event);
+        if (fetchedServers.length === 0) return;
 
-            if (fetchedServers.length > 0) {
-              console.log('Syncing Blossom server list from Nostr:', fetchedServers);
-              updateConfig((current) => ({
-                ...current,
-                blossomServerMetadata: {
-                  servers: fetchedServers,
-                  updatedAt: event.created_at,
-                },
-              }));
-            }
-          }
-        }
+        updateConfig((current) => {
+          // Another write may have landed for this account in the meantime.
+          if ((current.blossomServerMetadata?.updatedAt ?? 0) >= event.created_at) return current;
+          return {
+            ...current,
+            blossomServerMetadata: {
+              servers: fetchedServers,
+              updatedAt: event.created_at,
+            },
+          };
+        });
       } catch (error) {
+        if (controller.signal.aborted) return;
         console.error('Failed to sync Blossom servers from Nostr:', error);
       }
     };
 
-    syncBlossomServersFromNostr();
-  }, [user, config.blossomServerMetadata.updatedAt, nostr, updateConfig]);
+    void syncBlossomServersFromNostr();
+    return () => controller.abort();
+  }, [pubkey, blossomUpdatedAt, nostr, updateConfig]);
 
   return null;
 }
