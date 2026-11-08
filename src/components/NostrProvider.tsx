@@ -4,6 +4,7 @@ import { getEventHash, verifyEvent } from 'nostr-tools';
 import { NostrContext } from '@nostrify/react';
 import { NUser, useNostrLogin } from '@nostrify/react/login';
 import { useQueryClient } from '@tanstack/react-query';
+import { isExpired } from '@/lib/nostrUtils';
 import { useAppContext } from '@/hooks/useAppContext';
 
 interface NostrProviderProps {
@@ -41,6 +42,8 @@ const NostrProvider: React.FC<NostrProviderProps> = (props) => {
         // index/dedupe on actually matches the event's contents; only the
         // signature check is redundant. Verify everything else in full.
         verifyEvent: (event: NostrEvent): boolean => {
+          // Apply NIP-40 to every query/subscription, including targeted relays.
+          if (isExpired(event)) return false;
           if (event.kind === 1059 || event.kind === 21059) {
             return event.id === getEventHash(event);
           }
