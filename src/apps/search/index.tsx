@@ -19,9 +19,9 @@ import type { AppProps } from '@/os/types';
 import { noteMatches, parseSearchInput, type SearchInput } from './searchUtils';
 
 const LIMIT = 50;
-// Dedicated search relays remain available when configured relays lack NIP-50
+// Known NIP-50 relays, used even when configured relays lack search support
 // or their NIP-11 documents cannot be read (for example, because of CORS).
-const DEFAULT_SEARCH_RELAYS = ['wss://relay.nostr.band/', 'wss://search.nos.today/'];
+const DEFAULT_SEARCH_RELAYS = ['wss://relay.ditto.pub/', 'wss://search.nos.today/'];
 
 interface SearchResults {
   notes: NostrEvent[];
@@ -99,10 +99,7 @@ function useSearch(input: SearchInput) {
       const filters = input.type === 'hashtag'
         ? [{ kinds: [1], '#t': [input.value], limit: LIMIT }]
         : [{ kinds: [1], search: input.value, limit: LIMIT }, { kinds: [0], search: input.value, limit: LIMIT }];
-      const events = await nostr.query(filters, {
-        signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]),
-        relays,
-      });
+      const events = await nostr.query(filters, { ...options, relays });
       const profiles = events.filter((event) => event.kind === 0);
       return {
         notes: events.filter((event) => event.kind === 1 && (input.type !== 'text' || noteMatches(event.content, input.value))),
