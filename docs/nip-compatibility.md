@@ -19,8 +19,10 @@ npm run test:nips  # focused checks, verbose output with requirement IDs
 npm run test      # required gate: TypeScript, ESLint, ALL tests, production build
 ```
 
-The existing pull-request test workflow runs `npm run test`, which automatically
-discovers `src/test/nips/*.test.*`. No live relay, wallet, signer extension, real key,
+The pull-request workflow shows separate steps for TypeScript, ESLint, NIP checks,
+other unit/component tests, and the production build. `npm run test` runs the same
+checks locally. `test:unit` excludes `src/test/nips/**`, so the NIP checks run once
+in their own step, with verbose requirement IDs. No live relay, wallet, signer extension, real key,
 or payment is required. An assertion failure identifies a broken checked behavior;
 an absent test is an open coverage gap, not a passing requirement.
 

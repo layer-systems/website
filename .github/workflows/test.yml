@@ -26,5 +26,17 @@ jobs:
           rm -rf node_modules
           npm install
           
-      - name: Run tests
-        run: npm run test
+      - name: Type-check TypeScript
+        run: npm run typecheck
+
+      - name: Lint source
+        run: npm run lint
+
+      - name: NIP conformance checks
+        run: npm run test:nips
+
+      - name: Unit and component tests
+        run: npm run test:unit
+
+      - name: Build production bundle and SPA fallback
+        run: npm run build:bundle

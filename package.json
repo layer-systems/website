@@ -8,8 +8,12 @@
   },
   "scripts": {
     "dev": "npm i --silent && vite",
-    "build": "npm i --silent && vite build -l error && cp dist/index.html dist/404.html && echo 'Project built successfully!'",
-    "test": "npm i --silent && tsc --noEmit && eslint --cache && vitest run --reporter=dot --silent && vite build -l error && cp dist/index.html dist/404.html && echo 'All tests passed!'",
+    "build": "npm i --silent && npm run build:bundle",
+    "build:bundle": "vite build && cp dist/index.html dist/404.html",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint --cache",
+    "test": "npm i --silent && npm run typecheck && npm run lint && npm run test:unit && npm run test:nips && npm run build:bundle && echo 'All tests passed!'",
+    "test:unit": "vitest run --exclude 'src/test/nips/**' --reporter=verbose",
     "test:nips": "vitest run src/test/nips --reporter=verbose"
   },
   "dependencies": {
