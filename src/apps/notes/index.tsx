@@ -19,10 +19,12 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAuthor } from '@/hooks/useAuthor';
 import {
   absoluteTime,
-  buildReplyTree,
+  ancestorChain,
+  buildReplyTags,
   decodeRelayHints,
   displayName,
-  tagValues,
+  threadReplies,
+  threadRootId,
   type ReplyNode,
 } from '@/lib/nostrUtils';
 import { cn } from '@/lib/utils';
@@ -45,23 +47,59 @@ function useNote(id: string | undefined, relays: string[] | undefined) {
   });
 }
 
-function useReplies(id: string | undefined, relays: string[] | undefined) {
+/** Most parent lookups a single thread load will chase for missing ancestors. */
+const MAX_ANCESTOR_LOOKUPS = 8;
+
+/**
+ * Every kind-1 event of the thread `opened` belongs to, loaded by its real
+ * NIP-10 root rather than by the opened note: replies deeper in the thread
+ * tag the root, so querying `#e` for a reply alone would miss them. Replies
+ * that tag only the opened note are included too, and ancestors the root
+ * query did not return are fetched one by one up the chain.
+ */
+function useThread(opened: NostrEvent | undefined, relays: string[] | undefined) {
   const { nostr } = useNostr();
+  const rootId = opened ? threadRootId(opened) : undefined;
 
   return useQuery<NostrEvent[]>({
-    queryKey: ['nostr', 'replies', id ?? '', relays?.join(',') ?? ''],
-    enabled: Boolean(id),
+    queryKey: ['nostr', 'thread', rootId ?? '', opened?.id ?? '', relays?.join(',') ?? ''],
+    enabled: Boolean(opened && rootId),
     queryFn: async ({ signal }) => {
-      const events = await nostr.query([{ kinds: [1], '#e': [id!], limit: 100 }], {
-        signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]),
-        relays,
-      });
-      return events
-        .filter((event) => event.content.trim().length > 0)
-        .sort((a, b) => a.created_at - b.created_at);
+      if (!opened || !rootId) return [];
+      const opts = { signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]), relays };
+      const isRoot = rootId === opened.id;
+
+      const events = new Map<string, NostrEvent>([[opened.id, opened]]);
+      const found = await nostr.query(
+        [
+          { kinds: [1], '#e': isRoot ? [rootId] : [rootId, opened.id], limit: 500 },
+          ...(isRoot ? [] : [{ ids: [rootId] }]),
+        ],
+        opts,
+      );
+      for (const event of found) events.set(event.id, event);
+
+      // Ancestors that do not tag the root (or never reached these relays)
+      // are fetched by id, one hop at a time.
+      const tried = new Set<string>();
+      for (let round = 0; round < MAX_ANCESTOR_LOOKUPS; round += 1) {
+        const { missing } = ancestorChain(opened, events.values());
+        if (!missing || tried.has(missing)) break;
+        tried.add(missing);
+        const [parent] = await nostr.query([{ ids: [missing] }], opts);
+        if (!parent) break;
+        events.set(parent.id, parent);
+      }
+
+      return [...events.values()].sort((a, b) => a.created_at - b.created_at);
     },
     staleTime: 30_000,
   });
+}
+
+/** Number of notes in a reply tree, nested replies included. */
+function countNodes(nodes: ReplyNode[]): number {
+  return nodes.reduce((total, node) => total + 1 + countNodes(node.children), 0);
 }
 
 export default function NotesApp({ params, setTitle, setParams }: AppProps) {
@@ -71,7 +109,7 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
   const highlightId = params.highlight;
   const relays = decodeRelayHints(params.relays);
   const note = useNote(id, relays);
-  const replies = useReplies(note.data?.kind === 1 ? id : undefined, relays);
+  const thread = useThread(note.data?.kind === 1 ? note.data : undefined, relays);
   const author = useAuthor(note.data?.pubkey);
   // The reply the inline composer is attached to, if any (otherwise the root).
   const [replyTarget, setReplyTarget] = useState<NostrEvent | null>(null);
@@ -79,15 +117,23 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
 
   const name = note.data ? displayName(note.data.pubkey, author.data?.metadata) : undefined;
 
-  const root = note.data ?? undefined;
-  const tree = useMemo(
-    () => (root && replies.data ? buildReplyTree(root.id, replies.data) : []),
-    [root, replies.data],
+  const opened = note.data ?? undefined;
+  const rootId = opened ? threadRootId(opened) : undefined;
+  // The opened note may itself be a reply: show the conversation above it.
+  const ancestors = useMemo(
+    () => (opened && thread.data ? ancestorChain(opened, thread.data) : undefined),
+    [opened, thread.data],
   );
   // Replies that could not be placed under their NIP-10 parent still render,
   // but apart from the thread so a broken chain never looks like a real one.
-  const wellPlaced = useMemo(() => tree.filter((node) => !node.misplaced), [tree]);
-  const orphaned = useMemo(() => tree.filter((node) => node.misplaced), [tree]);
+  const { replies: wellPlaced, orphaned } = useMemo(() => {
+    if (!opened || !rootId || !thread.data) return { replies: [], orphaned: [] };
+    const replies = thread.data.filter(
+      (event) => event.kind === 1 && event.content.trim().length > 0,
+    );
+    return threadReplies(rootId, opened.id, replies);
+  }, [opened, rootId, thread.data]);
+  const replyCount = countNodes(wellPlaced) + countNodes(orphaned);
 
   useEffect(() => {
     setTitle(id ? (name ? `Note by ${name}` : 'Note') : 'New Note');
@@ -144,21 +190,9 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
     </AppBody></AppLayout>;
   }
   const isRootReply = !replyTarget;
-  // NIP-10 tags for the note being composed: a top-level reply marks only the
-  // root; a nested reply also marks its parent and carries the thread's
-  // participants as p tags.
-  const replyTags = replyTarget
-    ? [
-        ['e', event.id, '', 'root'],
-        ['e', replyTarget.id, '', 'reply'],
-        ...[event.pubkey, replyTarget.pubkey, ...tagValues(replyTarget, 'p')]
-          .filter((pubkey, index, all) => all.indexOf(pubkey) === index)
-          .map((pubkey) => ['p', pubkey]),
-      ]
-    : [
-        ['e', event.id, '', 'root'],
-        ['p', event.pubkey],
-      ];
+  // NIP-10 tags for the note being composed. The root marker always names
+  // the thread's real root, even when the opened note is itself a reply.
+  const replyTags = buildReplyTags(replyTarget ?? event, user?.pubkey, ancestors?.root);
 
   const composer = user ? (
     <div ref={composerRef} id="reply-composer">
@@ -169,7 +203,7 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
         placeholder={replyTarget ? 'Reply to this note…' : 'Write a reply…'}
         onPublished={() => {
           setReplyTarget(null);
-          replies.refetch();
+          thread.refetch();
         }}
       />
     </div>
@@ -180,16 +214,39 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
       <AppToolbar>
         <span className="truncate text-[13px] font-medium">Thread</span>
         <div className="ml-auto flex items-center gap-2">
-          {replies.isFetching && (
+          {thread.isFetching && (
             <Loader2 className="size-3.5 animate-spin text-muted-foreground" aria-hidden />
           )}
           <span className="text-xs text-muted-foreground">
-            {replies.data?.length ?? 0} {replies.data?.length === 1 ? 'reply' : 'replies'}
+            {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
           </span>
         </div>
       </AppToolbar>
 
       <AppBody>
+        {ancestors && rootId !== event.id && (
+          <section aria-label="Earlier in this thread" className="border-b border-border">
+            {ancestors.root ? (
+              <NoteCard event={ancestors.root} highlighted={ancestors.root.id === highlightId} />
+            ) : (
+              <p className="px-4 py-3 text-xs text-muted-foreground">
+                The note that started this thread couldn’t be loaded.
+              </p>
+            )}
+            {ancestors.gap && ancestors.root && (
+              <p className="px-4 py-2 text-xs text-muted-foreground">
+                Some earlier replies couldn’t be loaded.
+              </p>
+            )}
+            {ancestors.chain.map((ancestor) => (
+              <NoteCard
+                key={ancestor.id}
+                event={ancestor}
+                highlighted={ancestor.id === highlightId}
+              />
+            ))}
+          </section>
+        )}
         <div className="border-b border-border px-4 py-4">
           <AuthorLine pubkey={event.pubkey} />
           <div className="mt-3">

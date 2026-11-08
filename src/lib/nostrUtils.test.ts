@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { NostrEvent } from '@nostrify/nostrify';
-import { buildReplyTree, isReply, replyReference, rootReference, type ReplyNode } from './nostrUtils';
+import {
+  ancestorChain,
+  buildReplyTags,
+  buildReplyTree,
+  isReply,
+  replyReference,
+  rootReference,
+  threadReplies,
+  threadRootId,
+  type ReplyNode,
+} from './nostrUtils';
 
 function note(tags: string[][]): NostrEvent {
   return {
@@ -320,5 +330,118 @@ describe('buildReplyTree', () => {
     const [a] = buildReplyTree('root', events);
     expect(a.parentPubkey).toBeUndefined();
     expect(a.children[0].parentPubkey).toBe('alice');
+  });
+});
+
+describe('thread opened on a reply (#127)', () => {
+  // root ← a ← b (opened) ← c ← d, plus a sibling s of a.
+  const root = reply('root', [], 1, 'alice');
+  const a = reply('a', [['e', 'root', '', 'root'], ['p', 'alice']], 2, 'bob');
+  const b = reply(
+    'b',
+    [
+      ['e', 'root', '', 'root', 'alice'],
+      ['e', 'a', '', 'reply'],
+      ['p', 'alice'],
+      ['p', 'bob'],
+    ],
+    3,
+    'carol',
+  );
+  const c = reply('c', [['e', 'root', '', 'root'], ['e', 'b', '', 'reply']], 4, 'dave');
+  const d = reply('d', [['e', 'root', '', 'root'], ['e', 'c', '', 'reply']], 5, 'erin');
+  const s = reply('s', [['e', 'root', '', 'root']], 6, 'sam');
+
+  it('threadRootId resolves the real root of a reply', () => {
+    expect(threadRootId(b)).toBe('root');
+    expect(threadRootId(root)).toBe('root');
+  });
+
+  it('replying to an opened reply keeps the real root and marks the parent', () => {
+    expect(buildReplyTags(b, 'me', root)).toEqual([
+      ['e', 'root', '', 'root', 'alice'],
+      ['e', 'b', '', 'reply', 'carol'],
+      ['p', 'carol'],
+      ['p', 'alice'],
+      ['p', 'bob'],
+    ]);
+  });
+
+  it('a top-level reply to the root carries only the root marker', () => {
+    expect(buildReplyTags(root, 'me')).toEqual([
+      ['e', 'root', '', 'root', 'alice'],
+      ['p', 'alice'],
+    ]);
+  });
+
+  it('falls back to the root pubkey from the parent tags when the root is not loaded', () => {
+    expect(buildReplyTags(b, 'me')[0]).toEqual(['e', 'root', '', 'root', 'alice']);
+    expect(buildReplyTags(a, 'me')[0]).toEqual(['e', 'root', '', 'root']);
+  });
+
+  it('deduplicates p tags and leaves out your own pubkey', () => {
+    const parent = reply(
+      'p1',
+      [['e', 'root', '', 'root'], ['p', 'alice'], ['p', 'me'], ['p', 'alice'], ['p', 'bob']],
+      3,
+      'bob',
+    );
+    const pTags = buildReplyTags(parent, 'me').filter(([name]) => name === 'p');
+    expect(pTags).toEqual([['p', 'bob'], ['p', 'alice']]);
+  });
+
+  it('does not notify yourself when replying to your own note', () => {
+    const own = reply('own', [['e', 'root', '', 'root'], ['p', 'alice']], 3, 'me');
+    expect(buildReplyTags(own, 'me').filter(([name]) => name === 'p')).toEqual([['p', 'alice']]);
+  });
+
+  it('walks the ancestor chain from the root down to the parent', () => {
+    expect(ancestorChain(b, [root, a, b, c])).toEqual({
+      root,
+      chain: [a],
+      gap: false,
+      missing: undefined,
+    });
+    expect(ancestorChain(d, [root, a, b, c, d]).chain.map((event) => event.id)).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
+  });
+
+  it('reports the first missing ancestor so it can be fetched', () => {
+    const chain = ancestorChain(d, [root, b, c, d]);
+    expect(chain.chain.map((event) => event.id)).toEqual(['b', 'c']);
+    expect(chain.gap).toBe(true);
+    expect(chain.missing).toBe('a');
+  });
+
+  it('reports the root as missing when only it is absent', () => {
+    expect(ancestorChain(b, [a, b]).missing).toBe('root');
+  });
+
+  it('has no ancestors for a thread root', () => {
+    expect(ancestorChain(root, [root, a])).toEqual({ chain: [], gap: false });
+  });
+
+  it('shows the opened reply\'s whole subtree, not just direct children', () => {
+    const { replies, orphaned } = threadReplies('root', 'b', [a, b, c, d, s]);
+    expect(shape(replies)).toEqual([['c', [['d', []]]]]);
+    expect(orphaned).toEqual([]);
+  });
+
+  it('keeps replies that wrongly tagged the opened reply as root', () => {
+    const legacy = reply('legacy', [['e', 'b', '', 'root'], ['p', 'carol']], 7);
+    expect(shape(threadReplies('root', 'b', [a, b, c, legacy]).replies)).toEqual([
+      ['c', []],
+      ['legacy', []],
+    ]);
+  });
+
+  it('shows the full tree when the opened note is the root', () => {
+    expect(shape(threadReplies('root', 'root', [a, b, c, s]).replies)).toEqual([
+      ['a', [['b', [['c', []]]]]],
+      ['s', []],
+    ]);
   });
 });
