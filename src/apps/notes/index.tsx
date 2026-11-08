@@ -8,6 +8,7 @@ import { AuthorLine } from '@/components/nostr/AuthorLine';
 import { NoteContent } from '@/components/nostr/NoteContent';
 import { NoteCard } from '@/components/nostr/NoteCard';
 import { NoteRelaysDialog } from '@/components/nostr/NoteRelaysDialog';
+import { PollCard } from '@/components/nostr/PollCard';
 import { PowBadge } from '@/components/nostr/PowBadge';
 import { ZapButton } from '@/components/nostr/ZapButton';
 import { ReactionButton } from '@/components/nostr/ReactionButton';
@@ -28,6 +29,7 @@ import {
   threadRootId,
   type ReplyNode,
 } from '@/lib/nostrUtils';
+import { isPoll, POLL_KIND } from '@/lib/polls';
 import { cn } from '@/lib/utils';
 import { PODCAST_EPISODE_KIND } from '@/lib/podcasts';
 import { useWindowManager } from '@/os/useWindowManager';
@@ -183,6 +185,14 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
   }
 
   const event = note.data;
+  if (event.kind === POLL_KIND && isPoll(event)) {
+    // A plain note1 link can point at a poll; show it the way feeds do and
+    // hand voting to the Polls app.
+    return <AppLayout><AppBody>
+      <p className="border-b border-border px-4 py-2 text-xs text-muted-foreground">This event is a poll. Open it to vote and see results.</p>
+      <PollCard event={event} relays={relays} />
+    </AppBody></AppLayout>;
+  }
   if (event.kind !== 1) {
     return <AppLayout><AppBody>
       <div className="space-y-3 p-4">
