@@ -12,6 +12,7 @@ import {
   AppToolbar,
   EmptyState,
 } from '@/components/os/AppChrome';
+import { EventComments } from '@/components/nostr/EventComments';
 import { AuthorLine } from '@/components/nostr/AuthorLine';
 import { HighlightLayer } from './HighlightLayer';
 import { BookmarkButton } from '@/components/nostr/BookmarkButton';
@@ -434,6 +435,7 @@ function ArticleView({ event }: { event: NostrEvent }) {
           <Markdown>{event.content}</Markdown>
         </div>
       </HighlightLayer>
+      <EventComments key={event.id} event={event} />
     </article>
   );
 }

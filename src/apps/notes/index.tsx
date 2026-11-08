@@ -71,7 +71,7 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
   const highlightId = params.highlight;
   const relays = decodeRelayHints(params.relays);
   const note = useNote(id, relays);
-  const replies = useReplies(id, relays);
+  const replies = useReplies(note.data?.kind === 1 ? id : undefined, relays);
   const author = useAuthor(note.data?.pubkey);
   // The reply the inline composer is attached to, if any (otherwise the root).
   const [replyTarget, setReplyTarget] = useState<NostrEvent | null>(null);
@@ -134,6 +134,15 @@ export default function NotesApp({ params, setTitle, setParams }: AppProps) {
   }
 
   const event = note.data;
+  if (event.kind !== 1) {
+    return <AppLayout><AppBody>
+      <div className="space-y-3 p-4">
+        <p className="text-sm text-muted-foreground">Event kind {event.kind} — Notes only supports kind 1 threads.</p>
+        <AuthorLine pubkey={event.pubkey} createdAt={event.created_at} />
+        <p className="whitespace-pre-wrap break-words">{event.content}</p>
+      </div>
+    </AppBody></AppLayout>;
+  }
   const isRootReply = !replyTarget;
   // NIP-10 tags for the note being composed: a top-level reply marks only the
   // root; a nested reply also marks its parent and carries the thread's

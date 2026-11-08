@@ -12,13 +12,14 @@ import { displayName, sanitizeUrl } from '@/lib/nostrUtils';
 import { useToast } from '@/hooks/useToast';
 
 interface ComposerProps {
-  /** Tags that turn this note into a reply, per NIP-10. */
+  kind?: 1 | 1111;
+  /** Tags for a NIP-10 reply or NIP-22 comment. */
   replyTags?: string[][];
   placeholder?: string;
   onPublished?: () => void;
 }
 
-export function Composer({ replyTags, placeholder = 'What’s happening?', onPublished }: ComposerProps) {
+export function Composer({ kind = 1, replyTags, placeholder = 'What’s happening?', onPublished }: ComposerProps) {
   const { user } = useCurrentUser();
   const author = useAuthor(user?.pubkey);
   const publish = useNostrPublish();
@@ -36,7 +37,7 @@ export function Composer({ replyTags, placeholder = 'What’s happening?', onPub
     if (!trimmed || publish.isPending) return;
     try {
       await publish.mutateAsync({
-        kind: 1,
+        kind,
         content: trimmed,
         // Copied: useNostrPublish appends to the array it's given.
         tags: [...(replyTags ?? [])],
@@ -44,7 +45,7 @@ export function Composer({ replyTags, placeholder = 'What’s happening?', onPub
       });
       pow.end();
       setContent('');
-      toast({ title: replyTags ? 'Reply published' : 'Note published' });
+      toast({ title: kind === 1111 ? 'Comment published' : replyTags ? 'Reply published' : 'Note published' });
       onPublished?.();
     } catch (error) {
       pow.end();
@@ -94,7 +95,7 @@ export function Composer({ replyTags, placeholder = 'What’s happening?', onPub
               ) : (
                 <Send className="size-3.5" aria-hidden />
               )}
-              {replyTags ? 'Reply' : 'Publish'}
+              {kind === 1111 ? 'Comment' : replyTags ? 'Reply' : 'Publish'}
             </Button>
           </div>
         </div>
