@@ -1,12 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
-import { ImagePlus, Loader2, Search, X } from 'lucide-react';
+import { ChevronLeft, ImagePlus, Images, Loader2, Search, X } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { AppBody, AppLayout, AppToolbar, EmptyState } from '@/components/os/AppChrome';
 import { AuthorLine } from '@/components/nostr/AuthorLine';
 import { FeedScopeSelect } from '@/components/nostr/FeedScopeSelect';
 import { EventComments } from '@/components/nostr/EventComments';
+import { ReactionButton } from '@/components/nostr/ReactionButton';
+import { RepostButton } from '@/components/nostr/RepostButton';
+import { ZapButton } from '@/components/nostr/ZapButton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,8 +20,8 @@ import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { absoluteTime } from '@/lib/nostrUtils';
-import { isPicturePost, pictureTags, pictureImages } from '@/lib/picturePosts';
 import { cn } from '@/lib/utils';
+import { isPicturePost, pictureImages, pictureTags, pictureTitle } from '@/lib/picturePosts';
 import type { AppProps } from '@/os/types';
 
 const PAGE_SIZE = 80;
@@ -67,7 +70,12 @@ export default function ImagesApp({ params, setParams, setTitle }: AppProps) {
   useEffect(() => { setTitle(params.id ? 'Image' : `Images — ${feedScope.label}`); }, [params.id, feedScope.label, setTitle]);
 
   if (params.id) {
-    return <PictureDetail event={selected.data} loading={selected.isLoading} onBack={() => setParams({})} />;
+    return <PictureDetail
+      event={selected.data}
+      loading={selected.isLoading}
+      onBack={() => setParams({})}
+      onTagSelect={(value) => { setTag(value); setSearch(''); setParams({}); }}
+    />;
   }
 
   return <PictureFeed
@@ -80,6 +88,19 @@ export default function ImagesApp({ params, setParams, setTitle }: AppProps) {
   />;
 }
 
+/**
+ * Below ~576px cards run edge to edge with only a divider between them, so
+ * the picture gets the full width; wider windows show bordered cards.
+ */
+const CARD_FRAME = 'overflow-hidden border-b border-border bg-card @xl:rounded-xl @xl:border @xl:shadow-sm';
+
+/**
+ * Feed layout keys off the window's width (container queries), not the
+ * viewport: a narrow window on a wide desktop should still get one column.
+ * One post per row below ~768px, then a uniform grid that grows with the window.
+ */
+const FEED_GRID = 'mx-auto grid w-full max-w-xl grid-cols-1 @xl:gap-4 @xl:p-3 @3xl:max-w-6xl @3xl:grid-cols-2 @3xl:gap-5 @3xl:p-5 @6xl:grid-cols-3 @[96rem]:max-w-[96rem] @[96rem]:grid-cols-4';
+
 function PictureFeed({ feedScope, tag, search, onTagChange, onSearchChange, onOpen }: {
   feedScope: FeedScopeState; tag: string; search: string; onTagChange: (tag: string) => void; onSearchChange: (value: string) => void; onOpen: (id: string) => void;
 }) {
@@ -89,19 +110,19 @@ function PictureFeed({ feedScope, tag, search, onTagChange, onSearchChange, onOp
   const hasNoFollows = scope === 'following' && authors?.length === 0;
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const pictures = useMemo(() => (query.data ?? []).filter((event) =>
-    !normalizedSearch || `${event.content} ${pictureTags(event).join(' ')}`.toLocaleLowerCase().includes(normalizedSearch),
+    !normalizedSearch || `${pictureTitle(event) ?? ''} ${event.content} ${pictureTags(event).join(' ')}`.toLocaleLowerCase().includes(normalizedSearch),
   ), [query.data, normalizedSearch]);
 
   return (
-    <AppLayout>
+    <AppLayout className="@container">
       <AppToolbar className="gap-2">
         <FeedScopeSelect state={feedScope} label="Picture source" />
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted-foreground" aria-hidden />
           <Input aria-label="Search picture posts" value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Search pictures" className="h-8 pl-8 text-sm" />
         </div>
-        <Button size="sm" className="h-8 gap-1.5" onClick={() => document.getElementById('image-upload')?.click()} disabled={!user}>
-          <ImagePlus className="size-4" aria-hidden /> Upload
+        <Button size="sm" className="h-8 shrink-0 gap-1.5 px-2.5" onClick={() => document.getElementById('image-upload')?.click()} disabled={!user} aria-label="Upload a picture">
+          <ImagePlus className="size-4" aria-hidden /> <span className="hidden @md:inline">Upload</span>
         </Button>
       </AppToolbar>
       <AppBody>
@@ -118,8 +139,8 @@ function PictureFeed({ feedScope, tag, search, onTagChange, onSearchChange, onOp
         ) : query.isPending ? <PictureSkeleton /> : query.isError ? (
           <EmptyState title="Couldn’t load pictures" hint="Check your relays and try again." action={<Button size="sm" onClick={() => query.refetch()}>Try again</Button>} />
         ) : pictures.length ? (
-          <div className="columns-2 gap-2 p-2 sm:columns-3 lg:columns-4">
-            {pictures.map((event) => <PictureTile key={event.id} event={event} onOpen={onOpen} />)}
+          <div className={FEED_GRID}>
+            {pictures.map((event) => <PictureCard key={event.id} event={event} onOpen={onOpen} />)}
           </div>
         ) : <EmptyState title={search || tag ? 'No matching pictures' : 'No pictures yet'} hint={search || tag ? 'Try a different search or clear the filter.' : scope === 'global' ? 'Your relays have not returned any picture posts.' : 'Nobody here has posted pictures yet. Try Global to see more.'} action={!search && !tag && scope !== 'global' ? <Button size="sm" variant="outline" onClick={() => setScope('global')}>Browse Global</Button> : undefined} />}
       </AppBody>
@@ -127,25 +148,120 @@ function PictureFeed({ feedScope, tag, search, onTagChange, onSearchChange, onOp
   );
 }
 
-function PictureTile({ event, onOpen }: { event: NostrEvent; onOpen: (id: string) => void }) {
-  const images = pictureImages(event);
-  return <button type="button" onClick={() => onOpen(event.id)} className="group mb-2 block w-full break-inside-avoid overflow-hidden rounded-lg bg-muted text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-    <div className={cn("grid gap-1", images.length > 1 && "grid-cols-2")}>{images.map((image, index) => <img key={index} src={image.url} alt={image.alt} loading="lazy" className="w-full object-cover transition duration-300 motion-safe:group-hover:scale-[1.02]" />)}</div>
-    <div className="space-y-1 px-2.5 py-2"><AuthorLine pubkey={event.pubkey} createdAt={event.created_at} size="sm" /></div>
-  </button>;
+/** True once `ref` has come within ~one screen of the viewport; never resets. */
+function useSeen<T extends Element>() {
+  const ref = useRef<T>(null);
+  // Without IntersectionObserver there is no way to defer, so load right away.
+  const [seen, setSeen] = useState(() => typeof IntersectionObserver === 'undefined');
+  useEffect(() => {
+    const node = ref.current;
+    if (seen || !node) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) setSeen(true);
+    }, { rootMargin: '400px 0px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [seen]);
+  return [ref, seen] as const;
 }
 
-function PictureDetail({ event, loading, onBack }: { event: NostrEvent | null | undefined; loading: boolean; onBack: () => void }) {
-  if (loading) return <AppLayout><AppToolbar><Button variant="ghost" size="sm" onClick={onBack}>All images</Button></AppToolbar><AppBody><PictureSkeleton /></AppBody></AppLayout>;
-  if (!event) return <AppLayout><AppToolbar><Button variant="ghost" size="sm" onClick={onBack}>All images</Button></AppToolbar><EmptyState title="Picture not found" hint="None of your relays returned this picture post." /></AppLayout>;
+function PictureCard({ event, onOpen }: { event: NostrEvent; onOpen: (id: string) => void }) {
   const images = pictureImages(event);
-  return <AppLayout><AppToolbar><Button variant="ghost" size="sm" onClick={onBack}>All images</Button></AppToolbar><AppBody>
-    <article className="mx-auto max-w-3xl">
-      <div className="grid gap-2">{images.map((image, index) => <img key={index} src={image.url} alt={image.alt} className="max-h-[65vh] w-full bg-muted object-contain" />)}</div>
-      <div className="space-y-3 p-4"><AuthorLine pubkey={event.pubkey} createdAt={event.created_at} /><p className="whitespace-pre-wrap text-sm">{event.content}</p><p className="text-xs text-muted-foreground">{absoluteTime(event.created_at)}</p>
-        {pictureTags(event).length > 0 && <div className="flex flex-wrap gap-1">{pictureTags(event).map((tag) => <span key={tag} className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">#{tag}</span>)}</div>}
+  const cover = images[0];
+  const title = pictureTitle(event);
+  const caption = event.content.trim();
+  // Each card's like and zap counts are their own relay query, so only cards
+  // near the viewport fetch them, not every post in an 80-item page.
+  const [ref, seen] = useSeen<HTMLElement>();
+  return (
+    <article ref={ref} className={cn(CARD_FRAME, 'flex min-w-0 flex-col @xl:transition-shadow @xl:hover:shadow-md motion-safe:duration-200')}>
+      <div className="px-3 py-2.5"><AuthorLine pubkey={event.pubkey} createdAt={event.created_at} size="sm" /></div>
+      <button
+        type="button"
+        onClick={() => onOpen(event.id)}
+        aria-label={`Open picture: ${title || cover.alt}`}
+        className="group flex flex-1 flex-col text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+      >
+        <div className="relative w-full overflow-hidden bg-muted">
+          <img
+            src={cover.url}
+            alt={cover.alt}
+            width={cover.width}
+            height={cover.height}
+            loading="lazy"
+            decoding="async"
+            className="block h-auto max-h-[75vh] w-full object-contain @3xl:aspect-square @3xl:max-h-none @3xl:object-cover motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-[1.02]"
+          />
+          {images.length > 1 && (
+            <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+              <Images className="size-3.5" aria-hidden /> {images.length}
+              <span className="sr-only">pictures</span>
+            </span>
+          )}
+        </div>
+        {(title || caption) && (
+          <div className="w-full space-y-0.5 px-3 pt-2.5">
+            {title && <p className="truncate text-sm font-semibold">{title}</p>}
+            {caption && caption !== title && <p className="line-clamp-2 text-sm text-muted-foreground">{caption}</p>}
+          </div>
+        )}
+      </button>
+      <div className="flex items-center gap-1 px-1.5 py-1.5" role="group" aria-label="Picture actions">
+        <ReactionButton target={event} revealed={seen} className="h-8" />
+        <ZapButton target={event} revealed={seen} className="h-8" />
       </div>
-      <EventComments event={event} />
+    </article>
+  );
+}
+
+function DetailToolbar({ onBack }: { onBack: () => void }) {
+  return <AppToolbar><Button variant="ghost" size="sm" className="-ml-1 gap-1 px-2" onClick={onBack}><ChevronLeft className="size-4" aria-hidden /> All images</Button></AppToolbar>;
+}
+
+/**
+ * Narrow windows stack the picture above its details; wide windows put the
+ * details, actions and comments in a side column beside a sticky picture.
+ */
+function PictureDetail({ event, loading, onBack, onTagSelect }: {
+  event: NostrEvent | null | undefined; loading: boolean; onBack: () => void; onTagSelect: (tag: string) => void;
+}) {
+  if (loading) return <AppLayout><DetailToolbar onBack={onBack} /><AppBody><DetailSkeleton /></AppBody></AppLayout>;
+  if (!event) return <AppLayout><DetailToolbar onBack={onBack} /><EmptyState title="Picture not found" hint="None of your relays returned this picture post." /></AppLayout>;
+  const images = pictureImages(event);
+  const title = pictureTitle(event);
+  const tags = pictureTags(event);
+  return <AppLayout className="@container"><DetailToolbar onBack={onBack} /><AppBody>
+    <article className="mx-auto w-full max-w-3xl @4xl:grid @4xl:max-w-none @4xl:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)] @4xl:items-start">
+      <div className="grid gap-1 bg-muted/60 @4xl:sticky @4xl:top-0 @4xl:gap-2 @4xl:p-4">
+        {images.map((image, index) => (
+          <img
+            key={index}
+            src={image.url}
+            alt={image.alt}
+            width={image.width}
+            height={image.height}
+            decoding="async"
+            className="mx-auto block h-auto max-h-[75vh] w-full object-contain @4xl:max-h-[calc(100vh-10rem)]"
+          />
+        ))}
+      </div>
+      <div className="min-w-0 @4xl:border-l @4xl:border-border">
+        <div className="space-y-3 p-4">
+          <AuthorLine pubkey={event.pubkey} createdAt={event.created_at} />
+          {title && <h2 className="text-lg font-semibold leading-snug">{title}</h2>}
+          {event.content.trim() && event.content.trim() !== title && <p className="whitespace-pre-wrap break-words text-sm">{event.content}</p>}
+          {tags.length > 0 && <div className="flex flex-wrap gap-1.5">{tags.map((tag) => (
+            <button key={tag} type="button" onClick={() => onTagSelect(tag)} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground transition-colors hover:bg-secondary/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" aria-label={`Show pictures tagged ${tag}`}>#{tag}</button>
+          ))}</div>}
+          <p className="text-xs text-muted-foreground">{absoluteTime(event.created_at)}</p>
+          <div className="-mx-2 flex flex-wrap items-center gap-1 border-y border-border py-1.5" role="group" aria-label="Picture actions">
+            <ReactionButton target={event} className="h-8" />
+            <RepostButton target={event} className="h-8" />
+            <ZapButton target={event} className="h-8" />
+          </div>
+        </div>
+        <EventComments event={event} />
+      </div>
     </article>
   </AppBody></AppLayout>;
 }
@@ -184,5 +300,19 @@ function PictureComposer({ onPublished }: { onPublished: () => void }) {
 }
 
 function PictureSkeleton() {
-  return <div className="columns-2 gap-2 p-2 sm:columns-3 lg:columns-4">{Array.from({ length: 12 }).map((_, index) => <Skeleton key={index} className={cn('mb-2 w-full break-inside-avoid rounded-lg', index % 3 === 0 ? 'h-52' : index % 3 === 1 ? 'h-36' : 'h-44')} />)}</div>;
+  return <div className={FEED_GRID} aria-hidden>{Array.from({ length: 6 }).map((_, index) => (
+    <div key={index} className={CARD_FRAME}>
+      <div className="flex items-center gap-2 px-3 py-2.5"><Skeleton className="size-7 rounded-full" /><Skeleton className="h-3 w-28" /></div>
+      <Skeleton className="aspect-square w-full rounded-none" />
+      <div className="space-y-1.5 px-3 py-2.5"><Skeleton className="h-3.5 w-2/3" /><Skeleton className="h-3 w-full" /></div>
+      <div className="flex gap-2 px-3 pb-2.5"><Skeleton className="h-6 w-10" /><Skeleton className="h-6 w-10" /></div>
+    </div>
+  ))}</div>;
+}
+
+function DetailSkeleton() {
+  return <div className="mx-auto w-full max-w-3xl" aria-hidden>
+    <Skeleton className="aspect-[4/3] w-full rounded-none" />
+    <div className="space-y-3 p-4"><div className="flex items-center gap-2"><Skeleton className="size-9 rounded-full" /><Skeleton className="h-4 w-32" /></div><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-4/5" /></div>
+  </div>;
 }

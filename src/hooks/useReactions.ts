@@ -12,13 +12,16 @@ function reactionsQueryKey(eventId: string) {
   return ['nostr', 'reactions', eventId] as const;
 }
 
-/** All kind-7 reactions to `eventId`, newest first. */
-export function useReactions(eventId: string | undefined) {
+/**
+ * All kind-7 reactions to `eventId`, newest first. `enabled: false` defers
+ * the relay query, e.g. until a feed card scrolls into view.
+ */
+export function useReactions(eventId: string | undefined, { enabled = true }: { enabled?: boolean } = {}) {
   const { nostr } = useNostr();
 
   return useQuery<NostrEvent[]>({
     queryKey: reactionsQueryKey(eventId ?? ''),
-    enabled: Boolean(eventId),
+    enabled: enabled && Boolean(eventId),
     queryFn: async ({ signal }) => {
       const events = await nostr.query(
         [{ kinds: [REACTION_KIND], '#e': [eventId!], limit: 500 }],
