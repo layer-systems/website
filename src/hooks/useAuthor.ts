@@ -2,12 +2,21 @@ import { type NostrEvent, type NostrMetadata, NSchema as n } from '@nostrify/nos
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 
-export function useAuthor(pubkey: string | undefined) {
-  const { nostr } = useNostr();
+type NostrClient = ReturnType<typeof useNostr>['nostr'];
 
-  return useQuery<{ event?: NostrEvent; metadata?: NostrMetadata }>({
-    queryKey: ['nostr', 'author', pubkey ?? ''],
-    queryFn: async () => {
+export interface AuthorData {
+  event?: NostrEvent;
+  metadata?: NostrMetadata;
+}
+
+/**
+ * Shared query options for a pubkey's kind-0 profile, so non-hook code (e.g.
+ * `queryClient.fetchQuery`) reads and fills the same cache entry as `useAuthor`.
+ */
+export function authorQueryOptions(nostr: NostrClient, pubkey: string | undefined) {
+  return {
+    queryKey: ['nostr', 'author', pubkey ?? ''] as const,
+    queryFn: async (): Promise<AuthorData> => {
       if (!pubkey) {
         return {};
       }
@@ -30,5 +39,11 @@ export function useAuthor(pubkey: string | undefined) {
     },
     staleTime: 5 * 60 * 1000, // Keep cached data fresh for 5 minutes
     retry: 3,
-  });
+  };
+}
+
+export function useAuthor(pubkey: string | undefined) {
+  const { nostr } = useNostr();
+
+  return useQuery<AuthorData>(authorQueryOptions(nostr, pubkey));
 }

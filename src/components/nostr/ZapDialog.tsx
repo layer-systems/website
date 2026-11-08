@@ -45,7 +45,7 @@ export function ZapDialog({ open, onClose, target, recipientMetadata, recipientM
   // by hand. Matched against the specific invoice, not just a receipt-count
   // increase — someone else zapping the same note while this dialog waits
   // must not be mistaken for this payment completing.
-  const receipts = useZapReceipts(target.id, { refetchInterval: stage === 'manual' ? 4_000 : false });
+  const receipts = useZapReceipts(target, { refetchInterval: stage === 'manual' ? 4_000 : false });
   const manualPaymentConfirmed = stage === 'manual' && invoice !== null && hasValidReceiptForInvoice(receipts.data, invoice);
   const effectiveStage: Stage = manualPaymentConfirmed ? 'paid' : stage;
 

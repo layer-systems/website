@@ -32,6 +32,7 @@ import {
 import { useWindowManager } from '@/os/useWindowManager';
 import { notificationParentId, notificationTarget } from '@/lib/notifications';
 import { displayName, relativeTime } from '@/lib/nostrUtils';
+import { formatSats } from '@/hooks/useZaps';
 import { cn } from '@/lib/utils';
 
 const ICONS: Record<NotificationKind, typeof Bell> = {
@@ -98,7 +99,7 @@ function useNotificationState() {
   const query = useNotifications();
   const { lastReadAt, markAllRead } = useNotificationReadState();
   const mutedPubkeys = useMutedPubkeys();
-  const notifications = (query.data ?? []).filter(({ event }) => !mutedPubkeys.includes(event.pubkey));
+  const notifications = (query.data ?? []).filter(({ actor }) => !mutedPubkeys.includes(actor));
   const unreadCount = notifications.filter(({ event }) => event.created_at > lastReadAt).length;
 
   return query.isFetching || query.isError || notifications.length > 0 || query.isSuccess
@@ -213,17 +214,20 @@ function NotificationRow({
   onNavigate?: () => void;
 }) {
   const { openApp } = useWindowManager();
-  const { data } = useAuthor(notification.event.pubkey);
+  const { data } = useAuthor(notification.actor);
   const Icon = ICONS[notification.kind];
-  const author = displayName(notification.event.pubkey, data?.metadata);
-  const preview = notification.event.content.replace(/\s+/g, ' ').trim();
+  const author = displayName(notification.actor, data?.metadata);
+  const label = notification.zap
+    ? `zapped you ${formatSats(notification.zap.amountSats)} sats`
+    : LABELS[notification.kind];
+  const preview = (notification.zap ? notification.zap.comment : notification.event.content).replace(/\s+/g, ' ').trim();
   const target = notificationTarget(notification, parents);
   const parentId = notificationParentId(notification);
   const parent = parentId ? parents?.get(parentId) : undefined;
 
   const openNotification = () => {
     if (target) openApp('notes', target.highlight ? { id: target.id, highlight: target.highlight } : { id: target.id });
-    else openApp('profile', { pubkey: notification.event.pubkey });
+    else openApp('profile', { pubkey: notification.actor });
     onNavigate?.();
   };
 
@@ -246,7 +250,7 @@ function NotificationRow({
             {relativeTime(notification.event.created_at)}
           </time>
         </span>
-        <span className="mt-0.5 block text-sm text-muted-foreground">{LABELS[notification.kind]}</span>
+        <span className="mt-0.5 block text-sm text-muted-foreground">{label}</span>
         {preview && <span className="mt-1 block line-clamp-2 text-sm text-foreground/80">{preview}</span>}
         {parentId && (parent || parentsLoading) && <ParentPreview parent={parent} />}
       </span>
