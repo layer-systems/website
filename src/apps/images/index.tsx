@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ImagePlus, Images, Loader2, Search, X } from 'lucide-react';
@@ -20,6 +20,7 @@ import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { absoluteTime } from '@/lib/nostrUtils';
+import { cn } from '@/lib/utils';
 import { isPicturePost, pictureImages, pictureTags, pictureTitle } from '@/lib/picturePosts';
 import type { AppProps } from '@/os/types';
 
@@ -88,11 +89,17 @@ export default function ImagesApp({ params, setParams, setTitle }: AppProps) {
 }
 
 /**
+ * Below ~576px cards run edge to edge with only a divider between them, so
+ * the picture gets the full width; wider windows show bordered cards.
+ */
+const CARD_FRAME = 'overflow-hidden border-b border-border bg-card @xl:rounded-xl @xl:border @xl:shadow-sm';
+
+/**
  * Feed layout keys off the window's width (container queries), not the
  * viewport: a narrow window on a wide desktop should still get one column.
  * One post per row below ~768px, then a uniform grid that grows with the window.
  */
-const FEED_GRID = 'mx-auto grid w-full max-w-xl grid-cols-1 gap-4 p-3 @3xl:max-w-6xl @3xl:grid-cols-2 @3xl:gap-5 @3xl:p-5 @6xl:grid-cols-3 @[96rem]:max-w-[96rem] @[96rem]:grid-cols-4';
+const FEED_GRID = 'mx-auto grid w-full max-w-xl grid-cols-1 @xl:gap-4 @xl:p-3 @3xl:max-w-6xl @3xl:grid-cols-2 @3xl:gap-5 @3xl:p-5 @6xl:grid-cols-3 @[96rem]:max-w-[96rem] @[96rem]:grid-cols-4';
 
 function PictureFeed({ feedScope, tag, search, onTagChange, onSearchChange, onOpen }: {
   feedScope: FeedScopeState; tag: string; search: string; onTagChange: (tag: string) => void; onSearchChange: (value: string) => void; onOpen: (id: string) => void;
@@ -141,13 +148,33 @@ function PictureFeed({ feedScope, tag, search, onTagChange, onSearchChange, onOp
   );
 }
 
+/** True once `ref` has come within ~one screen of the viewport; never resets. */
+function useSeen<T extends Element>() {
+  const ref = useRef<T>(null);
+  // Without IntersectionObserver there is no way to defer, so load right away.
+  const [seen, setSeen] = useState(() => typeof IntersectionObserver === 'undefined');
+  useEffect(() => {
+    const node = ref.current;
+    if (seen || !node) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) setSeen(true);
+    }, { rootMargin: '400px 0px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [seen]);
+  return [ref, seen] as const;
+}
+
 function PictureCard({ event, onOpen }: { event: NostrEvent; onOpen: (id: string) => void }) {
   const images = pictureImages(event);
   const cover = images[0];
   const title = pictureTitle(event);
   const caption = event.content.trim();
+  // Each card's like and zap counts are their own relay query, so only cards
+  // near the viewport fetch them, not every post in an 80-item page.
+  const [ref, seen] = useSeen<HTMLElement>();
   return (
-    <article className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow motion-safe:duration-200 hover:shadow-md">
+    <article ref={ref} className={cn(CARD_FRAME, 'flex min-w-0 flex-col @xl:transition-shadow @xl:hover:shadow-md motion-safe:duration-200')}>
       <div className="px-3 py-2.5"><AuthorLine pubkey={event.pubkey} createdAt={event.created_at} size="sm" /></div>
       <button
         type="button"
@@ -155,7 +182,7 @@ function PictureCard({ event, onOpen }: { event: NostrEvent; onOpen: (id: string
         aria-label={`Open picture: ${title || cover.alt}`}
         className="group flex flex-1 flex-col text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
       >
-        <div className="relative overflow-hidden bg-muted">
+        <div className="relative w-full overflow-hidden bg-muted">
           <img
             src={cover.url}
             alt={cover.alt}
@@ -173,12 +200,16 @@ function PictureCard({ event, onOpen }: { event: NostrEvent; onOpen: (id: string
           )}
         </div>
         {(title || caption) && (
-          <div className="space-y-0.5 px-3 py-2.5">
+          <div className="w-full space-y-0.5 px-3 pt-2.5">
             {title && <p className="truncate text-sm font-semibold">{title}</p>}
             {caption && caption !== title && <p className="line-clamp-2 text-sm text-muted-foreground">{caption}</p>}
           </div>
         )}
       </button>
+      <div className="flex items-center gap-1 px-1.5 py-1.5" role="group" aria-label="Picture actions">
+        <ReactionButton target={event} revealed={seen} className="h-8" />
+        <ZapButton target={event} revealed={seen} className="h-8" />
+      </div>
     </article>
   );
 }
@@ -270,10 +301,11 @@ function PictureComposer({ onPublished }: { onPublished: () => void }) {
 
 function PictureSkeleton() {
   return <div className={FEED_GRID} aria-hidden>{Array.from({ length: 6 }).map((_, index) => (
-    <div key={index} className="overflow-hidden rounded-xl border border-border bg-card">
+    <div key={index} className={CARD_FRAME}>
       <div className="flex items-center gap-2 px-3 py-2.5"><Skeleton className="size-7 rounded-full" /><Skeleton className="h-3 w-28" /></div>
       <Skeleton className="aspect-square w-full rounded-none" />
       <div className="space-y-1.5 px-3 py-2.5"><Skeleton className="h-3.5 w-2/3" /><Skeleton className="h-3 w-full" /></div>
+      <div className="flex gap-2 px-3 pb-2.5"><Skeleton className="h-6 w-10" /><Skeleton className="h-6 w-10" /></div>
     </div>
   ))}</div>;
 }

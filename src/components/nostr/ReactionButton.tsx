@@ -8,12 +8,15 @@ import { useToast } from '@/hooks/useToast';
 import { useReactions, summarizeReactions, useToggleReaction } from '@/hooks/useReactions';
 import { cn } from '@/lib/utils';
 
-/** Likes `target` (a note or reply) via NIP-25 reactions, from the feed or a thread. */
-export function ReactionButton({ target, className }: { target: NostrEvent; className?: string }) {
+/**
+ * Likes `target` (a note or reply) via NIP-25 reactions, from the feed or a thread.
+ * `revealed` gates the reactions query the same way it does for `ZapButton`.
+ */
+export function ReactionButton({ target, className, revealed = true }: { target: NostrEvent; className?: string; revealed?: boolean }) {
   const { user } = useCurrentUser();
   const { toast } = useToast();
   const [authOpen, setAuthOpen] = useState(false);
-  const reactions = useReactions(target.id);
+  const reactions = useReactions(target.id, { enabled: revealed });
   const toggle = useToggleReaction();
 
   const { count, byAuthor } = summarizeReactions(reactions.data);
