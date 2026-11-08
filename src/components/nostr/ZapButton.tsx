@@ -26,7 +26,7 @@ export function ZapButton({ target, className, revealed = true }: { target: Nost
   const { user } = useCurrentUser();
   const [authOpen, setAuthOpen] = useState(false);
   const [zapOpen, setZapOpen] = useState(false);
-  const receipts = useZapReceipts(target.id, { enabled: revealed || zapOpen });
+  const receipts = useZapReceipts(target, { enabled: revealed || zapOpen });
   const recipient = useAuthor(target.pubkey);
 
   const { totalSats } = summarizeZapReceipts(receipts.data);

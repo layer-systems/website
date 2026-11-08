@@ -1,10 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { isReply } from '@/lib/nostrUtils';
 import { notificationParentId } from '@/lib/notifications';
+import { validateZapReceipt, ZAP_RECEIPT_KIND } from '@/lib/zapReceipts';
 import { useCurrentUser } from './useCurrentUser';
 import { useLocalStorage } from './useLocalStorage';
+import { fetchZapperPubkey } from './useZapperPubkey';
 
 /**
  * Nostr event kinds that commonly represent activity directed at a person.
@@ -22,6 +24,15 @@ export type NotificationKind = 'mention' | 'reply' | 'reaction' | 'repost' | 'za
 export interface Notification {
   event: NostrEvent;
   kind: NotificationKind;
+  /**
+   * Who performed the action. For most kinds that's the event author, but a
+   * zap receipt is signed by the recipient's LNURL server, so for zaps it's
+   * the signer of the embedded (signature-verified) zap request instead.
+   * Display and mute filtering must use this, never `event.pubkey`.
+   */
+  actor: string;
+  /** Present only on zap notifications, from the validated receipt. */
+  zap?: { amountSats: number; comment: string };
 }
 
 function notificationKind(event: NostrEvent): NotificationKind {
@@ -48,35 +59,49 @@ function notificationKind(event: NostrEvent): NotificationKind {
 export function useNotifications() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
+  const queryClient = useQueryClient();
 
   return useQuery<Notification[]>({
     queryKey: ['nostr', 'notifications', user?.pubkey ?? ''],
     enabled: Boolean(user),
     queryFn: async ({ signal }) => {
       if (!user) return [];
-      const events = await nostr.query(
-        [{ kinds: [...NOTIFICATION_KINDS], '#p': [user.pubkey], limit: 100 }],
-        {
-          signal: AbortSignal.any([
-            signal,
-            AbortSignal.timeout(6000),
-          ]),
-        },
-      );
+      // The user's own LNURL server key is resolved alongside the query: only
+      // receipts it signed can be real zaps to them (NIP-57 Appendix F).
+      const [events, zapperPubkey] = await Promise.all([
+        nostr.query(
+          [{ kinds: [...NOTIFICATION_KINDS], '#p': [user.pubkey], limit: 100 }],
+          {
+            signal: AbortSignal.any([
+              signal,
+              AbortSignal.timeout(6000),
+            ]),
+          },
+        ),
+        fetchZapperPubkey(nostr, queryClient, user.pubkey),
+      ]);
 
       const seen = new Set<string>();
-      return events
-        .filter((event) => {
-          // Kind 3 is no longer queried, but guard anyway: a stale cache entry
-          // or a misbehaving relay must not classify a contact-list snapshot
-          // as a notification.
-          if (event.kind === 3) return false;
-          if (event.pubkey === user.pubkey || seen.has(event.id)) return false;
-          seen.add(event.id);
-          return true;
-        })
-        .sort((left, right) => right.created_at - left.created_at)
-        .map((event) => ({ event, kind: notificationKind(event) }));
+      const notifications = await Promise.all(events.map(async (event): Promise<Notification | null> => {
+        // Kind 3 is no longer queried, but guard anyway: a stale cache entry
+        // or a misbehaving relay must not classify a contact-list snapshot
+        // as a notification.
+        if (event.kind === 3 || seen.has(event.id)) return null;
+        seen.add(event.id);
+
+        if (event.kind === ZAP_RECEIPT_KIND) {
+          if (!zapperPubkey) return null;
+          const zap = await validateZapReceipt(event, { zapperPubkey, recipientPubkey: user.pubkey }).catch(() => null);
+          if (!zap) return null;
+          return { event, kind: 'zap', actor: zap.sender, zap: { amountSats: zap.amountSats, comment: zap.comment } };
+        }
+
+        return { event, kind: notificationKind(event), actor: event.pubkey };
+      }));
+
+      return notifications
+        .filter((notification): notification is Notification => Boolean(notification) && notification!.actor !== user.pubkey)
+        .sort((left, right) => right.event.created_at - left.event.created_at);
     },
     staleTime: 30_000,
   });

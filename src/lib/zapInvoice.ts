@@ -1,7 +1,7 @@
-import { bech32 } from '@scure/base';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex, hexToBytes, utf8ToBytes } from '@noble/hashes/utils.js';
 import { decodeBolt11 } from './bolt11';
+import { HEX_PUBKEY, lnurlPayUrl } from './lnurl';
 
 /**
  * The LNURL-pay (LUD-06) parameters a zap needs, as returned by the
@@ -16,13 +16,10 @@ export interface LnurlPayParams {
   nostrPubkey: string;
 }
 
-const HEX_PUBKEY = /^[0-9a-f]{64}$/;
-const LUD16_NAME = /^[a-z0-9._+-]+$/i;
-
 /**
- * Resolves the recipient's LNURL-pay URL from their kind-0 `lud16` (preferred)
- * or `lud06` field. Only `https://` URLs are accepted, so the pay parameters
- * can't be served (or tampered with) over plaintext HTTP.
+ * Resolves the recipient's LNURL-pay URL from the JSON content of their kind-0
+ * event. A thin wrapper over `lnurlPayUrl`, which owns the `lud16`/`lud06`
+ * parsing and the https-only rule shared with zap receipt validation.
  */
 export function resolveLnurlPayUrl(metadataContent: string): string | null {
   let parsed: unknown;
@@ -33,34 +30,10 @@ export function resolveLnurlPayUrl(metadataContent: string): string | null {
   }
   if (!parsed || typeof parsed !== 'object') return null;
   const { lud16, lud06 } = parsed as { lud16?: unknown; lud06?: unknown };
-
-  if (typeof lud16 === 'string' && lud16.trim()) {
-    const parts = lud16.trim().split('@');
-    if (parts.length !== 2) return null;
-    const [name, domain] = parts;
-    if (!LUD16_NAME.test(name) || !domain) return null;
-    let base: URL;
-    try {
-      base = new URL(`https://${domain}`);
-    } catch {
-      return null;
-    }
-    // Reject anything that smuggles a path, credentials or query into the domain part.
-    if (base.host !== domain.toLowerCase() || base.pathname !== '/' || base.search || base.username) return null;
-    return new URL(`/.well-known/lnurlp/${encodeURIComponent(name)}`, base).toString();
-  }
-
-  if (typeof lud06 === 'string' && lud06.trim()) {
-    try {
-      const { words } = bech32.decode(lud06.trim().toLowerCase(), false);
-      const url = new TextDecoder().decode(bech32.fromWords(words));
-      return url.startsWith('https://') ? url : null;
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
+  return lnurlPayUrl({
+    lud16: typeof lud16 === 'string' ? lud16 : undefined,
+    lud06: typeof lud06 === 'string' ? lud06 : undefined,
+  });
 }
 
 /**
