@@ -50,6 +50,15 @@ function isRenderableArticle(event: NostrEvent): boolean {
   );
 }
 
+/** NIP-23 publication time; malformed optional tags fall back to the event time. */
+function articlePublishedAt(event: NostrEvent): number {
+  const value = tagValue(event, 'published_at');
+  const timestamp = value && /^\d+$/.test(value) ? Number(value) : NaN;
+  return Number.isSafeInteger(timestamp) && timestamp >= 0 && timestamp <= 8.64e12
+    ? timestamp
+    : event.created_at;
+}
+
 function useRecentArticles() {
   const { nostr } = useNostr();
 
@@ -59,7 +68,7 @@ function useRecentArticles() {
       const events = await nostr.query([{ kinds: [ARTICLE_KIND], limit: 40 }], {
         signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]),
       });
-      return events.filter(isRenderableArticle).sort((a, b) => b.created_at - a.created_at);
+      return events.filter(isRenderableArticle);
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -340,7 +349,7 @@ function ArticleList({
     <>
       <AppSectionTitle>{scope === 'bookmarked' ? 'Bookmarked' : 'Recent'}</AppSectionTitle>
       <ul className="pb-2">
-        {query.data.map((event) => {
+        {[...query.data].sort((a, b) => articlePublishedAt(b) - articlePublishedAt(a)).map((event) => {
           const identifier = tagValue(event, 'd')!;
           const active =
             selected?.pubkey === event.pubkey && selected?.identifier === identifier;
@@ -383,7 +392,7 @@ function ArticleListItem({
     >
       <span className="line-clamp-2 text-[13px] font-medium leading-snug">{title}</span>
       <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
-        {displayName(event.pubkey, author.data?.metadata)} · {relativeTime(event.created_at)}
+        {displayName(event.pubkey, author.data?.metadata)} · {relativeTime(articlePublishedAt(event))}
       </span>
     </button>
   );
@@ -393,7 +402,7 @@ function ArticleView({ event }: { event: NostrEvent }) {
   const title = tagValue(event, 'title') ?? tagValue(event, 'd') ?? 'Untitled';
   const summary = tagValue(event, 'summary');
   const image = sanitizeUrl(tagValue(event, 'image'));
-  const publishedAt = Number(tagValue(event, 'published_at')) || event.created_at;
+  const publishedAt = articlePublishedAt(event);
 
   return (
     <article className="mx-auto max-w-2xl px-5 py-6 sm:px-8 sm:py-8">
