@@ -13,7 +13,8 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { useWindowManager } from '@/os/useWindowManager';
-import { desktopApps, getApp } from '@/os/registry';
+import { getApp } from '@/os/registry';
+import { useEnabledApps } from '@/os/useEnabledApps';
 import { cn } from '@/lib/utils';
 import type { AppParams } from '@/os/types';
 import { useIconLayout } from '@/os/useIconLayout';
@@ -158,7 +159,7 @@ export function MobileAppShell() {
 }
 
 function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
-  const apps = desktopApps();
+  const { desktopApps: apps } = useEnabledApps();
   const [columns, setColumns] = useState(() => window.innerWidth < 480 ? 3 : 4);
   const [dragging, setDragging] = useState<string | null>(null);
   const [target, setTarget] = useState<string | null>(null);

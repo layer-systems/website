@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, Bike, Bookmark, BookOpen, CalendarDays, FileText, FolderOpen, Image, Info, Link2, ListChecks, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, User } from 'lucide-react';
+import { Activity, Bike, Bookmark, BookOpen, CalendarDays, FileText, FolderOpen, Image, Info, Link2, ListChecks, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, Store, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -17,6 +17,7 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/feed')),
     defaultSize: { width: 640, height: 720 },
     minSize: { width: 360, height: 320 },
+    defaultEnabled: true,
   },
   {
     id: 'profile',
@@ -27,6 +28,7 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/profile')),
     defaultSize: { width: 620, height: 700 },
     minSize: { width: 360, height: 320 },
+    defaultEnabled: true,
   },
   {
     id: 'search',
@@ -37,6 +39,7 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/search')),
     defaultSize: { width: 680, height: 700 },
     minSize: { width: 360, height: 320 },
+    defaultEnabled: true,
   },
   {
     id: 'notes',
@@ -47,6 +50,7 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/notes')),
     defaultSize: { width: 600, height: 660 },
     minSize: { width: 340, height: 300 },
+    defaultEnabled: true,
     singleton: false,
   },
   {
@@ -58,6 +62,7 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/articles')),
     defaultSize: { width: 780, height: 760 },
     minSize: { width: 360, height: 320 },
+    defaultEnabled: true,
   },
   {
     id: 'images',
@@ -158,6 +163,7 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/relays')),
     defaultSize: { width: 720, height: 480 },
     minSize: { width: 380, height: 280 },
+    defaultEnabled: true,
   },
   {
     id: 'relay-admin',
@@ -171,6 +177,17 @@ export const APPS: AppDefinition[] = [
     requiresAuth: true,
   },
   {
+    id: 'app-store',
+    title: 'App Store',
+    description: 'Choose which apps are switched on for your desktop',
+    icon: Store,
+    category: 'system',
+    component: lazy(() => import('@/apps/app-store')),
+    defaultSize: { width: 640, height: 700 },
+    minSize: { width: 340, height: 320 },
+    locked: true,
+  },
+  {
     id: 'settings',
     title: 'Settings',
     description: 'Appearance, relays, media servers and your account',
@@ -179,6 +196,7 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/settings')),
     defaultSize: { width: 680, height: 600 },
     minSize: { width: 360, height: 320 },
+    locked: true,
   },
   {
     id: 'about',
@@ -189,6 +207,7 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/about')),
     defaultSize: { width: 520, height: 560 },
     minSize: { width: 320, height: 320 },
+    defaultEnabled: true,
   },
 ];
 
@@ -198,8 +217,9 @@ export function getApp(id: string): AppDefinition | undefined {
   return APPS_BY_ID.get(id);
 }
 
-export function desktopApps(): AppDefinition[] {
-  return APPS.filter((app) => app.showOnDesktop !== false);
+/** Whether the app is switched on before the user has made any choice. */
+export function isDefaultEnabled(app: AppDefinition): boolean {
+  return app.locked === true || app.defaultEnabled === true;
 }
 
 /** Min sizes keyed by app id, used when the viewport shrinks. */

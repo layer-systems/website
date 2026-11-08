@@ -7,8 +7,9 @@ the OS.
 ## The registry
 
 `src/os/registry.ts` is the single source of truth. Adding an entry there is all it takes
-for an app to appear on the desktop, in the **Go** menu, in the command palette and in the
-About app. There is no router change, no menu update, no icon grid to edit.
+for an app to exist. Whether it is *offered* — on the desktop, in the **Go** menu, in the
+command palette and in the About app — is decided by the [App Store](#the-app-store). There
+is no router change, no menu update, no icon grid to edit.
 
 ```ts
 interface AppDefinition {
@@ -24,6 +25,8 @@ interface AppDefinition {
   singleton?: boolean;     // default true — a second open focuses the existing window
   showOnDesktop?: boolean; // default true
   requiresAuth?: boolean;
+  defaultEnabled?: boolean; // default false — part of the basic set new users start with
+  locked?: boolean;         // always on, no switch in the App Store (App Store, Settings)
 }
 ```
 
@@ -31,6 +34,28 @@ Every `component` is a `React.lazy(() => import('@/apps/<id>'))`, so each app is
 code-split chunk and the initial bundle contains only the shell. `WindowFrame` supplies
 the `<Suspense>` skeleton and an `ErrorBoundary` around it — a crashing app takes down its
 own window, not the desktop.
+
+## The App Store
+
+The **App Store** (`src/apps/app-store`) is not a real store: it lists the apps in the
+registry and lets the user switch each one on or off. Only the basic set — those with
+`defaultEnabled: true` — is on for a new user, so the desktop starts small.
+
+- **Switched off means not offered, not forbidden.** Disabled apps are hidden from the
+  desktop, the mobile home screen, the **Go** menu, the command palette and the About app,
+  and any open windows of the app are closed. `openApp()` still works for every app,
+  because notes, profile links and NIP-19 deep links open apps on the user's behalf and a
+  link that silently does nothing would be worse than an unlisted app's window.
+- **Only explicit choices are stored** (`nostr:app-selection` in localStorage, as
+  `{ enabled, disabled }`). An app in neither list follows its registry default, so a new
+  app shipped later starts the way its author intended. Choosing the default again removes
+  the entry.
+- **`locked` apps cannot be switched off** — the App Store itself and Settings — so there
+  is always a way back in.
+- Read the current set with `useEnabledApps()` (`src/os/useEnabledApps.ts`); the pure
+  logic lives in `src/os/appSelection.ts`. Never read `APPS` directly to build a launcher.
+
+When adding an app, set `defaultEnabled: true` only if a first-time user needs it.
 
 ## The contract
 
@@ -89,7 +114,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 }
 ```
 
-## The eleven apps
+## The apps
 
 | App | `id` | Params | Notes |
 |---|---|---|---|
@@ -103,7 +128,8 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Spells | `spells` | `id?` | Saved/shareable REQ filters — kind 777, a third-party draft NIP |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Relay Admin | `relay-admin` | `relay?` | NIP-86 management console for relays you operate |
-| Settings | `settings` | — | Theme, relay list, Blossom servers, account, session |
+| App Store | `app-store` | — | Switch apps on or off. Always on |
+| Settings | `settings` | — | Theme, relay list, Blossom servers, account, session. Always on |
 | About | `about` | — | What this is, the app list, the shortcuts |
 
 ### Spells are a third-party kind, adopted for interop

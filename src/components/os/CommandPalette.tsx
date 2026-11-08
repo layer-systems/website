@@ -8,7 +8,8 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 import { useWindowManager } from '@/os/useWindowManager';
-import { APPS, getApp } from '@/os/registry';
+import { getApp } from '@/os/registry';
+import { useEnabledApps } from '@/os/useEnabledApps';
 
 interface CommandPaletteProps {
   open: boolean;
@@ -18,6 +19,7 @@ interface CommandPaletteProps {
 /** ⌘K launcher: open an app, or jump to a window that is already open. */
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const { openApp, windows, focusWindow, restoreWindow } = useWindowManager();
+  const { apps } = useEnabledApps();
 
   const run = (action: () => void) => {
     action();
@@ -63,7 +65,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         )}
 
         <CommandGroup heading="Apps">
-          {APPS.map((app) => (
+          {apps.map((app) => (
             <CommandItem
               key={app.id}
               value={`${app.title} ${app.description}`}

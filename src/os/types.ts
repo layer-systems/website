@@ -51,6 +51,16 @@ export interface AppDefinition {
   showOnDesktop?: boolean;
   /** Render a login prompt instead of the app when signed out. */
   requiresAuth?: boolean;
+  /**
+   * Part of the basic set that is switched on for a new user. Everything else
+   * starts switched off and can be added from the App Store. Defaults to false.
+   */
+  defaultEnabled?: boolean;
+  /**
+   * Always on and not offered a switch in the App Store, because the user
+   * would lose the way to turn anything back on. Implies `defaultEnabled`.
+   */
+  locked?: boolean;
 }
 
 export interface WindowState {

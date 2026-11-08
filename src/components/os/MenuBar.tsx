@@ -15,7 +15,8 @@ import { LoginArea } from '@/components/auth/LoginArea';
 import { NotificationsPopover } from '@/components/nostr/NotificationsCenter';
 import { MenuBarClock } from './MenuBarClock';
 import { useWindowManager } from '@/os/useWindowManager';
-import { APPS, getApp } from '@/os/registry';
+import { getApp } from '@/os/registry';
+import { useEnabledApps } from '@/os/useEnabledApps';
 import { MENUBAR_HEIGHT } from '@/os/layout';
 import { useTheme } from '@/hooks/useTheme';
 import { useRelayStatus } from '@/hooks/useRelayStatus';
@@ -48,6 +49,8 @@ export function MenuBar({ onOpenCommandPalette }: MenuBarProps) {
     resetSession,
   } = useWindowManager();
 
+  const { apps: enabledApps } = useEnabledApps();
+
   const focused = useMemo(
     () => windows.find((win) => win.id === focusedId),
     [windows, focusedId],
@@ -71,6 +74,7 @@ export function MenuBar({ onOpenCommandPalette }: MenuBarProps) {
               Settings…
               <MenubarShortcut>⌘,</MenubarShortcut>
             </MenubarItem>
+            <MenubarItem onSelect={() => openApp('app-store')}>App Store…</MenubarItem>
             <MenubarItem onSelect={() => openApp('relays')}>Relays…</MenubarItem>
             <MenubarSeparator />
             <MenubarItem onSelect={onOpenCommandPalette}>
@@ -111,7 +115,7 @@ export function MenuBar({ onOpenCommandPalette }: MenuBarProps) {
         <MenubarMenu>
           <MenubarTrigger className={TRIGGER_CLASS}>Go</MenubarTrigger>
           <MenubarContent align="start" className="w-56">
-            {APPS.map((app) => (
+            {enabledApps.map((app) => (
               <MenubarItem key={app.id} onSelect={() => openApp(app.id)}>
                 <app.icon className="size-4 opacity-70" aria-hidden />
                 {app.title}
