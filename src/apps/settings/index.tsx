@@ -412,7 +412,7 @@ function PrivacySection() {
         <div className="space-y-0.5">
           <Label htmlFor="publish-client-tag">Identify LAYER.systems on public posts</Label>
           <p id="client-tag-description" className="text-xs text-muted-foreground">
-            Adds a client tag to notes, reposts, reactions, and articles. Lists and private events are never tagged automatically.
+            Adds a client tag to notes, reposts, reactions, photos, and articles. Lists and private events are never tagged automatically.
           </p>
         </div>
         <Switch id="publish-client-tag" aria-describedby="client-tag-description"
