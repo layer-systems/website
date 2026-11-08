@@ -49,9 +49,10 @@ const defaultConfig: AppConfig = {
 export function App() {
   return (
     <UnheadProvider head={head}>
-      <AppProvider storageKey="nostr:app-config" defaultConfig={defaultConfig}>
-        <QueryClientProvider client={queryClient}>
-          <NostrLoginProvider storageKey='nostr:login'>
+      {/* Logins wrap the config so relay and Blossom lists are scoped to the active account. */}
+      <NostrLoginProvider storageKey='nostr:login'>
+        <AppProvider storageKey="nostr:app-config" defaultConfig={defaultConfig}>
+          <QueryClientProvider client={queryClient}>
             <NostrProvider>
               <NostrSync />
               <TooltipProvider>
@@ -63,9 +64,9 @@ export function App() {
                 </WindowManagerProvider>
               </TooltipProvider>
             </NostrProvider>
-          </NostrLoginProvider>
-        </QueryClientProvider>
-      </AppProvider>
+          </QueryClientProvider>
+        </AppProvider>
+      </NostrLoginProvider>
     </UnheadProvider>
   );
 }
