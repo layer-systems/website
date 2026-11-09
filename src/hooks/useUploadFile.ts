@@ -4,6 +4,7 @@ import { BlossomUploader } from '@nostrify/nostrify/uploaders';
 import { useCurrentUser } from "./useCurrentUser";
 import { useAppContext } from "./useAppContext";
 import { getEffectiveBlossomServers } from "@/lib/appBlossom";
+import { stripImageMetadata } from "@/lib/stripImageMetadata";
 
 export function useUploadFile() {
   const { user } = useCurrentUser();
@@ -29,7 +30,11 @@ export function useUploadFile() {
         signer: user.signer,
       });
 
-      const tags = await uploader.upload(file);
+      // Strip metadata before the server receives any image bytes. Processing
+      // failures must never fall back to uploading the original.
+      const tags = file.type.startsWith('image/')
+        ? await uploader.media(await stripImageMetadata(file))
+        : await uploader.upload(file);
       return tags;
     },
   });
