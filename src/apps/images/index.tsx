@@ -284,11 +284,11 @@ function PictureComposer({ onPublished }: { onPublished: () => void }) {
       const uploadTags = await upload.mutateAsync(file);
       const url = uploadTags.find(([name, value]) => name === 'url' && value)?.[1];
       if (!url) throw new Error('Upload did not return a URL.');
-      const pictureTitle = title.trim() || file.name;
+      const pictureTitle = title.trim() || 'Picture';
       const imageAlt = alt.trim() || description.trim() || pictureTitle;
-      const mediaType = uploadTags.find(([name]) => name === 'm')?.[1] || file.type;
-      const hash = uploadTags.find(([name]) => name === 'x')?.[1]
-        || Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', await file.arrayBuffer())), (byte) => byte.toString(16).padStart(2, '0')).join('');
+      const mediaType = uploadTags.find(([name]) => name === 'm')?.[1];
+      const hash = uploadTags.find(([name]) => name === 'x')?.[1];
+      if (!mediaType || !hash) throw new Error('Upload did not return the processed image type and hash.');
       const imeta = ['imeta', `alt ${imageAlt}`, `m ${mediaType}`, `x ${hash}`, `url ${url}`, ...uploadTags
         .filter(([name, value]) => !['url', 'alt', 'm', 'x'].includes(name) && value)
         .map(([name, value]) => `${name} ${value}`)];
