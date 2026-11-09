@@ -29,7 +29,11 @@ export function useUploadFile() {
         signer: user.signer,
       });
 
-      const tags = await uploader.upload(file);
+      // BUD-05 lets the server optimize images and strip metadata according to
+      // its policy. Do not fall back to uploading the original if processing fails.
+      const tags = file.type.startsWith('image/')
+        ? await uploader.media(file)
+        : await uploader.upload(file);
       return tags;
     },
   });
