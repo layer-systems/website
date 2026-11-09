@@ -168,7 +168,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
   const [picked, setPicked] = useState<string | null>(null);
   const [pickedOrder, setPickedOrder] = useState<string[] | null>(null);
   const [announcement, setAnnouncement] = useState('');
-  const dragStart = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
+  const dragStart = useRef<{ id: string; pointerId: number; x: number; y: number; moved: boolean } | null>(null);
   const suppressClick = useRef(false);
   const targetRef = useRef<string | null>(null);
   const { layout, setMobile } = useIconLayout(apps.map((app) => app.id), { columns, rows: Math.max(8, Math.ceil(apps.length / columns) + 4) });
@@ -196,7 +196,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
   useEffect(() => {
     const onMove = (event: PointerEvent) => {
       const active = dragStart.current;
-      if (!active) return;
+      if (!active || event.pointerId !== active.pointerId) return;
       if (!active.moved && Math.hypot(event.clientX - active.x, event.clientY - active.y) < MOBILE_DRAG_THRESHOLD) return;
       active.moved = true;
       setDragging(active.id);
@@ -205,12 +205,15 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
       targetRef.current = nextTarget;
       setTarget(nextTarget);
     };
-    const onEnd = () => {
+    const onEnd = (event: PointerEvent) => {
       const active = dragStart.current;
-      if (active?.moved) {
+      if (!active || event.pointerId !== active.pointerId) return;
+      if (active.moved) {
         suppressClick.current = true;
         const target = targetRef.current;
-        reorder(active.id, target && target !== active.id ? target : null);
+        if (event.type === 'pointerup' && target && target !== active.id) {
+          reorder(active.id, target);
+        }
       }
       dragStart.current = null;
       setDragging(null);
@@ -276,8 +279,10 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
             aria-pressed={picked === app.id || undefined}
             aria-describedby={picked === app.id ? 'mobile-icon-layout-status' : undefined}
             onPointerDown={(event) => {
-              if (event.button !== 0) return;
-              dragStart.current = { id: app.id, x: event.clientX, y: event.clientY, moved: false };
+              if (event.button !== 0 || !event.isPrimary) return;
+              suppressClick.current = false;
+              event.currentTarget.setPointerCapture(event.pointerId);
+              dragStart.current = { id: app.id, pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
             }}
             onClick={() => {
               if (suppressClick.current) {
@@ -288,7 +293,7 @@ function HomeScreen({ onOpen }: { onOpen: (id: string) => void }) {
             }}
             onKeyDown={(event) => onKeyDown(app.id, event)}
             className={cn(
-              'flex flex-col items-center gap-2 rounded-xl p-2 transition-[transform,background-color,box-shadow] motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-95',
+              'touch-none select-none flex flex-col items-center gap-2 rounded-xl p-2 transition-[transform,background-color,box-shadow] motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring active:scale-95',
               dragging === app.id && 'scale-105 bg-primary/15 shadow-lg',
               target === app.id && dragging !== app.id && 'bg-primary/10 ring-2 ring-primary/50',
               picked === app.id && 'bg-primary/15',
