@@ -165,7 +165,7 @@ function useSeen<T extends Element>() {
   return [ref, seen] as const;
 }
 
-function PictureCard({ event, onOpen }: { event: NostrEvent; onOpen: (id: string) => void }) {
+export function PictureCard({ event, onOpen }: { event: NostrEvent; onOpen: (id: string) => void }) {
   const images = pictureImages(event);
   const cover = images[0];
   const title = pictureTitle(event);
