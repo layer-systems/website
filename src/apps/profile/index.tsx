@@ -10,6 +10,9 @@ import { NoteContent } from '@/components/nostr/NoteContent';
 import { ProfileRelaysDialog } from '@/components/nostr/ProfileRelaysDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { PictureCard, PictureGrid } from '@/apps/images';
+import { isPicturePost } from '@/lib/picturePosts';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useNip05 } from '@/hooks/useNip05';
@@ -24,19 +27,19 @@ import type { AppProps } from '@/os/types';
  * parent for context, a reply on a profile's timeline reads as an orphaned
  * root post rather than what it is.
  */
-function useAuthorNotes(pubkey: string | undefined, relays: string[] | undefined) {
+function useAuthorNotes(pubkey: string | undefined, relays: string[] | undefined, kind: 1 | 20 = 1) {
   const { nostr } = useNostr();
 
   return useQuery<NostrEvent[]>({
-    queryKey: ['nostr', 'author-notes', pubkey ?? '', relays?.join(',') ?? ''],
+    queryKey: ['nostr', 'author-notes', pubkey ?? '', relays?.join(',') ?? '', kind],
     enabled: Boolean(pubkey),
     queryFn: async ({ signal }) => {
       const events = await nostr.query(
-        [{ kinds: [1], authors: [pubkey!], limit: 40 }],
+        [{ kinds: [kind], authors: [pubkey!], limit: 40 }],
         { signal: AbortSignal.any([signal, AbortSignal.timeout(6000)]), relays },
       );
       return events
-        .filter((event) => event.content.trim().length > 0 && !isReply(event))
+        .filter((event) => kind === 20 ? isPicturePost(event) : event.content.trim().length > 0 && !isReply(event))
         .sort((a, b) => b.created_at - a.created_at);
     },
     staleTime: 60_000,
@@ -44,12 +47,14 @@ function useAuthorNotes(pubkey: string | undefined, relays: string[] | undefined
 }
 
 export default function ProfileApp({ params, setTitle }: AppProps) {
+  const { openApp } = useWindowManager();
   const { user } = useCurrentUser();
   const pubkey = params.pubkey || user?.pubkey;
 
   const author = useAuthor(pubkey);
   const { data: nip05 } = useNip05(pubkey, author.data?.metadata?.nip05);
   const notes = useAuthorNotes(pubkey, decodeRelayHints(params.relays));
+  const pictures = useAuthorNotes(pubkey, decodeRelayHints(params.relays), 20);
   const name = pubkey ? displayName(pubkey, author.data?.metadata) : '';
 
   useEffect(() => {
@@ -125,10 +130,12 @@ export default function ProfileApp({ params, setTitle }: AppProps) {
           )}
         </div>
 
-        <div className="border-t border-border">
-          <h2 className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Notes
-          </h2>
+        <Tabs key={pubkey} defaultValue="notes" className="border-t border-border">
+          <TabsList className="mx-4 mt-2" aria-label="Profile posts">
+            <TabsTrigger value="notes">Notes</TabsTrigger>
+            <TabsTrigger value="pictures">Pictures</TabsTrigger>
+          </TabsList>
+          <TabsContent value="notes">
           {notes.isLoading ? (
             <div className="space-y-3 p-4">
               <Skeleton className="h-4 w-3/4" />
@@ -140,7 +147,24 @@ export default function ProfileApp({ params, setTitle }: AppProps) {
           ) : (
             <EmptyState title="No notes found" hint="This person has not posted, or your relays do not carry them." />
           )}
-        </div>
+          </TabsContent>
+          <TabsContent value="pictures" className="@container">
+            {pictures.isLoading ? (
+              <PictureGrid>
+                <Skeleton className="aspect-square w-full" />
+                <Skeleton className="aspect-square w-full" />
+              </PictureGrid>
+            ) : pictures.isError ? (
+              <EmptyState title="Couldn’t load pictures" hint="Check your relays and try again." action={<Button size="sm" onClick={() => void pictures.refetch()}>Try again</Button>} />
+            ) : pictures.data?.length ? (
+              <PictureGrid>
+                {pictures.data.map((event) => <PictureCard key={event.id} event={event} onOpen={(id) => openApp('images', { id })} />)}
+              </PictureGrid>
+            ) : (
+              <EmptyState title="No pictures found" hint="This person has not posted pictures, or your relays do not carry them." />
+            )}
+          </TabsContent>
+        </Tabs>
       </AppBody>
     </AppLayout>
   );

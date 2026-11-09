@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ImagePlus, Images, Loader2, Search, X } from 'lucide-react';
@@ -101,6 +101,10 @@ const CARD_FRAME = 'overflow-hidden border-b border-border bg-card @xl:rounded-x
  */
 const FEED_GRID = 'mx-auto grid w-full max-w-xl grid-cols-1 @xl:gap-4 @xl:p-3 @3xl:max-w-6xl @3xl:grid-cols-2 @3xl:gap-5 @3xl:p-5 @6xl:grid-cols-3 @[96rem]:max-w-[96rem] @[96rem]:grid-cols-4';
 
+export function PictureGrid({ children }: { children: ReactNode }) {
+  return <div className={FEED_GRID}>{children}</div>;
+}
+
 function PictureFeed({ feedScope, tag, search, onTagChange, onSearchChange, onOpen }: {
   feedScope: FeedScopeState; tag: string; search: string; onTagChange: (tag: string) => void; onSearchChange: (value: string) => void; onOpen: (id: string) => void;
 }) {
@@ -139,9 +143,9 @@ function PictureFeed({ feedScope, tag, search, onTagChange, onSearchChange, onOp
         ) : query.isPending ? <PictureSkeleton /> : query.isError ? (
           <EmptyState title="Couldn’t load pictures" hint="Check your relays and try again." action={<Button size="sm" onClick={() => query.refetch()}>Try again</Button>} />
         ) : pictures.length ? (
-          <div className={FEED_GRID}>
+          <PictureGrid>
             {pictures.map((event) => <PictureCard key={event.id} event={event} onOpen={onOpen} />)}
-          </div>
+          </PictureGrid>
         ) : <EmptyState title={search || tag ? 'No matching pictures' : 'No pictures yet'} hint={search || tag ? 'Try a different search or clear the filter.' : scope === 'global' ? 'Your relays have not returned any picture posts.' : 'Nobody here has posted pictures yet. Try Global to see more.'} action={!search && !tag && scope !== 'global' ? <Button size="sm" variant="outline" onClick={() => setScope('global')}>Browse Global</Button> : undefined} />}
       </AppBody>
     </AppLayout>
@@ -165,7 +169,7 @@ function useSeen<T extends Element>() {
   return [ref, seen] as const;
 }
 
-function PictureCard({ event, onOpen }: { event: NostrEvent; onOpen: (id: string) => void }) {
+export function PictureCard({ event, onOpen }: { event: NostrEvent; onOpen: (id: string) => void }) {
   const images = pictureImages(event);
   const cover = images[0];
   const title = pictureTitle(event);
