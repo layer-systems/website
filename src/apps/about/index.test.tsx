@@ -17,6 +17,6 @@ describe('About app', () => {
       />,
     );
 
-    expect(screen.getByText('Version 1.2.0')).toBeInTheDocument();
+    expect(screen.getByText('Version 1.2.1')).toBeInTheDocument();
   });
 });
