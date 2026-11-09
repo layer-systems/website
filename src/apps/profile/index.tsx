@@ -10,7 +10,7 @@ import { NoteContent } from '@/components/nostr/NoteContent';
 import { ProfileRelaysDialog } from '@/components/nostr/ProfileRelaysDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { PictureCard } from '@/apps/images';
+import { PictureCard, PictureGrid } from '@/apps/images';
 import { isPicturePost } from '@/lib/picturePosts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -150,16 +150,16 @@ export default function ProfileApp({ params, setTitle }: AppProps) {
           </TabsContent>
           <TabsContent value="pictures" className="@container">
             {pictures.isLoading ? (
-              <div className="grid grid-cols-1 gap-4 p-4 @3xl:grid-cols-2">
+              <PictureGrid>
                 <Skeleton className="aspect-square w-full" />
                 <Skeleton className="aspect-square w-full" />
-              </div>
+              </PictureGrid>
             ) : pictures.isError ? (
               <EmptyState title="Couldn’t load pictures" hint="Check your relays and try again." action={<Button size="sm" onClick={() => void pictures.refetch()}>Try again</Button>} />
             ) : pictures.data?.length ? (
-              <div className="grid grid-cols-1 gap-4 @xl:p-4 @3xl:grid-cols-2">
+              <PictureGrid>
                 {pictures.data.map((event) => <PictureCard key={event.id} event={event} onOpen={(id) => openApp('images', { id })} />)}
-              </div>
+              </PictureGrid>
             ) : (
               <EmptyState title="No pictures found" hint="This person has not posted pictures, or your relays do not carry them." />
             )}
