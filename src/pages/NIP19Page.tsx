@@ -5,6 +5,7 @@ import NotFound from './NotFound';
 import { isCalendarEventKind } from '@/lib/calendarEvents';
 import { encodeRelayHints } from '@/lib/nostrUtils';
 import { LEGACY_GENERIC_KIND, SET_KINDS } from '@/lib/nip51';
+import { isNsiteKind } from '@/lib/nsites';
 import { PODCAST_EPISODE_KIND, isHexPubkey } from '@/lib/podcasts';
 import { POLL_KIND } from '@/lib/polls';
 import type { AppParams } from '@/os/types';
@@ -19,6 +20,7 @@ function withHints(params: AppParams, relays: string[] | undefined): AppParams {
 function naddrApp(kind: number): string {
   if (isCalendarEventKind(kind)) return 'calendar';
   if (SET_KINDS.includes(kind) || kind === LEGACY_GENERIC_KIND) return 'lists';
+  if (isNsiteKind(kind)) return 'napps';
   return 'articles';
 }
 

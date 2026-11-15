@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Activity, BarChart3, Bike, Bookmark, BookOpen, CalendarDays, FileText, FolderOpen, Image, Info, Link2, ListChecks, Podcast, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, Store, User } from 'lucide-react';
+import { Activity, AppWindow, BarChart3, Bike, Bookmark, BookOpen, CalendarDays, FileText, FolderOpen, Image, Info, Link2, ListChecks, Podcast, Radio, Rss, Search, Settings, ShieldCheck, Sparkles, Store, User } from 'lucide-react';
 import type { AppDefinition } from './types';
 
 /**
@@ -173,6 +173,16 @@ export const APPS: AppDefinition[] = [
     component: lazy(() => import('@/apps/spells')),
     defaultSize: { width: 760, height: 700 },
     minSize: { width: 380, height: 320 },
+  },
+  {
+    id: 'napps',
+    title: 'Napps',
+    description: 'Discover and run websites and apps published on Nostr (nsites and napps)',
+    icon: AppWindow,
+    category: 'tools',
+    component: lazy(() => import('@/apps/napps')),
+    defaultSize: { width: 900, height: 720 },
+    minSize: { width: 360, height: 360 },
   },
   {
     id: 'relays',

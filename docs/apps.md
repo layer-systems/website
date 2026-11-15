@@ -128,6 +128,7 @@ export default function ExampleApp({ setTitle }: AppProps) {
 | Live | `live` | `pubkey?`, `identifier?` | NIP-53 kind 30311 live events + kind 1311 chat |
 | Polls | `polls` | `id?`, `relays?` | NIP-88 kind 1068 polls and kind 1018 responses. A `nevent` with kind 1068 opens here |
 | Spells | `spells` | `id?` | Saved/shareable REQ filters — kind 777, a third-party draft NIP |
+| Napps | `napps` | `kind?`, `pubkey?`, `identifier?`, `relays?` | NIP-5A nsites (15128/35128) run in a window through a gateway; nostrapps napps (35130) are listed and handed off. An `naddr` of those kinds opens here |
 | Relays | `relays` | — | Connection state, subscription count, measured latency |
 | Relay Admin | `relay-admin` | `relay?` | NIP-86 management console for relays you operate |
 | App Store | `app-store` | — | Switch apps on or off. Always on |
@@ -171,6 +172,34 @@ The app therefore:
 
 `PollCard` (`src/components/nostr/PollCard.tsx`) is the reusable row for a kind 1068 event;
 the Note app uses it when a `note1` link turns out to be a poll.
+
+### Napps run on someone else's origin, never ours
+
+The Napps app (`src/apps/napps`, parsing in `src/lib/nsites.ts`) lists nsites (NIP-5A
+kinds 15128 and 35128) and napps (kind 35130, from the
+[nostrapps](https://github.com/eskema/nostrapps) launcher), and runs nsites in a window.
+The private key of a local login sits in this origin's `localStorage`, so a site must
+never load on it. Sites are therefore served by a **NIP-5A gateway** (`nsite.lol` by
+default, changeable in the app) at the canonical address (`<npub>.<gateway>` or
+`<pubkeyB36><d>.<gateway>`). Each site gets its own origin that cannot read ours. The
+iframe is sandboxed without `allow-top-navigation`, and camera, microphone and location
+are not delegated.
+
+- **Manifests are validated before they reach a URL.** The gateway host is built from the
+  hex pubkey and a `d` tag that matches NIP-5A's canonical pattern, never from raw tag
+  text. A site whose identifier cannot be a hostname label is listed but not opened.
+  Icons are loaded from the manifest's own `https:` Blossom servers by hash, and `source`
+  links that carry credentials are dropped.
+- **Single-site lookups filter by `authors`**, because a `d` tag is not a trust boundary.
+- **Discovery asks extra relays.** Manifests are mostly published to relays that general
+  clients don't read (`relay.nsite.lol`, `nos.lol`, `nostr.mom`), so these are queried
+  along with the user's read relays. Napps get a filter of their own so the far more
+  numerous nsites cannot crowd them out of the limit.
+- **Napps are handed off, not run.** A napp expects its launcher to inject a bridge
+  (`window.nostr`, `window.nostrdb`, `window.napp`), and gateways do not serve kind 35130.
+  The app links to `nostrapps.com/#app=<naddr>`. That launcher refuses to be framed, so
+  the link opens a new tab. [`napps.md`](./napps.md) describes what running napps in
+  LAYER would take.
 
 ### Live only links out to playback, it doesn't embed a player
 

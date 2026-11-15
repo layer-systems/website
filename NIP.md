@@ -43,6 +43,15 @@ writes **10064** only. A `p` tag in kind 10154 is displayed as a confirmed host/
 only when that person's newest, self-signed kind 10064 lists the show's key; otherwise
 it is shown as an unconfirmed claim.
 
+- [NIP-5A: Static Websites](https://github.com/nostr-protocol/nips/blob/master/5A.md)
+  (draft, optional) — the Napps app (`src/apps/napps/`, parsing in `src/lib/nsites.ts`)
+  reads root (kind 15128) and named (kind 35128) site manifests. It runs a site through a
+  NIP-5A host server at the canonical `<npub>` or `<pubkeyB36><dTag>` subdomain, and never
+  on this client's own origin. Manifests need at least one valid `path` tag, a root site
+  must not carry a `d` tag, and a named site is opened only when its `d` tag matches the
+  canonical `^[a-z0-9-]{1,13}$` (not ending in `-`). Snapshots (5128), copy lineage
+  (`a`/`A`), the aggregate hash and publishing are not implemented.
+
 ## Adopted third-party kinds
 
 - **Kind `1301` (NIP-101e / deployed RUNSTR fitness dialect)** — the Workouts app
@@ -50,6 +59,12 @@ it is shown as an unconfirmed claim.
   `distance`, `elevation_gain`, `workout_start_time`, heart-rate, `cadence`, `source`
   and `t` tags. It includes the required human-readable `alt` tag. No custom schema
   extensions are introduced.
+
+- **Kind `35130` (nostrapps "napp")** — from the
+  [nostrapps](https://github.com/eskema/nostrapps) launcher: a NIP-5A-style manifest
+  (`path`, `server`, `d`) plus `title`, `description`, `icon`, `action` and `requires`
+  tags. The Napps app reads these to list napps and hands them off to the launcher.
+  It does not publish them or run them itself; see `docs/napps.md`.
 
 - **Kind `777` ("Spell")** — a third-party draft NIP from the
   [Grimoire](https://github.com/purrgrammer/grimoire) client, adopted as-is for interop.
