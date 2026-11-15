@@ -79,6 +79,7 @@ These tests run with `npm run test`, not the focused `test:nips` command.
 | 53 live events | `src/apps/live/` | Open: live-event metadata and chat references. |
 | 56 reports | `src/hooks/useReport.ts` | Open: reporting targets and report types. |
 | 57 zaps | `src/lib/zapInvoice.test.ts`, `src/lib/zapReceipts.test.ts`, `src/hooks/useCreateZapInvoice.test.tsx`, `src/hooks/useZaps.test.ts` | Regression only: request/invoice binding and signed receipt validation; real LNURL/wallet round-trip remains open. |
+| 5A nsites | `src/lib/nsites.ts`, `src/apps/napps/`, `naddr` kind-15128/35128 routes in [routing](../src/test/nips/routing.test.tsx) | Open: no dedicated tests yet for manifest validation, the `pubkeyB36` encoding, canonical `d` tags or newest-manifest selection. Snapshots and aggregate hashes are not implemented. |
 | 65 relay lookup | `src/lib/relayListSync.test.ts`, `src/hooks/useRelayList.test.tsx` | Regression only beyond focused parser/serializer checks: safe relay-list editing; independent lookup/routing tests remain open. |
 | 84 highlights | `src/hooks/useHighlights.ts` | Open: excerpt and source tags. |
 | 86 / 98 relay management and HTTP auth | `src/lib/nip86.test.ts`, `src/hooks/useNip86.test.tsx` | Regression only: request/auth payload, capability gating, response validation; independent signed auth vectors remain open. |

@@ -38,6 +38,8 @@ describe('NIP-19 — root identifier routes', () => {
     [nip19.naddrEncode({ kind: 30023, pubkey: AUTHOR, identifier: 'article', relays: ['wss://relay.example.com'] }), 'articles', { kind: '30023', pubkey: AUTHOR, identifier: 'article', relays: 'wss://relay.example.com' }],
     [nip19.naddrEncode({ kind: 30000, pubkey: AUTHOR, identifier: 'friends' }), 'lists', { kind: '30000', pubkey: AUTHOR, identifier: 'friends' }],
     [nip19.naddrEncode({ kind: 31922, pubkey: AUTHOR, identifier: 'meetup' }), 'calendar', { kind: '31922', pubkey: AUTHOR, identifier: 'meetup' }],
+    [nip19.naddrEncode({ kind: 35128, pubkey: AUTHOR, identifier: 'blog' }), 'napps', { kind: '35128', pubkey: AUTHOR, identifier: 'blog' }],
+    [nip19.naddrEncode({ kind: 15128, pubkey: AUTHOR, identifier: '' }), 'napps', { kind: '15128', pubkey: AUTHOR, identifier: '' }],
   ])('19-ROUTE: %s opens %s with decoded parameters', (identifier, appId, params) => {
     open(identifier);
     expect(JSON.parse(screen.getByTestId('boot').textContent ?? '')).toEqual({ appId, params });
